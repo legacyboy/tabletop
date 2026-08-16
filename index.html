@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en-CA">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Executive Tabletop D20</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header>
+  <div>
+    <h1>Executive Tabletop D20</h1>
+    <p>Scenario-driven D20 rolls, state dashboard, facilitator notes, and scenario editor.</p>
+  </div>
+  <nav>
+    <button data-tab="play" class="active">Play</button>
+    <button data-tab="editor">Scenario editor</button>
+    <button data-tab="help">How to make scenarios</button>
+  </nav>
+</header>
+<main>
+<section id="play" class="tab active">
+  <div class="grid">
+    <section class="card wide">
+      <h2 id="title"></h2>
+      <p id="summary"></p>
+      <video id="media" controls></video>
+    </section>
+    <aside class="card">
+      <h2>Scenario</h2>
+      <select id="scenarioSelect"></select>
+      <h2>D20</h2>
+      <div id="die">?</div>
+      <button id="roll" disabled>Roll digital D20</button>
+      <input id="manual" type="number" min="1" max="20" placeholder="Manual roll 1-20" />
+      <button id="useManual" disabled>Use physical roll</button>
+      <pre id="outcome">Choose an option.</pre>
+    </aside>
+    <section class="card">
+      <h2>State</h2>
+      <div id="state"></div>
+      <p id="flags"></p>
+    </section>
+    <section class="card wide">
+      <h2>Current beat</h2>
+      <p id="narrative"></p>
+      <h3 id="prompt"></h3>
+      <div id="options"></div>
+    </section>
+    <section class="card full">
+      <h2>Facilitator notes and log</h2>
+      <textarea id="notes" placeholder="Capture gaps, owners, decisions, and hotwash notes..."></textarea>
+      <button id="export">Export run log</button>
+      <div id="log"></div>
+    </section>
+  </div>
+</section>
+<section id="editor" class="tab">
+  <div class="grid">
+    <section class="card wide">
+      <h2>Scenario JSON editor</h2>
+      <button id="loadCurrent">Load current scenario</button>
+      <button id="loadTemplate">Load blank template</button>
+      <button id="validate">Validate</button>
+      <button id="apply">Apply to session</button>
+      <button id="downloadScenario">Download scenario JSON</button>
+      <textarea id="editorJson"></textarea>
+    </section>
+    <aside class="card"><h2>Validation</h2><pre id="validation">No validation run.</pre></aside>
+  </div>
+</section>
+<section id="help" class="tab"><article class="card"><div id="helpText"></div></article></section>
+</main>
+<script src="src/engine.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

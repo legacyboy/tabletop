@@ -1,0 +1,12 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Local run logs
+*.log
+
+# Python
+__pycache__/
+*.pyc

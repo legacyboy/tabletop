@@ -1,0 +1,13 @@
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_00.jpg'
+duration 7
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_01.jpg'
+duration 8
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_02.jpg'
+duration 9
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_03.jpg'
+duration 9
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_04.jpg'
+duration 9
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_05.jpg'
+duration 8
+file '/mnt/data/executive-tabletop-original-scenario-bundle/assets/video_slides/slide_05.jpg'
