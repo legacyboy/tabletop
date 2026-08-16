@@ -1,9 +1,16 @@
 {
   "scenario_id": "bramble_badger_deepfake",
   "title": "Bramble Badger Deepfake Crisis",
-  "summary": "The original goofy cartoon fake executive scenario. A cartoon badger executive video goes viral, making absurd claims about digital banking. The scenario tests misinformation response, public communications, frontline readiness, fraud piggybacking, and governance escalation.",
-  "media": "assets/bramble_badger_fake_exec_video.mp4",
-  "difficulty_modifier": 0,
+  "version": 2,
+
+  "intro": {
+    "video": "assets/bramble_badger_fake_exec_video.mp4",
+    "narrative": "A cartoon badger executive video is spreading fast through community channels. In it, the CGI 'Bramble Badger' claims digital banking is powered by raccoons, that member withdrawals are switching to cheese wheels, and that a 'cheese reserve' backs every account. The clip is absurd, but the framing around it claims it was leaked from an internal executive message, and members are already calling. You are the executive team, on the clock.",
+    "facilitator_notes": "Show the intro video, read the narrative, then hand control to the group. Do not suggest actions. Let them decide. End when the timer runs out or when the group stabilizes the situation and wants to hotwash. Watch whether they address the misinformation, the fraud piggybacking risk, and the board/regulator channel.",
+    "company_url": "",
+    "company_info": "Bramble Badger Credit Union is a mid-sized member-owned financial cooperative. Members trust the familiar badger mascot. It is not a bank, so 'cheese reserve' messaging lands hard with members and can tip into panic. Regulators and the deposit insurer watch public confidence closely."
+  },
+
   "opening_state": {
     "budget": 70,
     "reputation": 65,
@@ -12,498 +19,59 @@
     "member_confidence": 68,
     "regulator_confidence": 60
   },
-  "opening_narrative": "The Bramble Badger clip starts spreading in community channels. It is ridiculous, but the post framing claims it was leaked from an internal executive message.",
-  "start_decision_id": "dp_01_initial_clip",
-  "decision_points": [
-    {
-      "id": "dp_01_initial_clip",
-      "prompt_seed": "Staff forward a viral cartoon video where Bramble Badger claims digital banking is powered by raccoons and member withdrawals are changing to cheese wheels. Some members are calling already. What is the first executive action?",
-      "tags": [
-        "media",
-        "governance"
-      ],
-      "options": [
-        {
-          "id": "verify_first",
-          "label": "Verify, preserve evidence, and assemble Security, Legal, Comms, and Risk",
-          "modifiers": {
-            "risk": -4,
-            "reputation": -1
-          },
-          "roll_modifier": 1,
-          "flag": "evidence_preserved"
-        },
-        {
-          "id": "public_denial",
-          "label": "Immediately post that the video is fake",
-          "modifiers": {
-            "reputation": 2,
-            "risk": 6
-          },
-          "roll_modifier": -1,
-          "flag": "fast_public_denial"
-        },
-        {
-          "id": "frontline_script",
-          "label": "Issue an internal frontline holding script before public comment",
-          "modifiers": {
-            "morale": 3,
-            "member_confidence": 2,
-            "risk": -1
-          },
-          "roll_modifier": 0,
-          "flag": "frontline_script_started"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "The first response creates confusion. Screenshots circulate showing inconsistent staff answers.",
-          "state_delta": {
-            "reputation": -14,
-            "member_confidence": -12,
-            "risk": 12
-          }
-        },
-        "fail": {
-          "text": "The action helps a little, but the clip spreads faster than the team can align.",
-          "state_delta": {
-            "reputation": -8,
-            "member_confidence": -7,
-            "risk": 8
-          }
-        },
-        "mixed": {
-          "text": "The team makes partial progress, but a new rumour appears beside the original clip.",
-          "state_delta": {
-            "reputation": -4,
-            "member_confidence": -4,
-            "risk": 5
-          }
-        },
-        "success": {
-          "text": "The team aligns on facts, ownership, and a calm holding position.",
-          "state_delta": {
-            "reputation": 3,
-            "member_confidence": 2,
-            "risk": -6
-          }
-        },
-        "crit_success": {
-          "text": "The source is identified quickly and evidence is cleanly preserved before the story grows.",
-          "state_delta": {
-            "reputation": 6,
-            "member_confidence": 5,
-            "regulator_confidence": 5,
-            "risk": -10
-          }
-        }
-      },
-      "next": [
-        "dp_02_media_request",
-        "dp_02_branch_calls",
-        "dp_02_board_member"
-      ]
-    },
-    {
-      "id": "dp_02_media_request",
-      "prompt_seed": "A local reporter asks whether the organization concealed a cyber incident. The reporter wants a quote. What do you approve?",
-      "tags": [
-        "media",
-        "escalation"
-      ],
-      "options": [
-        {
-          "id": "holding_statement",
-          "label": "Approve a short holding statement: unverified clip, investigation underway, no confirmed member account impact",
-          "modifiers": {
-            "reputation": 3,
-            "risk": -2
-          },
-          "roll_modifier": 1,
-          "flag": "holding_statement"
-        },
-        {
-          "id": "no_comment",
-          "label": "Decline comment until verification is complete",
-          "modifiers": {
-            "reputation": -4,
-            "risk": -1
-          },
-          "roll_modifier": -1,
-          "flag": "no_comment"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "The quote is interpreted as evasive and the story becomes bigger than the original clip.",
-          "state_delta": {
-            "reputation": -16,
-            "member_confidence": -8,
-            "risk": 10
-          }
-        },
-        "fail": {
-          "text": "The message is technically true but too vague, so speculation continues.",
-          "state_delta": {
-            "reputation": -8,
-            "member_confidence": -5,
-            "risk": 6
-          }
-        },
-        "mixed": {
-          "text": "The response lands with some audiences but creates follow-up questions about breach notification.",
-          "state_delta": {
-            "reputation": -2,
-            "regulator_confidence": -3,
-            "risk": 4
-          }
-        },
-        "success": {
-          "text": "The media uses the response accurately and the narrative stabilizes.",
-          "state_delta": {
-            "reputation": 6,
-            "member_confidence": 3,
-            "risk": -4
-          }
-        },
-        "crit_success": {
-          "text": "The response is clear, calm, and widely repeated by trusted community voices.",
-          "state_delta": {
-            "reputation": 10,
-            "member_confidence": 8,
-            "risk": -8
-          }
-        }
-      },
-      "next": [
-        "dp_03_fraud_piggyback",
-        "dp_03_hotwash"
-      ]
-    },
-    {
-      "id": "dp_02_branch_calls",
-      "prompt_seed": "Branches and the contact centre are taking calls. Some members ask whether they should move funds. Staff want exact wording. What do you do?",
-      "tags": [
-        "member",
-        "complication"
-      ],
-      "options": [
-        {
-          "id": "script_and_route",
-          "label": "Send a concise frontline script plus routing instructions for suspicious calls",
-          "modifiers": {
-            "member_confidence": 5,
-            "morale": 4,
-            "risk": -3
-          },
-          "roll_modifier": 1,
-          "flag": "approved_frontline_script"
-        },
-        {
-          "id": "wait_for_comms",
-          "label": "Tell staff to wait for Communications before responding",
-          "modifiers": {
-            "morale": -3,
-            "member_confidence": -3,
-            "risk": 2
-          },
-          "roll_modifier": -1,
-          "flag": "waited_for_comms"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "A well-meaning staff answer is screenshotted and shared as proof that nobody is aligned.",
-          "state_delta": {
-            "reputation": -12,
-            "member_confidence": -13,
-            "morale": -6,
-            "risk": 8
-          }
-        },
-        "fail": {
-          "text": "The frontline receives direction, but too late to stop inconsistent answers.",
-          "state_delta": {
-            "reputation": -6,
-            "member_confidence": -8,
-            "morale": -2,
-            "risk": 5
-          }
-        },
-        "mixed": {
-          "text": "The frontline calms some members while a few edge cases remain unclear.",
-          "state_delta": {
-            "member_confidence": -2,
-            "morale": 1,
-            "risk": 3
-          }
-        },
-        "success": {
-          "text": "Staff use consistent language and route suspicious activity correctly.",
-          "state_delta": {
-            "reputation": 3,
-            "member_confidence": 7,
-            "morale": 5,
-            "risk": -5
-          }
-        },
-        "crit_success": {
-          "text": "The contact centre spots a related scam pattern early and feeds it back to Security.",
-          "state_delta": {
-            "reputation": 5,
-            "member_confidence": 10,
-            "morale": 6,
-            "risk": -9
-          }
-        }
-      },
-      "next": [
-        "dp_03_fraud_piggyback",
-        "dp_03_hotwash"
-      ]
-    },
-    {
-      "id": "dp_02_board_member",
-      "prompt_seed": "A Board member forwards the clip and asks what is happening. The executive team has incomplete facts. What governance update goes out?",
-      "tags": [
-        "governance",
-        "escalation"
-      ],
-      "options": [
-        {
-          "id": "board_brief",
-          "label": "Send a concise Board brief: what is known, unknown, current actions, and next update trigger",
-          "modifiers": {
-            "regulator_confidence": 3,
-            "reputation": 1,
-            "risk": -2
-          },
-          "roll_modifier": 1,
-          "flag": "board_briefed"
-        },
-        {
-          "id": "wait_complete",
-          "label": "Wait until verification is complete before briefing the Board",
-          "modifiers": {
-            "regulator_confidence": -3,
-            "risk": 2
-          },
-          "roll_modifier": -1,
-          "flag": "board_wait"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "The Board hears more from social media than from management, damaging confidence.",
-          "state_delta": {
-            "regulator_confidence": -14,
-            "reputation": -8,
-            "risk": 8
-          }
-        },
-        "fail": {
-          "text": "The update is late or thin, creating extra follow-up pressure.",
-          "state_delta": {
-            "regulator_confidence": -7,
-            "risk": 5
-          }
-        },
-        "mixed": {
-          "text": "The Board is aware, but notification thresholds are still fuzzy.",
-          "state_delta": {
-            "regulator_confidence": -2,
-            "risk": 3
-          }
-        },
-        "success": {
-          "text": "The Board receives a clear situational update and understands decision ownership.",
-          "state_delta": {
-            "regulator_confidence": 6,
-            "risk": -4
-          }
-        },
-        "crit_success": {
-          "text": "The governance update becomes the model for crisis updates and reduces executive churn.",
-          "state_delta": {
-            "regulator_confidence": 10,
-            "reputation": 3,
-            "risk": -7
-          }
-        }
-      },
-      "next": [
-        "dp_03_fraud_piggyback",
-        "dp_03_hotwash"
-      ]
-    },
-    {
-      "id": "dp_03_fraud_piggyback",
-      "prompt_seed": "Fraud reports that callers are referencing the Bramble Badger clip and asking members to verify online banking credentials. What is the executive decision?",
-      "tags": [
-        "member",
-        "escalation",
-        "complication"
-      ],
-      "options": [
-        {
-          "id": "member_warning",
-          "label": "Issue member fraud guidance across web, social, branches, and contact centre",
-          "modifiers": {
-            "member_confidence": 4,
-            "budget": -2,
-            "risk": -6
-          },
-          "roll_modifier": 1,
-          "flag": "member_fraud_warning"
-        },
-        {
-          "id": "full_incident",
-          "label": "Declare a cross-functional cyber/fraud/reputation incident",
-          "modifiers": {
-            "budget": -5,
-            "morale": -2,
-            "risk": -8
-          },
-          "roll_modifier": 1,
-          "flag": "incident_declared"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "The fraud wave moves faster than messaging, and members report credential requests.",
-          "state_delta": {
-            "member_confidence": -14,
-            "reputation": -10,
-            "risk": 12
-          }
-        },
-        "fail": {
-          "text": "Fraud response starts but struggles to connect with public communications.",
-          "state_delta": {
-            "member_confidence": -7,
-            "reputation": -5,
-            "risk": 7
-          }
-        },
-        "mixed": {
-          "text": "The team collects indicators, but must decide how broad to make member notification.",
-          "state_delta": {
-            "member_confidence": -2,
-            "risk": 4
-          }
-        },
-        "success": {
-          "text": "Fraud, Security, and Communications pivot to clear protective guidance.",
-          "state_delta": {
-            "member_confidence": 7,
-            "reputation": 3,
-            "risk": -6
-          }
-        },
-        "crit_success": {
-          "text": "Scam patterns are reported quickly and member guidance becomes clear and memorable.",
-          "state_delta": {
-            "member_confidence": 11,
-            "reputation": 6,
-            "risk": -10
-          }
-        }
-      },
-      "next": [
-        "dp_03_hotwash"
-      ]
-    },
-    {
-      "id": "dp_03_hotwash",
-      "prompt_seed": "The immediate crisis is stabilizing. What does the executive team lock in before ending the exercise?",
-      "tags": [
-        "governance"
-      ],
-      "options": [
-        {
-          "id": "owners_and_gaps",
-          "label": "Capture owners for decision authority, public approval, frontline scripts, verification, and notification triggers",
-          "modifiers": {
-            "regulator_confidence": 5,
-            "morale": 4,
-            "risk": -6
-          },
-          "roll_modifier": 2,
-          "flag": "hotwash_complete"
-        },
-        {
-          "id": "defer_actions",
-          "label": "Defer action tracking to a later meeting",
-          "modifiers": {
-            "morale": -4,
-            "risk": 5
-          },
-          "roll_modifier": -2,
-          "flag": "actions_deferred"
-        }
-      ],
-      "outcomes": {
-        "crit_fail": {
-          "text": "The hotwash ends without owners, and the same gaps remain for the next event.",
-          "state_delta": {
-            "morale": -8,
-            "risk": 8,
-            "regulator_confidence": -5
-          }
-        },
-        "fail": {
-          "text": "The team identifies gaps but not enough ownership.",
-          "state_delta": {
-            "morale": -3,
-            "risk": 4
-          }
-        },
-        "mixed": {
-          "text": "Several actions are captured, but two governance decisions remain open.",
-          "state_delta": {
-            "risk": 1,
-            "regulator_confidence": 2
-          }
-        },
-        "success": {
-          "text": "The exercise ends with a clear action list and ownership.",
-          "state_delta": {
-            "morale": 6,
-            "regulator_confidence": 6,
-            "risk": -6
-          }
-        },
-        "crit_success": {
-          "text": "The team leaves with a reusable misinformation response playbook pattern.",
-          "state_delta": {
-            "morale": 8,
-            "reputation": 5,
-            "regulator_confidence": 8,
-            "risk": -10
-          }
-        }
-      },
-      "next": []
-    }
-  ],
+
+  "meta": {
+    "suggested_minutes": 60,
+    "difficulty": "medium",
+    "tags": ["misinformation", "fraud", "governance", "media"],
+    "learning_objectives": [
+      "Practice coordinated misinformation response under time pressure",
+      "Exercise public-communications escalation and message discipline",
+      "Test detection of fraud piggybacking on a viral incident"
+    ]
+  },
+
+  "dm_brief": {
+    "situation": "A spoof CGI video of the credit union's badger mascot is circulating and being framed as a leaked internal executive message. Some members believe it and are calling, moving funds, and asking about a 'cheese reserve'. Fraudsters are referencing the clip to social-engineer members into revealing online banking credentials. The executive team must respond publicly, reassure members and staff, guard against fraud, and keep the board and regulator informed.",
+    "stakes": "If handled poorly: member confidence collapses, a real fraud wave rides in behind the joke, the regulator escalates, and reputation damage compounds. If handled well: the joke deflates fast, members are protected by clear guidance, and the team looks prepared.",
+    "key_actors": [
+      { "name": "Bramble (CGI badger)", "role": "The viral fake executive", "interests": "None — a spoof. But its clip is being weaponized.", "knowledge": "Absurd claims: raccoon-powered banking, cheese-wheel withdrawals, a 'cheese reserve'." },
+      { "name": "A local reporter", "role": "Press", "interests": "Does the organization have a cyber incident it is hiding?", "knowledge": "Contacts the team for a quote about whether a breach happened." },
+      { "name": "Contact-centre staff", "role": "Frontline", "interests": "Members are asking whether to move funds.", "knowledge": "Need exact wording and routing for suspicious calls." },
+      { "name": "A Board member", "role": "Governance", "interests": "Incomplete facts; wants an update.", "knowledge": "Forwards the clip and asks what is happening." },
+      { "name": "Fraud callers", "role": "Adversary", "interests": "Exploit the clip to harvest credentials.", "knowledge": "Reference the Bramble Badger clip when asking members to verify login details." }
+    ],
+    "pressure_points": [
+      "A member waiting on hold posts a screenshot of a staff 'holding' answer that reads as confused.",
+      "A second spoof video drops, this time claiming accounts are being frozen for a 'cheese audit'.",
+      "A regulator's office calls asking for a factual summary and this morning's timeline.",
+      "A fraud spike report lands: several members report credential requests referencing the clip.",
+      "An influencer with a large local following shares the clip with a skeptical caption, amplifying it."
+    ],
+    "rules_of_play": [
+      "Never propose actions or present a menu of choices. Only react to what the group decides.",
+      "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
+      "Show consequences of the roll, but let the group's stated action drive the logic.",
+      "Update the tracked metrics (budget, reputation, morale, risk, member_confidence, regulator_confidence) to reflect outcomes.",
+      "If the group stalls with no clear action for a while, inject a pressure point to move things."
+    ]
+  },
+
+  "fate_table": {
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster — an internal chat log is screenshot and leaks, showing the team publicly contradicting itself. Reputation and member confidence take a heavy hit.", "state_delta": { "reputation": -14, "member_confidence": -12, "risk": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos strikes: the clip spawns a barrage of memes claiming a 'cheese audit' and a rumour that accounts are being frozen. A second wave of worried members calls at once.", "state_delta": { "member_confidence": -6, "risk": 8, "morale": -3 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team not only neutralizes the joke but turns it into a trusted-safety talking point that gets repeated by community voices for weeks. Reputation soars.", "state_delta": { "reputation": 10, "member_confidence": 8, "regulator_confidence": 5 } }
+  },
+
   "end_conditions": [
-    {
-      "stat": "reputation",
-      "operator": "lte",
-      "value": 0,
-      "ending": "Reputation collapse: executive confidence is lost before facts are controlled."
-    },
-    {
-      "stat": "member_confidence",
-      "operator": "lte",
-      "value": 0,
-      "ending": "Member confidence collapse: operations move into full crisis response."
-    },
-    {
-      "stat": "risk",
-      "operator": "gte",
-      "value": 100,
-      "ending": "Risk overload: the event becomes a full enterprise incident."
-    }
-  ]
+    { "type": "stat", "stat": "reputation", "operator": "lte", "value": 15, "ending": "Reputation collapse: executive confidence is lost before the facts are controlled." },
+    { "type": "stat", "stat": "member_confidence", "operator": "lte", "value": 15, "ending": "Member confidence collapse: operations move into full crisis response." },
+    { "type": "stat", "stat": "risk", "operator": "gte", "value": 90, "ending": "Risk overload: the event becomes a full enterprise incident." },
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+  ],
+
+  "report": {
+    "title_note": "Bramble Badger Deepfake Crisis — Tabletop Report",
+    "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
+  }
 }

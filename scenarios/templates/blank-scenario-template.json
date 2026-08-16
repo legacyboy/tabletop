@@ -1,32 +1,60 @@
 {
   "scenario_id": "new_executive_scenario",
   "title": "New Executive Scenario",
-  "summary": "Short facilitator summary.",
-  "difficulty_modifier": 0,
-  "opening_state": { "budget": 70, "reputation": 65, "morale": 70, "risk": 35, "member_confidence": 68, "regulator_confidence": 60 },
-  "opening_narrative": "Opening narrative read to the group.",
-  "start_decision_id": "dp_01_start",
-  "decision_points": [
-    {
-      "id": "dp_01_start",
-      "prompt_seed": "The situation begins with incomplete information. What does the executive team do first?",
-      "tags": ["governance", "complication"],
-      "options": [
-        { "id": "assemble_team", "label": "Assemble the cross-functional response team", "modifiers": { "risk": -3, "morale": 2 }, "roll_modifier": 1, "flag": "response_team_assembled" },
-        { "id": "move_fast", "label": "Move quickly before full validation", "modifiers": { "reputation": 2, "risk": 5 }, "roll_modifier": -1, "flag": "fast_response" }
-      ],
-      "outcomes": {
-        "crit_fail": { "text": "The first response creates confusion.", "state_delta": { "reputation": -12, "risk": 12 } },
-        "fail": { "text": "The action helps slightly, but coordination is weak.", "state_delta": { "risk": 6 } },
-        "mixed": { "text": "The team makes progress, but a new complication appears.", "state_delta": { "risk": 4 } },
-        "success": { "text": "The team aligns on ownership and next steps.", "state_delta": { "reputation": 3, "risk": -5 } },
-        "crit_success": { "text": "The first decision creates clarity and the team gets ahead of the story.", "state_delta": { "reputation": 6, "risk": -9 } }
-      },
-      "next": []
-    }
-  ],
+  "version": 2,
+
+  "intro": {
+    "video": "",
+    "narrative": "One paragraph read to / displayed for the group that sets the opening scene.",
+    "facilitator_notes": "Guidance for the moderator only (players should not see this).",
+    "company_url": "",
+    "company_info": "Optional static background about the organization."
+  },
+
+  "opening_state": {
+    "budget": 70,
+    "reputation": 65,
+    "morale": 70,
+    "risk": 35,
+    "member_confidence": 68,
+    "regulator_confidence": 60
+  },
+
+  "meta": {
+    "suggested_minutes": 60,
+    "difficulty": "medium",
+    "tags": [],
+    "learning_objectives": []
+  },
+
+  "dm_brief": {
+    "situation": "Full background the DM uses to adjudicate. Describe the world, the current problem, and what is at stake.",
+    "stakes": "What is lost if the group fails.",
+    "key_actors": [
+      { "name": "Actor", "role": "Role", "interests": "What they want", "knowledge": "What they know" }
+    ],
+    "pressure_points": [
+      "An event the DM may inject if the group stalls.",
+      "Another event to keep tension when momentum drops."
+    ],
+    "rules_of_play": [
+      "Never propose actions or present a menu of choices; react only to what the group does.",
+      "Only metrics the scenario tracks may change; keep values between 0 and 100."
+    ]
+  },
+
+  "fate_table": {
+    "1": { "kind": "crit_fail", "twist": "Roll 1 catastrophe.", "state_delta": { "morale": -8, "risk": 10 } },
+    "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "morale": 6, "risk": -8 } }
+  },
+
   "end_conditions": [
-    { "stat": "reputation", "operator": "lte", "value": 0, "ending": "Reputation collapse." },
-    { "stat": "risk", "operator": "gte", "value": 100, "ending": "Risk overload." }
-  ]
+    { "type": "stat", "stat": "risk", "operator": "gte", "value": 90, "ending": "Risk overload: the event becomes a full enterprise incident." },
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+  ],
+
+  "report": {
+    "title_note": "Tabletop Report",
+    "audit_note": "Generated automatically at session end or timeout."
+  }
 }

@@ -4,6 +4,9 @@ Thumbs.db
 *.swp
 *~
 
+# Node
+node_modules/
+
 # Local run logs
 *.log
 

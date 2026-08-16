@@ -10,68 +10,153 @@
 <header>
   <div>
     <h1>Executive Tabletop D20</h1>
-    <p>Scenario-driven D20 rolls, state dashboard, facilitator notes, and scenario editor.</p>
+    <p>Open-ended, LLM-run executive tabletop simulations.</p>
   </div>
-  <nav>
-    <button data-tab="play" class="active">Play</button>
-    <button data-tab="editor">Scenario editor</button>
-    <button data-tab="help">How to make scenarios</button>
-  </nav>
+  <div class="header-actions">
+    <span id="settingsSummary" class="dm-badge">DM: not configured</span>
+    <button id="settingsButton" class="ghost">⚙ DM / Keys</button>
+  </div>
 </header>
+
 <main>
-<section id="play" class="tab active">
-  <div class="grid">
-    <section class="card wide">
-      <h2 id="title"></h2>
-      <p id="summary"></p>
-      <video id="media" controls></video>
-    </section>
-    <aside class="card">
-      <h2>Scenario</h2>
-      <select id="scenarioSelect"></select>
-      <h2>D20</h2>
-      <div id="die">?</div>
-      <button id="roll" disabled>Roll digital D20</button>
-      <input id="manual" type="number" min="1" max="20" placeholder="Manual roll 1-20" />
-      <button id="useManual" disabled>Use physical roll</button>
-      <pre id="outcome">Choose an option.</pre>
-    </aside>
-    <section class="card">
-      <h2>State</h2>
-      <div id="state"></div>
-      <p id="flags"></p>
-    </section>
-    <section class="card wide">
-      <h2>Current beat</h2>
-      <p id="narrative"></p>
-      <h3 id="prompt"></h3>
-      <div id="options"></div>
-    </section>
-    <section class="card full">
-      <h2>Facilitator notes and log</h2>
-      <textarea id="notes" placeholder="Capture gaps, owners, decisions, and hotwash notes..."></textarea>
-      <button id="export">Export run log</button>
-      <div id="log"></div>
-    </section>
-  </div>
-</section>
-<section id="editor" class="tab">
-  <div class="grid">
-    <section class="card wide">
-      <h2>Scenario JSON editor</h2>
-      <button id="loadCurrent">Load current scenario</button>
-      <button id="loadTemplate">Load blank template</button>
-      <button id="validate">Validate</button>
-      <button id="apply">Apply to session</button>
-      <button id="downloadScenario">Download scenario JSON</button>
-      <textarea id="editorJson"></textarea>
-    </section>
-    <aside class="card"><h2>Validation</h2><pre id="validation">No validation run.</pre></aside>
-  </div>
-</section>
-<section id="help" class="tab"><article class="card"><div id="helpText"></div></article></section>
+  <!-- ===== PHASE: SELECT ===== -->
+  <section id="phase-select" class="card" style="display:none">
+    <h2>Choose a scenario</h2>
+    <select id="scenarioSelect"></select>
+    <p id="scenarioSummary" class="muted"></p>
+  </section>
+
+  <!-- ===== PHASE: INTRO ===== -->
+  <section id="phase-intro" style="display:none">
+    <div class="grid">
+      <section class="card wide">
+        <h2 id="scenarioTitle"></h2>
+        <video id="introVideo" controls style="display:none"></video>
+      </section>
+      <aside class="card">
+        <h2>Setup</h2>
+        <button id="startButton" class="primary">Start the session</button>
+        <div id="companyNote" class="muted small"></div>
+      </aside>
+      <section class="card full">
+        <h2>Intro for the moderator</h2>
+        <p id="moderatorRead" class="narrative"></p>
+        <h3>Facilitator notes (players should not see this)</h3>
+        <p id="moderatorNotes" class="muted"></p>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== PHASE: PLAY ===== -->
+  <section id="phase-play" style="display:none">
+    <div class="grid">
+      <section class="card">
+        <h2>D20</h2>
+        <div class="timer" id="timer">—</div>
+        <div id="die">?</div>
+        <button id="roll">Roll digital D20</button>
+        <input id="manual" type="number" min="1" max="20" placeholder="Manual d20 (1-20)" />
+        <button id="useManual">Use physical roll</button>
+        <pre id="outcome" class="small">Type an action, then roll.</pre>
+      </section>
+      <section class="card">
+        <h2>State</h2>
+        <div id="stateList"></div>
+        <p id="flags" class="small muted"></p>
+      </section>
+      <section class="card wide">
+        <h2>What does the group do?</h2>
+        <textarea id="actionText" rows="4"
+          placeholder="Describe what your group wants to do... The DM reacts to your actions, it won't lead you."></textarea>
+        <div class="row">
+          <span class="muted small">Type an action, then press "Roll digital D20" (or enter a physical roll and use "Use physical roll").</span>
+        </div>
+        <h3>What happened</h3>
+        <p id="narrative" class="narrative">Waiting for the DM...</p>
+      </section>
+      <section class="card full">
+        <h2>Run log</h2>
+        <div id="log"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== PHASE: REPORT ===== -->
+  <section id="phase-report" style="display:none">
+    <div class="grid">
+      <section class="card full">
+        <h2>Session finished</h2>
+        <div class="row">
+          <button id="newSession" class="primary">New session / scenario</button>
+          <button id="exportReport" class="ghost">Export report (JSON)</button>
+        </div>
+        <div id="reportBody"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== PHASE: SETTINGS ===== -->
+  <section id="phase-settings" style="display:none">
+    <div class="grid">
+      <section class="card wide">
+        <h2>DM provider &amp; API keys</h2>
+        <p class="muted small">
+          Pick how the dungeon master runs. Keys are stored only in this browser
+          (localStorage) and are sent straight to the provider you choose —
+          never to this app's host.
+        </p>
+
+        <label>Provider
+          <select id="providerSelect">
+            <option value="none">Not configured</option>
+            <option value="webllm">In-browser model (WebLLM / Gemma) — portable</option>
+            <option value="openai-compatible">API key (OpenAI / DeepSeek / Anthropic / local Ollama)</option>
+          </select>
+        </label>
+
+        <label id="presetWrap">Preset
+          <select id="preset">
+            <option value="">Custom</option>
+            <option value="openai">OpenAI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="anthropic">Anthropic (OpenAI-compatible)</option>
+          </select>
+        </label>
+
+        <label id="baseUrlWrap">Base URL (OpenAI-compatible)
+          <input id="baseUrl" type="text" placeholder="https://api.openai.com/v1 or http://localhost:11434/v1" />
+        </label>
+
+        <label id="modelWrap">Model
+          <input id="model" type="text" placeholder="gpt-4o-mini / deepseek-chat / gemma3:4b" />
+        </label>
+
+        <label id="apiKeyWrap">API key (optional for local Ollama)
+          <input id="apiKey" type="password" autocomplete="off" placeholder="sk-..." />
+        </label>
+
+        <label class="check">
+          <input id="allowCompanyFetch" type="checkbox" checked />
+          Allow the DM to fetch public info about the scenario's company URL (best-effort)
+        </label>
+
+        <div class="row">
+          <button id="saveSettings" class="primary">Save</button>
+          <button id="testConnection">Test connection</button>
+          <button id="settingsBack" class="ghost">Back</button>
+        </div>
+        <p id="settingsStatus" class="muted small"></p>
+        <p id="companyFetchHint" class="muted small">
+          Tip for a free local Gemma: run <code>ollama serve</code> with
+          <code>OLLAMA_ORIGINS=*</code>, then set Base URL to
+          <code>http://localhost:11434/v1</code> and model <code>gemma3:4b</code>.
+        </p>
+      </section>
+    </div>
+  </section>
 </main>
-<script src="src/engine.js"></script>
-<script src="src/app.js"></script>
+
+<script type="module" src="app/js/main.js"></script>
+<script type="module" src="app/js/settings.js"></script>
 </body>
 </html>

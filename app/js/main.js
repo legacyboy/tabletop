@@ -1,0 +1,326 @@
+/**
+ * Executive Tabletop D20 — main UI controller.
+ *
+ * Ties together the scenario loader, the DM provider registry, and the DM
+ * session into the playable flow:
+ *
+ *   1. Scenario select
+ *   2. Intro video (optional) + moderator narrative (intro phase)
+ *   3. Free-text action box + D20 roll
+ *   4. DM (LLM) adjudicates -> narrative + state update
+ *   5. Timer running; end on condition or timeout -> closing report
+ *
+ * The DM is never allowed to lead: the group always types a free-form action
+ * before any roll, and the DM receives that action verbatim.
+ */
+
+import { loadRegistry, loadScenario, fetchCompanyInfo } from './scenarios.js';
+import { buildProvider, loadSettings, describeProvider } from './providers/registry.js';
+import { DMSession } from './dm.js';
+
+const $ = (id) => document.getElementById(id);
+
+const state = {
+  registry: [],
+  scenario: null,
+  session: null,
+  phase: 'select', // 'select' | 'intro' | 'play' | 'report'
+  companyInfo: null,
+};
+
+/** Bound DOM references set once after DOM ready. */
+const el = {};
+
+function humanize(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
+function setPhase(phase) {
+  state.phase = phase;
+  ['select', 'intro', 'play', 'report', 'settings'].forEach((p) => {
+    const section = $(`phase-${p}`);
+    if (section) section.style.display = p === phase ? 'block' : 'none';
+  });
+  // Refresh the settings form each time it becomes visible.
+  if (phase === 'settings') window.dispatchEvent(new CustomEvent('tabletop:openeditsettings'));
+}
+
+async function init() {
+  // Cache DOM refs.
+  ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
+   'startButton', 'actionText', 'die', 'roll', 'manual', 'useManual', 'outcome',
+   'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
+   'progress', 'moderatorRead', 'moderatorNotes', 'companyNote', 'settingsButton',
+  ].forEach((id) => { el[id] = $(id); });
+
+  // Settings navigation.
+  $('settingsButton').onclick = () => setPhase('settings');
+
+  // Allow the settings panel's Back button to return to the scenario intro.
+  window.addEventListener('tabletop:goback', () => {
+    setPhase(state.scenario ? 'intro' : 'select');
+  });
+  window.addEventListener('tabletop:openeditsettings', () => {
+    // Nudge settings.js to reflect latest saved values.
+    window.dispatchEvent(new CustomEvent('tabletop:refreshsettings'));
+  });
+
+  await populateScenarios();
+}
+
+async function populateScenarios() {
+  const registry = await loadRegistry();
+  state.registry = registry;
+
+  el.scenarioSelect.innerHTML = registry
+    .map((s, i) => `<option value="${i}">${s.title}</option>`)
+    .join('');
+
+  el.scenarioSelect.onchange = () => selectScenario(Number(el.scenarioSelect.value));
+  await selectScenario(0);
+}
+
+async function selectScenario(index) {
+  const desc = state.registry[index];
+  const scenario = await loadScenario(desc.path);
+  state.scenario = scenario;
+
+  el.scenarioTitle.textContent = scenario.title;
+  el.scenarioSummary.textContent = scenario.intro.narrative;
+
+  // Intro video (optional).
+  const videoSrc = scenario.intro.video;
+  if (videoSrc) {
+    el.introVideo.src = videoSrc;
+    el.introVideo.style.display = 'block';
+  } else {
+    el.introVideo.removeAttribute('src');
+    el.introVideo.style.display = 'none';
+  }
+
+  // Fresh-company note.
+  el.companyNote.textContent = '';
+  state.companyInfo = null;
+
+  // Buttons.
+  el.startButton.onclick = () => beginSession();
+  el.startButton.disabled = false;
+
+  setPhase('intro');
+}
+
+async function beginSession() {
+  try {
+    const settings = loadSettings();
+    const provider = buildProvider(settings);
+    if (!provider) {
+      el.outcome.textContent = 'No DM configured. Open Settings and choose an in-browser model or paste an API key.';
+      return;
+    }
+
+    const scenario = state.scenario;
+
+    // Best-effort company enrichment (does not block play).
+    if (scenario.intro.company_url) {
+      fetchCompanyInfo(scenario).then((info) => {
+        state.companyInfo = info;
+        if (state.session) state.session.companyInfo = info;
+        if (info) el.companyNote.textContent = 'Company info fetched: added to DM context.';
+      }).catch(() => {});
+    }
+
+    state.session = new DMSession(provider, scenario);
+    state.session.onTimerTick = renderTimer;
+
+    // Show moderator-only content.
+    el.moderatorRead.textContent = scenario.intro.narrative || '';
+    el.moderatorNotes.textContent = scenario.intro.facilitator_notes || '(no facilitator notes)';
+
+    state.session.start();
+
+    const session = state.session;
+    if (session.durationSeconds) {
+      el.timer.textContent = formatTime(session.secondsLeft());
+    } else {
+      el.timer.textContent = 'no time limit';
+    }
+
+    renderState();
+    setPhase('play');
+
+    // Wire the roll flow (idempotent).
+    bindRollFlow(scenario);
+  } catch (err) {
+    el.outcome.textContent = 'Could not start: ' + err.message;
+  }
+}
+
+function bindRollFlow(scenario) {
+  // Digital roll.
+  el.roll.onclick = async () => {
+    const action = el.actionText.value;
+    if (!action.trim()) {
+      el.outcome.textContent = 'Type what the group wants to do, then roll.';
+      return;
+    }
+    const roll = Math.floor(Math.random() * 20) + 1;
+    await resolveTurn(action, roll);
+  };
+
+  // Physical roll (manual entry).
+  el.useManual.onclick = async () => {
+    const action = el.actionText.value;
+    const v = parseInt(el.manual.value, 10);
+    if (!action.trim()) {
+      el.outcome.textContent = 'Type what the group wants to do, then roll.';
+      return;
+    }
+    if (!(v >= 1 && v <= 20)) {
+      el.outcome.textContent = 'Manual roll must be 1-20.';
+      return;
+    }
+    await resolveTurn(action, v);
+  };
+}
+
+async function resolveTurn(action, roll) {
+  const session = state.session;
+  if (!session) return;
+
+  const outcomeButton = el.outcome;
+  outcomeButton.textContent = 'The DM is considering...';
+  const keepValue = el.actionText.value;
+  el.actionText.disabled = true;
+  el.roll.disabled = true;
+  el.useManual.disabled = true;
+
+  try {
+    const result = await session.takeTurn(action, roll);
+
+    el.die.textContent = String(roll);
+    el.narrative.textContent = result.narrative;
+    if (result.event.fate) {
+      el.outcome.textContent = `Roll ${roll} — FATE EVENT: ${result.event.fate}`;
+      logLine(`Roll ${roll} fired a fate event: ${result.event.fate}`);
+    } else {
+      el.outcome.textContent = `Roll ${roll} resolved (Turn ${result.event.turn}).`;
+    }
+
+    logLine(
+      `<b>Turn ${result.event.turn}</b>: ${escapeHtml(action)} — <b>d20=${roll}</b>`
+    );
+
+    renderState();
+
+    if (result.endCondition) {
+      finish(result.endCondition);
+      return;
+    }
+
+    // Prepare next turn: clear the box, re-enable.
+    el.actionText.disabled = false;
+    el.actionText.value = '';
+    el.actionText.focus();
+    el.roll.disabled = false;
+    el.useManual.disabled = false;
+  } catch (err) {
+    el.actionText.disabled = false;
+    el.actionText.value = keepValue;
+    el.roll.disabled = false;
+    el.useManual.disabled = false;
+    el.outcome.textContent = 'DM error: ' + err.message;
+  }
+}
+
+function renderState() {
+  const session = state.session;
+  if (!session) return;
+  el.stateList.innerHTML = Object.entries(session.state)
+    .map(([k, v]) => `<div class="stateItem"><b>${humanize(k)}</b>: ${v}</div>`)
+    .join('');
+
+  const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
+  el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
+}
+
+function renderTimer() {
+  const session = state.session;
+  if (!session) return;
+  const left = session.secondsLeft();
+  el.timer.textContent = formatTime(left);
+
+  // Auto-finish on timeout.
+  if (left <= 0) {
+    const tEnd = session.timeoutEnd();
+    finish(tEnd);
+  }
+}
+
+function formatTime(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function finish(endCondition) {
+  const session = state.session;
+  session.stopTimer();
+
+  const report = session.buildReport(endCondition);
+  renderReport(report);
+  setPhase('report');
+}
+
+function renderReport(report) {
+  el.reportBody.innerHTML = '';
+
+  const add = (label, value) => {
+    const row = document.createElement('div');
+    row.className = 'stateItem';
+    row.innerHTML = `<b>${label}</b>${value !== undefined && value !== null && value !== '' ? ':\n' + escapeHtml(String(value)) : ''}`;
+    el.reportBody.appendChild(row);
+  };
+
+  add('Report', report.report_title);
+  add('Scenario', report.scenario);
+  add('Ending', report.ending || 'No end condition recorded');
+  add('Turns', report.turns);
+  add('Duration (min)', report.duration_minutes ?? '—');
+  add('Final state', JSON.stringify(report.final_state, null, 2));
+
+  report.log.forEach((e, i) => {
+    const div = document.createElement('div');
+    div.className = 'stateItem';
+    div.innerHTML =
+      `<b>Turn ${i + 1}</b> (d20=${e.roll})<br>${escapeHtml(e.narrative)}` +
+      (e.fate ? `<br><i>Fate: ${escapeHtml(e.fate)}</i>` : '') +
+      `<br><small>State after: ${escapeHtml(JSON.stringify(e.state))}</small>`;
+    el.reportBody.appendChild(div);
+  });
+
+  el.exportReport.onclick = () => {
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `tabletop-report-${report.scenario_id || 'run'}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  $('newSession').onclick = () => setPhase('intro');
+}
+
+function logLine(html) {
+  const log = $('log');
+  if (!log) return;
+  log.insertAdjacentHTML('afterbegin', `<div class="logItem">${html}</div>`);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[m]));
+}
+
+// Boot.
+document.addEventListener('DOMContentLoaded', init);

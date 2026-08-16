@@ -1,0 +1,14 @@
+{
+  "name": "executive-tabletop-d20",
+  "version": "2.0.0",
+  "description": "Open-ended, LLM-run executive tabletop simulations. Portable in-browser or via pluggable API keys.",
+  "type": "module",
+  "scripts": {
+    "start": "node server/serve.js",
+    "serve": "node server/serve.js",
+    "test": "node tests/dm-session.test.js && node tests/dm-integration.test.js",
+    "test:ollama": "node tests/dm-real-ollama.smoke.js"
+  },
+  "author": "legacyboy",
+  "license": "UNLICENSED"
+}

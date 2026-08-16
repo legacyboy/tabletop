@@ -1,117 +1,84 @@
-# How to Build Additional Scenarios
+# How to Build a Scenario (v2)
 
-Scenarios are JSON data, not code. A scenario defines:
+v2 scenarios are **loose, DM-driven** — they give the dungeon master a world
+and stakes, not a rigid script. The group takes any action they want; the DM
+(an LLM) improvises the consequences within your brief, modifies tracked
+state, and moves the story. Your job as the author is to set the stage and the
+rails, then let the DM drive.
 
-- opening state
-- decision points
-- options
-- D20 outcome tiers
-- state changes
-- candidate next beats
-- end conditions
+Each scenario is one JSON file under `scenarios/<name>/scenario.json`, listed
+in `scenarios/registry.json`. See `SCENARIO_SCHEMA_v2.md` for the full
+reference. Start from `scenarios/templates/blank-scenario-template.json`.
 
-Each scenario is a standalone JSON file under `scenarios/<name>/scenario.json`,
-listed in `scenarios/registry.json` (one line per scenario: id, title, path).
+## Fast workflow
 
-## Fast workflow (in-app)
+1. Copy `scenarios/templates/blank-scenario-template.json` to
+   `scenarios/<name>/scenario.json`.
+2. Fill in the intro, opening state, DM brief, fate table, and end conditions.
+3. Add one line to `scenarios/registry.json`:
+   `{ "id": "...", "title": "...", "path": "scenarios/<name>/scenario.json" }`
+4. Run `npm start`, open the app, and play-test.
+5. Iterate on the DM brief — the better the brief, the better the DM.
 
-1. Serve the folder: `python3 serve.py` and open `http://localhost:8000`.
-2. Go to **Scenario editor**.
-3. Select **Load current scenario** or **Load blank template**.
-4. Edit the JSON.
-5. Select **Validate**.
-6. Select **Apply to session**.
-7. Play-test.
-8. Select **Download scenario JSON** when happy.
+## The key parts
 
-To make it permanent, save the file under `scenarios/<name>/scenario.json` and
-add it to `scenarios/registry.json`.
+### Intro
+`intro.narrative` is shown/read to the group to set the scene. `intro.video`
+(optional) is a file path under `assets/` or a scenario `media/` dir.
+`intro.facilitator_notes` is moderator-only. `intro.company_url` (optional)
+lets the app fetch public company info to enrich the DM context.
 
-## Important design rule
+### Opening state
+Tracked metrics, all 0-100. The DM updates these each turn; they make the
+session consequential and feed end conditions. Typical set: budget,
+reputation, morale, risk, plus scenario-specific ones.
 
-Do **not** build a fixed choose-your-own-adventure tree.
+### DM brief (`dm_brief`)
+The heart. Give the DM:
+- `situation` — the world + current problem
+- `stakes` — what is lost on failure
+- `key_actors` — who is involved, their interests and knowledge
+- `pressure_points` — events the DM MAY inject if the group stalls (keeps tension)
+- `rules_of_play` — constraints, e.g. "never propose actions", "only tracked metrics may change"
 
-Use `next` as a candidate pool:
+The **stronger the brief, the better the open-ended play.** Write the situation
+with enough texture for the DM to improvise consistently.
+
+### Fate table
+Optional. Maps specific D20 rolls to **authored twists** that fire regardless
+of the free-form action:
 
 ```json
-"next": ["dp_02_media_pressure", "dp_02_branch_calls", "dp_02_board_question"]
-```
-
-The app chooses from the pool using current state, tags, and the D20 outcome tier.
-
-## Recommended state variables
-
-```json
-"opening_state": {
-  "budget": 70,
-  "reputation": 65,
-  "morale": 70,
-  "risk": 35,
-  "member_confidence": 68,
-  "regulator_confidence": 60
+"fate_table": {
+  "1":  { "kind": "crit_fail",    "twist": "Roll 1 catastrophe.",     "state_delta": { "morale": -8, "risk": 10 } },
+  "11": { "kind": "twist",        "twist": "The building catches fire.", "state_delta": { "budget": -15, "risk": 8 } },
+  "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "reputation": 8 } }
 }
 ```
 
-All values are clamped from 0 to 100.
+Numbers not listed are adjudicated purely by the DM. Use the fate table for
+flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
 
-## Decision point pattern
+### End conditions
+End the session when a stat crosses a threshold, or on timeout:
 
 ```json
-{
-  "id": "dp_01_start",
-  "prompt_seed": "The situation begins with incomplete information. What does the executive team do first?",
-  "tags": ["governance", "complication"],
-  "options": [
-    {
-      "id": "assemble_team",
-      "label": "Assemble the cross-functional response team",
-      "modifiers": { "risk": -3, "morale": 2 },
-      "roll_modifier": 1,
-      "flag": "response_team_assembled"
-    }
-  ],
-  "outcomes": {
-    "crit_fail": { "text": "The situation escalates.", "state_delta": { "risk": 12 } },
-    "fail": { "text": "The action helps slightly, but coordination is weak.", "state_delta": { "risk": 6 } },
-    "mixed": { "text": "Progress, but a new complication appears.", "state_delta": { "risk": 4 } },
-    "success": { "text": "The team aligns on ownership.", "state_delta": { "risk": -5 } },
-    "crit_success": { "text": "The team gets ahead of the story.", "state_delta": { "risk": -9 } }
-  },
-  "next": ["dp_02_pressure"]
-}
+"end_conditions": [
+  { "type": "stat", "stat": "risk", "operator": "gte", "value": 90, "ending": "Risk overload: full enterprise incident." },
+  { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out." }
+]
 ```
 
-## Useful tags
-
-- `media`
-- `member`
-- `governance`
-- `escalation`
-- `complication`
-- `operations`
-- `vendor`
-- `fraud`
-- `privacy`
-- `legal`
+### Report
+Optional `title_note` and `audit_note` added to the closing report the app
+produces at session end or timeout — useful for tabletop debrief and audit.
 
 ## Suggested 60-minute structure
 
 | Time | Activity |
 |---:|---|
 | 0-5 | Rules and roles |
-| 5-10 | Opening inject/video |
-| 10-20 | Decision 1 and roll |
-| 20-35 | Decision 2 and roll |
-| 35-50 | Decision 3 and roll |
-| 50-60 | Hotwash and owners |
-
-## Publishing a new scenario
-
-1. Save the scenario JSON as `scenarios/<name>/scenario.json`.
-2. Add an entry to `scenarios/registry.json`:
-
-```json
-{ "id": "my_scenario", "title": "My Scenario", "path": "scenarios/<name>/scenario.json" }
-```
-
-3. The app discovers it at startup and it appears in the **Play** tab scenario selector.
+| 5-10 | Select scenario, intro video + narrative |
+| 10-15 | Group discusses the opening, first action |
+| 15-55 | Free-form play: act, roll, DM adjudicates (timer running) |
+| 55-60 | Hotwash + close (report generated) |
