@@ -19,6 +19,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { handleApi } from './api.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.argv[2]) || 8000;
@@ -87,14 +88,21 @@ async function companyProxy(req, res, url) {
   }
 }
 
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  const pathname = decodeURIComponent(url.pathname);
 
-  if (url.pathname === '/api/company') {
+  // API routes first.
+  if (pathname.startsWith('/api/')) {
+    const handled = await handleApi(req, res, pathname, url);
+    if (handled) return;
+  }
+
+  if (pathname === '/api/company') {
     return companyProxy(req, res, url.searchParams.get('url') || '');
   }
 
-  serveStatic(req, res, decodeURIComponent(url.pathname));
+  serveStatic(req, res, pathname);
 });
 
 server.listen(PORT, () => {

@@ -1,0 +1,88 @@
+# Tabletop HTTP API (curl-playable)
+
+Run a full executive tabletop session from the command line. The server wraps
+the same DM engine the web app uses, so you get the same open-ended LLM
+adjudication, state tracking, fate table, and closing report — over HTTP.
+
+## Start the server
+
+```bash
+npm start        # or: node server/serve.js [port]
+```
+
+Defaults to port 8000. The DM uses local Ollama by default; override per
+request with `base_url`, `api_key`, `model` (or set `OLLAMA_URL`,
+`OLLAMA_API_KEY`, `MODEL` env vars).
+
+## Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/scenarios` | List available scenarios |
+| GET | `/api/scenarios/:id` | Scenario intro + opening state |
+| POST | `/api/session` | Create a session |
+| GET | `/api/session/:id` | Session state + turn log |
+| POST | `/api/session/:id/turn` | Take a turn (action + roll) |
+| GET | `/api/session/:id/report` | Closing / audit report |
+
+## Play via curl
+
+```bash
+# 1. List scenarios
+curl localhost:8000/api/scenarios
+
+# 2. Create a session (local Ollama by default)
+curl -X POST localhost:8000/api/session \
+  -H 'Content-Type: application/json' \
+  -d '{"scenario_id":"bramble_badger_deepfake"}'
+# -> { "id": "s1", ... }
+
+# 3. Take a turn — type any action, roll a D20 (1-20)
+curl -X POST localhost:8000/api/session/s1/turn \
+  -H 'Content-Type: application/json' \
+  -d '{"action":"Issue a calm public statement and brief the board","roll":15}'
+# -> { "turn":1, "narrative":"...", "state":{...}, "end_condition":null }
+
+# 4. Check state / log
+curl localhost:8000/api/session/s1
+
+# 5. Closing report (after an end condition or timeout)
+curl localhost:8000/api/session/s1/report
+```
+
+## Using a hosted API key (e.g. DeepSeek)
+
+```bash
+curl -X POST localhost:8000/api/session \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "scenario_id":"bramble_badger_deepfake",
+    "base_url":"https://api.deepseek.com/v1",
+    "api_key":"sk-...",
+    "model":"deepseek-chat"
+  }'
+```
+
+## Request / response
+
+**POST /api/session** body:
+```json
+{ "scenario_id": "bramble_badger_deepfake",
+  "base_url": "http://localhost:11434/v1",   // optional
+  "api_key": "",                              // optional
+  "model": "gemma3:4b" }                      // optional
+```
+
+**POST /api/session/:id/turn** body:
+```json
+{ "action": "What the group decides to do", "roll": 15 }
+```
+`roll` must be an integer 1-20. The DM never proposes actions — it reacts to
+what you type. A roll in the scenario's `fate_table` fires an authored twist.
+
+## Notes
+
+- Sessions live in memory; restarting the server clears them.
+- The DM is the same engine as the web app: state clamped 0-100, per-turn
+  delta capped ±10, end conditions + timeout produce the report.
+- See `scripts/play-tabletop.sh` for a ready-made interactive curl player.
