@@ -23,11 +23,16 @@ export class WebLLMProvider {
    * @param {object} config
    * @param {string} config.model     WebLLM model id, e.g. 'gemma-3-4b-it-q4f16_1-MLC'
    * @param {string} [config.libraryUrl] CDN or local URL for @mlc-ai/web-llm
+   * @param {object} [config.appConfig]  Optional AppConfig for offline use:
+   *   { model_list: [{ model, model_id, model_lib }] } where model/model_lib
+   *   point at local vendored paths. When provided, the model is loaded from
+   *   local files instead of HuggingFace.
    * @param {Function} [config.onProgress]  ({phase, loadedBytes, totalBytes}) => void
    */
   constructor(config = {}) {
     this.model = config.model || 'gemma-3-4b-it-q4f16_1-MLC';
     this.libraryUrl = config.libraryUrl || WEBLLM_CDN;
+    this.appConfig = config.appConfig || null;
     this.onProgress = config.onProgress || (() => {});
     this.engine = null;
     this.status = 'idle'; // idle | loading | ready | error
@@ -58,15 +63,17 @@ export class WebLLMProvider {
     this.status = 'loading';
     let { CreateMLCEngine } = await import(this.libraryUrl);
 
-    this.engine = await CreateMLCEngine(this.model, {
-      initProgressCallback: (report) => {
-        this.onProgress({
-          phase: report.text,
-          loadedBytes: report.loadedBytes,
-          totalBytes: report.totalBytes,
-        });
-      },
-    });
+    const engineConfig = {};
+    if (this.appConfig) engineConfig.appConfig = this.appConfig;
+    engineConfig.initProgressCallback = (report) => {
+      this.onProgress({
+        phase: report.text,
+        loadedBytes: report.loadedBytes,
+        totalBytes: report.totalBytes,
+      });
+    };
+
+    this.engine = await CreateMLCEngine(this.model, engineConfig);
 
     this.status = 'ready';
     return this.engine;

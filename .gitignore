@@ -7,6 +7,9 @@ Thumbs.db
 # Node
 node_modules/
 
+# Vendored offline bundle (large binaries, fetched by scripts/vendor-offline.sh)
+vendor/
+
 # Local run logs
 *.log
 

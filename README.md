@@ -30,7 +30,34 @@ npm start        # or: node server/serve.js
 
 Open http://localhost:8000.
 
-### Choosing a DM
+## Hosting
+
+### GitHub Pages (works with API keys)
+
+The app is a static site and deploys to GitHub Pages automatically (see
+`.github/workflows/pages.yml`). Once enabled, it's live at
+`https://legacyboy.github.io/tabletop/` and works with any API-key provider
+(DeepSeek, OpenAI, Anthropic) directly from the browser. The in-browser model
+and local Ollama are not available on Pages (no WebGPU / no local runner), but
+API keys work fine.
+
+> The GitHub **wiki** is static Markdown and cannot run the app — use it for
+> scenario docs and guides. The interactive app lives on Pages.
+
+### Fully-offline portable bundle
+
+For a standalone, offline app (in-browser model, no server, no network):
+
+```bash
+bash scripts/vendor-offline.sh   # downloads WebLLM + Gemma 4b (~560 MB) into vendor/
+```
+
+Then open the app and choose **In-browser model (WebLLM)** in DM/Keys. The app
+detects `vendor/` and loads the model from local files. Requires a WebGPU
+browser (Chrome/Edge). The vendored files are git-ignored (large binaries);
+re-run the script on each machine.
+
+## Choosing a DM
 
 Open **⚙ DM / Keys**. Pick one:
 

@@ -81,12 +81,21 @@ function describeSelection(settings) {
 /**
  * Build the active provider from saved settings.
  * Returns null if none is configured.
+ *
+ * For the in-browser (WebLLM) path, if a vendored offline bundle exists at
+ * vendor/offline-config.json, it is used so the model loads from local files
+ * (fully offline). Otherwise it falls back to the CDN + HuggingFace.
  */
 export function buildProvider(settings = null) {
   const s = settings || loadSettings();
 
   if (s.provider === 'webllm') {
-    return new WebLLMProvider({ model: s.model || 'gemma-3-4b-it-q4f16_1-MLC' });
+    const offline = loadOfflineConfig();
+    return new WebLLMProvider({
+      model: (offline && offline.model_id) || s.model || 'gemma-3-4b-it-q4f16_1-MLC',
+      libraryUrl: (offline && offline.library_url) || undefined,
+      appConfig: (offline && offline.app_config) || undefined,
+    });
   }
 
   if (s.provider === 'openai-compatible') {
@@ -99,6 +108,21 @@ export function buildProvider(settings = null) {
   }
 
   return null;
+}
+
+/** Load the vendored offline bundle config, or null if not present. */
+function loadOfflineConfig() {
+  try {
+    // Synchronous fetch of a static JSON file; only works when served over
+    // http(s). Returns null if the bundle isn't vendored.
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'vendor/offline-config.json', false); // sync, small file
+    xhr.send();
+    if (xhr.status === 200) return JSON.parse(xhr.responseText);
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export { WebLLMProvider };
