@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/serve.js",
     "serve": "node server/serve.js",
-    "test": "node tests/dm-session.test.js && node tests/dm-integration.test.js",
+    "test": "node tests/dm-session.test.js && node tests/dm-integration.test.js && node tests/extract-json.test.js && node tests/report.test.js",
     "test:ollama": "node tests/dm-real-ollama.smoke.js"
   },
   "author": "legacyboy",

@@ -34,6 +34,12 @@ import { fileURLToPath } from 'node:url';
 import { DMSession } from '../app/js/dm.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { saveSession, loadAll, deleteSession } from './persistence.js';
+import { buildReport, renderReportHtml } from './report.js';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { writeFile, mkdir } from 'node:fs/promises';
+
+const execFileP = promisify(execFile);
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -244,8 +250,47 @@ export async function handleApi(req, res, pathname, url) {
   if (reportMatch && req.method === 'GET') {
     const session = sessions.get(reportMatch[1]);
     if (!session) return json(res, 404, { error: 'Session not found' });
-    const report = session.buildReport(session.ending ? { ending: session.ending } : null);
+    const report = buildReport(session, { ending: session.ending });
     return json(res, 200, report);
+  }
+
+  // POST /api/session/:id/report/email — generate the two-part report and email it.
+  const emailMatch = pathname.match(/^\/api\/session\/([^/]+)\/report\/email$/);
+  if (emailMatch && req.method === 'POST') {
+    const session = sessions.get(emailMatch[1]);
+    if (!session) return json(res, 404, { error: 'Session not found' });
+    const body = await readBody(req);
+    const report = buildReport(session, {
+      ending: session.ending,
+      participants: body.participants,
+      moderator: body.moderator,
+      recommendations: body.recommendations || [],
+    });
+    const html = renderReportHtml(report);
+    const subject = body.subject || `Tabletop Exercise Report — ${report.scenario}`;
+    const to = body.to || process.env.REPORT_TO || 'legacyboy@gmail.com';
+
+    // Write the HTML to a temp file and hand off to the Gmail SMTP script.
+    const outDir = join(ROOT, 'data', 'reports');
+    await mkdir(outDir, { recursive: true });
+    const htmlPath = join(outDir, `${session.id}-report.html`);
+    await writeFile(htmlPath, html, 'utf8');
+
+    try {
+      await execFileP('python3', [
+        join(ROOT, 'scripts', 'send-report-email.py'),
+        htmlPath, subject, to,
+      ]);
+      return json(res, 200, {
+        message: 'Report emailed',
+        to,
+        subject,
+        report_path: htmlPath,
+        fingerprint: report.part2_proof.fingerprint,
+      });
+    } catch (err) {
+      return json(res, 502, { error: 'Email send failed: ' + (err.stderr || err.message) });
+    }
   }
 
   // DELETE /api/session/:id

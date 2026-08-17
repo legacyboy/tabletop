@@ -23,7 +23,8 @@ request with `base_url`, `api_key`, `model` (or set `OLLAMA_URL`,
 | POST | `/api/session` | Create a session |
 | GET | `/api/session/:id` | Session state + turn log |
 | POST | `/api/session/:id/turn` | Take a turn (action + roll) |
-| GET | `/api/session/:id/report` | Closing / audit report |
+| GET | `/api/session/:id/report` | Two-part audit report (full audit + proof of play) |
+| POST | `/api/session/:id/report/email` | Generate the report and email it via Gmail |
 
 ## Play via curl
 
@@ -46,9 +47,37 @@ curl -X POST localhost:8000/api/session/s1/turn \
 # 4. Check state / log
 curl localhost:8000/api/session/s1
 
-# 5. Closing report (after an end condition or timeout)
+# 5. Two-part audit report (full audit + proof of play + recommendations)
 curl localhost:8000/api/session/s1/report
+
+# 6. Email the report (via Gmail SMTP)
+curl -X POST localhost:8000/api/session/s1/report/email \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "participants":"Executive team",
+    "moderator":"Facilitator",
+    "recommendations":["Follow up on the regulator briefing"],
+    "to":"legacyboy@gmail.com"
+  }'
+# -> { "message":"Report emailed", "fingerprint":"..." }
 ```
+
+## The two-part report
+
+The report endpoint returns a structured object with three sections:
+
+- **Part 1 — Full Audit**: every action taken, every D20 roll, every DM
+  decision/outcome, and the state after each turn, plus the final state.
+- **Part 2 — Proof of Play**: scenario, participants, moderator, date,
+  duration, turn count, fate events, end condition, and a **SHA-256
+  fingerprint** of the full turn log so an auditor can verify the report
+  wasn't altered.
+- **Recommendations**: a free-form list (passed in on the email request, or
+  empty).
+
+The email endpoint renders this as a self-contained HTML report and sends it
+via Gmail SMTP (`scripts/send-report-email.py`). Configure the sender with
+`SMTP_USER` / `SMTP_PASS` env vars (defaults to Steve's Gmail account).
 
 ## Using a hosted API key (e.g. DeepSeek)
 
