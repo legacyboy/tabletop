@@ -48,27 +48,49 @@ check('fate on 1', s3.history[0].fate !== null);
 check('reputation dropped on 1', s3.state.reputation < scenario.opening_state.reputation);
 
 // 4. End condition detection: drive risk up via repeated low rolls + fate
-//    (min_turns=0 so the stat end can fire immediately — this test checks
-//    detection, not the minimum-duration floor).
-const s4 = new DMSession(new MockProvider(), { ...scenario, min_turns: 0 });
+//    until a failure end fires.
+const s4 = new DMSession(new MockProvider(), scenario);
 let endHit = false;
-for (let i = 0; i < 12 && !endHit; i++) {
+for (let i = 0; i < 40 && !endHit; i++) {
   const res = await s4.takeTurn('Escalate aggressively', 11); // fate adds risk each time
   s4.state.risk = Math.min(100, s4.state.risk + 20); // force toward threshold
   if (res.endCondition) endHit = true;
 }
-check('end condition fires when risk >= 90', endHit);
+check('failure end fires when risk >= 90', endHit);
 
-// 4b. Minimum-duration floor: with min_turns set, a stat end does NOT fire early.
-const s4b = new DMSession(new MockProvider(), { ...scenario, min_turns: 20 });
-let earlyEnd = false;
-for (let i = 0; i < 10; i++) {
-  const res = await s4b.takeTurn('Escalate aggressively', 11);
-  s4b.state.risk = Math.min(100, s4b.state.risk + 20); // force toward threshold
-  if (res.endCondition) earlyEnd = true;
+// 4b. Goal (win condition): when all goal thresholds are met simultaneously,
+//     the scenario ends successfully.
+const goalScenario = {
+  ...scenario,
+  goal: {
+    ending: 'Crisis resolved.',
+    win_conditions: [
+      { stat: 'risk', operator: 'lte', value: 45 },
+      { stat: 'reputation', operator: 'gte', value: 60 },
+    ],
+  },
+};
+const s4b = new DMSession(new MockProvider(), goalScenario);
+let goalEnd = null;
+for (let i = 0; i < 5 && !goalEnd; i++) {
+  s4b.state.risk = 20;          // below 45
+  s4b.state.reputation = 75;    // above 60
+  const res = await s4b.takeTurn('Stabilize and reassure', 20);
+  if (res.endCondition) goalEnd = res.endCondition;
 }
-check('stat end does NOT fire before min_turns', !earlyEnd);
-check('min_turns floor respected (turn < 20)', s4b.turn < 20);
+check('goal fires when all win conditions met', goalEnd && goalEnd.result === 'success');
+check('goal ending shown', goalEnd && goalEnd.ending === 'Crisis resolved.');
+
+// 4c. Goal does NOT fire when only SOME thresholds are met.
+const s4c = new DMSession(new MockProvider(), goalScenario);
+let goalEarly = null;
+for (let i = 0; i < 5 && !goalEarly; i++) {
+  s4c.state.risk = 80;          // above 45 -> goal NOT met
+  s4c.state.reputation = 75;    // above 60
+  const res = await s4c.takeTurn('Stabilize and reassure', 20);
+  if (res.endCondition) goalEarly = res.endCondition;
+}
+check('goal does NOT fire when thresholds not all met', !goalEarly);
 
 // 5. Timeout end condition
 const timeout = s4.timeoutEnd();

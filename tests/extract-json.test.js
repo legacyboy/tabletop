@@ -24,6 +24,11 @@ const cases = [
     input: 'The team handled it well.',
     expect: {},
   },
+  {
+    name: 'narrative with literal line break (state_delta survives)',
+    input: '{\n  "narrative": "First line\nsecond line",\n  "state_delta": { "reputation": -10, "risk": 5 }\n}',
+    expect: { state_delta: { reputation: -10, risk: 5 } },
+  },
 ];
 
 let pass = 0, fail = 0;

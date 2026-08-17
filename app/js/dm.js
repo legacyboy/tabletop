@@ -198,17 +198,28 @@ export class DMSession {
   }
 
   _checkEnd() {
-    // Don't let a stat-based ending fire too early — a real exercise should
-    // run at least `min_turns` (default 20) before a stat collapse can end it.
-    const minTurns = this.scenario.min_turns != null ? this.scenario.min_turns : 20;
-    if (this.turn < minTurns) return null;
+    // Lose conditions: a stat crosses a failure threshold -> the scenario ends badly.
     for (const c of this.scenario.end_conditions || []) {
       if (c.type === 'stat') {
         const v = this.state[c.stat];
-        if (c.operator === 'lte' && v <= c.value) return { ...c, current: v };
-        if (c.operator === 'gte' && v >= c.value) return { ...c, current: v };
+        if (c.operator === 'lte' && v <= c.value) return { ...c, current: v, result: 'failure' };
+        if (c.operator === 'gte' && v >= c.value) return { ...c, current: v, result: 'failure' };
       }
     }
+
+    // Goal (win condition): all goal thresholds met simultaneously -> the
+    // group has achieved the objective, so the scenario ends successfully.
+    const goal = this.scenario.goal;
+    if (goal && Array.isArray(goal.win_conditions) && goal.win_conditions.length) {
+      const allMet = goal.win_conditions.every((c) => {
+        const v = this.state[c.stat];
+        if (c.operator === 'lte') return v <= c.value;
+        if (c.operator === 'gte') return v >= c.value;
+        return false;
+      });
+      if (allMet) return { type: 'goal', result: 'success', ending: goal.ending, ...goal };
+    }
+
     return null;
   }
 
@@ -225,7 +236,8 @@ export class DMSession {
     }
   }
 
-  /** Extract JSON from the raw DM reply, tolerating prose and markdown fences. */
+  /** Extract JSON from the raw DM reply, tolerating prose, markdown fences,
+   *  and model-induced escaping issues in the narrative. */
   _extractJson(raw) {
     if (typeof raw !== 'string') return {};
     let s = raw.trim();
@@ -235,14 +247,15 @@ export class DMSession {
     // structured output leaks into the narrative.
     s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
+    // Strategy 1: try the whole thing.
     try {
       const obj = JSON.parse(s);
       if (obj && typeof obj === 'object') return obj;
-      return {};
     } catch {
       /* fall through */
     }
-    // Try to find the first { ... } block.
+
+    // Strategy 2: try to find the first { ... } block.
     const open = s.indexOf('{');
     const close = s.lastIndexOf('}');
     if (open !== -1 && close > open) {
@@ -250,9 +263,25 @@ export class DMSession {
         const obj = JSON.parse(s.slice(open, close + 1));
         if (obj && typeof obj === 'object') return obj;
       } catch {
+        /* fall through */
+      }
+    }
+
+    // Strategy 3: models sometimes wrap the whole thing in ANOTHER layer of
+    // quotes, or the narrative contains escapes (\"...\", literal \n) that
+    // make the full object unparseable while state_delta itself is fine.
+    // Pull out just the state_delta object as a fallback, since that's the
+    // machine-critical part; the narrative can fall back to the raw text.
+    const deltaMatch = s.match(/"state_delta"\s*:\s*(\{[\s\S]*?\})/);
+    if (deltaMatch) {
+      try {
+        const delta = JSON.parse(deltaMatch[1]);
+        if (delta && typeof delta === 'object') return { state_delta: delta };
+      } catch {
         /* ignore */
       }
     }
+
     return {};
   }
 

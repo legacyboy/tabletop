@@ -1,8 +1,18 @@
 {
   "scenario_id": "bramble_badger_deepfake",
   "title": "Bramble Badger Deepfake Crisis",
-  "version": 2,
-  "min_turns": 20,
+  "version": 3,
+
+  "goal": {
+    "description": "Neutralize the crisis and restore trust: bring reputation, member confidence, and regulator confidence back above healthy thresholds while keeping risk low.",
+    "win_conditions": [
+      { "stat": "reputation", "operator": "gte", "value": 60 },
+      { "stat": "member_confidence", "operator": "gte", "value": 60 },
+      { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
+      { "stat": "risk", "operator": "lte", "value": 45 }
+    ],
+    "ending": "Crisis resolved: public trust is restored, the joke has deflated, and the board and regulator are confident in the response. The exercise concludes."
+  },
 
   "intro": {
     "video": "assets/bramble_badger_fake_exec_video.mp4",

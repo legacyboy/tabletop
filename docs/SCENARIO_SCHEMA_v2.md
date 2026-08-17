@@ -82,12 +82,21 @@ Scenarios are listed in `scenarios/registry.json`.
     "20": { "kind": "crit_success","twist": "Roll 20: perfect execution, role-model win.", "state_delta": { "reputation": 8, "morale": 5 } }
   },
 
-  // --- what ends the session ---
-  // min_turns: minimum number of turns before a stat-based ending can fire.
-  //   A real exercise should run at least ~20 turns (~60 min) before a stat
-  //   collapse can end it. Defaults to 20 if omitted; set 0 to allow early ends.
-  "min_turns": 20,
-  // stat-based: fires when a stat crosses the threshold (after min_turns).
+  // --- the goal: what the group is trying to achieve ---
+  // When ALL win_conditions are met simultaneously, the scenario ends in
+  // success. This is the objective the group works toward — not a timer.
+  "goal": {
+    "description": "Restore trust and deflate the crisis.",
+    "win_conditions": [
+      { "stat": "reputation", "operator": "gte", "value": 60 },
+      { "stat": "member_confidence", "operator": "gte", "value": 60 },
+      { "stat": "risk", "operator": "lte", "value": 45 }
+    ],
+    "ending": "Crisis resolved: trust restored. The exercise concludes."
+  },
+
+  // --- what ends the session in failure ---
+  // stat-based lose conditions: fires when a stat crosses the threshold.
   // timeout:     fires when the running session timer hits duration_seconds.
   "end_conditions": [
     { "type": "stat", "stat": "budget", "operator": "lte", "value": 10,
