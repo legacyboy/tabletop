@@ -1,7 +1,7 @@
 {
   "scenario_id": "new_executive_scenario",
   "title": "New Executive Scenario",
-  "version": 2,
+  "version": 3,
 
   "intro": {
     "video": "",
@@ -46,6 +46,16 @@
   "fate_table": {
     "1": { "kind": "crit_fail", "twist": "Roll 1 catastrophe.", "state_delta": { "morale": -8, "risk": 10 } },
     "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "morale": 6, "risk": -8 } }
+  },
+
+  "goal": {
+    "description": "What the group is trying to achieve. When ALL win_conditions are met simultaneously, the scenario ends in success.",
+    "win_conditions": [
+      { "stat": "reputation", "operator": "gte", "value": 60 },
+      { "stat": "member_confidence", "operator": "gte", "value": 60 },
+      { "stat": "risk", "operator": "lte", "value": 45 }
+    ],
+    "ending": "Crisis resolved: trust restored. The exercise concludes."
   },
 
   "end_conditions": [

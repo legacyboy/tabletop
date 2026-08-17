@@ -14,7 +14,8 @@ reference. Start from `scenarios/templates/blank-scenario-template.json`.
 
 1. Copy `scenarios/templates/blank-scenario-template.json` to
    `scenarios/<name>/scenario.json`.
-2. Fill in the intro, opening state, DM brief, fate table, and end conditions.
+2. Fill in the intro, opening state, DM brief, fate table, **goal** (win
+   condition), and end conditions (lose conditions).
 3. Add one line to `scenarios/registry.json`:
    `{ "id": "...", "title": "...", "path": "scenarios/<name>/scenario.json" }`
 4. Run `npm start`, open the app, and play-test.
@@ -59,8 +60,35 @@ of the free-form action:
 Numbers not listed are adjudicated purely by the DM. Use the fate table for
 flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
 
-### End conditions
-End the session when a stat crosses a threshold, or on timeout:
+### Goal (win condition)
+The **objective the group is trying to achieve**. When ALL `win_conditions`
+are met **simultaneously**, the scenario ends in **success** — the group has
+resolved the situation. This is what makes a session feel like it has a point:
+the group works toward a concrete outcome, not just a timer.
+
+```json
+"goal": {
+  "description": "Restore trust and deflate the crisis.",
+  "win_conditions": [
+    { "stat": "reputation", "operator": "gte", "value": 60 },
+    { "stat": "member_confidence", "operator": "gte", "value": 60 },
+    { "stat": "risk", "operator": "lte", "value": 45 }
+  ],
+  "ending": "Crisis resolved: trust restored. The exercise concludes."
+}
+```
+
+- `win_conditions` is a list of stat thresholds. **All** must be true at once
+  for the goal to fire — partial progress does not end the session.
+- `operator` is `gte` (stat must be at/above value) or `lte` (at/below).
+- `ending` is the success message shown when the goal is met.
+- A good goal is **hard but reachable**: it should take a competent group
+  several turns of sensible play to hit, and a careless group should struggle
+  to reach it.
+
+### End conditions (lose conditions)
+End the session in **failure** when a stat crosses a threshold, or on timeout.
+These are the ways the group can *lose* — the mirror of the goal:
 
 ```json
 "end_conditions": [
@@ -68,6 +96,10 @@ End the session when a stat crosses a threshold, or on timeout:
   { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out." }
 ]
 ```
+
+The session ends when **either** the goal is met (success) **or** a lose
+condition fires (failure) **or** the timeout hits. Set lose thresholds so a
+bad group can collapse, and a timeout as the hard ceiling for the exercise.
 
 ### Report
 Optional `title_note` and `audit_note` added to the closing report the app
