@@ -35,11 +35,7 @@ import { DMSession } from '../app/js/dm.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { saveSession, loadAll, deleteSession } from './persistence.js';
 import { buildReport, renderReportHtml } from './report.js';
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { writeFile, mkdir } from 'node:fs/promises';
-
-const execFileP = promisify(execFile);
+import { sendEmail } from './gmail.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -270,26 +266,16 @@ export async function handleApi(req, res, pathname, url) {
     const subject = body.subject || `Tabletop Exercise Report — ${report.scenario}`;
     const to = body.to || process.env.REPORT_TO || 'legacyboy@gmail.com';
 
-    // Write the HTML to a temp file and hand off to the Gmail SMTP script.
-    const outDir = join(ROOT, 'data', 'reports');
-    await mkdir(outDir, { recursive: true });
-    const htmlPath = join(outDir, `${session.id}-report.html`);
-    await writeFile(htmlPath, html, 'utf8');
-
     try {
-      await execFileP('python3', [
-        join(ROOT, 'scripts', 'send-report-email.py'),
-        htmlPath, subject, to,
-      ]);
+      await sendEmail({ to, subject, html });
       return json(res, 200, {
         message: 'Report emailed',
         to,
         subject,
-        report_path: htmlPath,
         fingerprint: report.part2_proof.fingerprint,
       });
     } catch (err) {
-      return json(res, 502, { error: 'Email send failed: ' + (err.stderr || err.message) });
+      return json(res, 502, { error: 'Email send failed: ' + err.message });
     }
   }
 

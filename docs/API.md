@@ -76,8 +76,9 @@ The report endpoint returns a structured object with three sections:
   empty).
 
 The email endpoint renders this as a self-contained HTML report and sends it
-via Gmail SMTP (`scripts/send-report-email.py`). Configure the sender with
-`SMTP_USER` / `SMTP_PASS` env vars (defaults to Steve's Gmail account).
+directly via Gmail SMTP from the server (`server/gmail.js`, Node built-ins,
+no external script). Configure the sender with `SMTP_USER` / `SMTP_PASS` env
+vars (`SMTP_PASS` is required — a Gmail app password; never hardcode it).
 
 ## Using a hosted API key (e.g. DeepSeek)
 
