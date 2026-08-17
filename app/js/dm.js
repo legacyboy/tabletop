@@ -263,6 +263,40 @@ export class DMSession {
       audit_note: (this.scenario.report && this.scenario.report.audit_note) || '',
     };
   }
+
+  /**
+   * Serialize the session to a plain JSON-safe object (for persistence).
+   * Does NOT include the provider (which may hold secrets) — the caller
+   * stores provider config separately.
+   */
+  serialize() {
+    return {
+      scenario_id: this.scenario.scenario_id,
+      state: clone(this.state),
+      turn: this.turn,
+      history: clone(this.history),
+      startedAt: this.startedAt,
+      durationSeconds: this.durationSeconds,
+      ended: this.ended || false,
+      ending: this.ending || null,
+    };
+  }
+
+  /**
+   * Restore a session from a serialized snapshot + a fresh provider + the
+   * scenario object. Rebuilds the live session state without re-running turns.
+   */
+  static restore(provider, scenario, snapshot) {
+    const session = new DMSession(provider, scenario);
+    session.state = clone(snapshot.state || scenario.opening_state || {});
+    session.turn = snapshot.turn || 0;
+    session.history = clone(snapshot.history || []);
+    session.startedAt = snapshot.startedAt || null;
+    session.durationSeconds = snapshot.durationSeconds ?? session.durationSeconds;
+    session.ended = snapshot.ended || false;
+    session.ending = snapshot.ending || null;
+    return session;
+  }
 }
 
 export { STATE_MIN, STATE_MAX };

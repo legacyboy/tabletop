@@ -1,0 +1,24 @@
+# Render.com one-click deploy config for the Tabletop API.
+# Push this repo to GitHub, then in Render: "New +" -> "Blueprint" -> select
+# this repo. Render reads render.yaml and provisions the web service.
+#
+# The API works with a hosted LLM key (DeepSeek/OpenAI/Anthropic) via the
+# per-request base_url/api_key/model, or via the env defaults below.
+
+services:
+  - type: web
+    name: tabletop-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: PORT
+        value: 8000
+      # Default DM provider (override per request in the API body):
+      - key: OLLAMA_URL
+        value: https://api.deepseek.com/v1
+      - key: MODEL
+        value: deepseek-chat
+      # Set your key in the Render dashboard (don't commit it here):
+      # - key: OLLAMA_API_KEY
+      #   sync: false

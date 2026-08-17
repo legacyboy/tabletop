@@ -33,12 +33,16 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DMSession } from '../app/js/dm.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
+import { saveSession, loadAll, deleteSession } from './persistence.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 // In-memory session store: id -> DMSession
 const sessions = new Map();
 let sessionSeq = 0;
+
+// Provider config per session id (needed to rebuild on restart).
+const providerConfigs = new Map();
 
 const ENV = {
   baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434/v1',
@@ -170,6 +174,12 @@ export async function handleApi(req, res, pathname, url) {
     session.ending = null;
     session.start();
     sessions.set(session.id, session);
+    providerConfigs.set(session.id, {
+      base_url: body.base_url || ENV.baseUrl,
+      api_key: body.api_key || ENV.apiKey,
+      model: body.model || ENV.model,
+    });
+    await saveSession(session.id, session.serialize(), providerConfigs.get(session.id));
 
     return json(res, 201, {
       id: session.id,
@@ -213,6 +223,8 @@ export async function handleApi(req, res, pathname, url) {
         session.ended = true;
         session.ending = result.endCondition.ending;
       }
+      // Persist after every turn so a restart doesn't lose progress.
+      await saveSession(session.id, session.serialize(), providerConfigs.get(session.id));
       return json(res, 200, {
         turn: result.event.turn,
         roll,
@@ -236,5 +248,47 @@ export async function handleApi(req, res, pathname, url) {
     return json(res, 200, report);
   }
 
+  // DELETE /api/session/:id
+  const deleteMatch = pathname.match(/^\/api\/session\/([^/]+)$/);
+  if (deleteMatch && req.method === 'DELETE') {
+    const id = deleteMatch[1];
+    if (!sessions.has(id)) return json(res, 404, { error: 'Session not found' });
+    sessions.delete(id);
+    providerConfigs.delete(id);
+    await deleteSession(id);
+    return json(res, 200, { message: 'Session deleted', id });
+  }
+
   return false; // not an API route
+}
+
+/**
+ * Restore persisted sessions into the in-memory store. Call once at startup.
+ * Returns the number of sessions restored.
+ */
+export async function restoreSessions() {
+  const saved = await loadAll();
+  let restored = 0;
+  for (const [id, data] of saved) {
+    try {
+      const scenario = await loadScenarioById(data.snapshot.scenario_id);
+      if (!scenario) continue;
+      const provider = new OpenAICompatibleProvider({
+        baseUrl: data.providerConfig.base_url || ENV.baseUrl,
+        apiKey: data.providerConfig.api_key || ENV.apiKey,
+        model: data.providerConfig.model || ENV.model,
+      });
+      const session = DMSession.restore(provider, scenario, data.snapshot);
+      session.id = id;
+      sessions.set(id, session);
+      providerConfigs.set(id, data.providerConfig);
+      // Track the highest sequence so new ids don't collide.
+      const n = parseInt(id.replace(/^s/, ''), 10);
+      if (!Number.isNaN(n) && n > sessionSeq) sessionSeq = n;
+      restored++;
+    } catch {
+      // skip corrupt session files
+    }
+  }
+  return restored;
 }

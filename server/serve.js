@@ -19,7 +19,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { handleApi } from './api.js';
+import { handleApi, restoreSessions } from './api.js';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PORT = Number(process.argv[2]) || 8000;
@@ -105,7 +105,10 @@ const server = createServer(async (req, res) => {
   serveStatic(req, res, pathname);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
+  const restored = await restoreSessions();
   console.log(`Executive Tabletop D20 -> http://localhost:${PORT}`);
+  console.log(`Restored ${restored} persisted session(s).`);
   console.log('Company-info proxy available at /api/company?url=<url> (optional)');
+  console.log('API: /api/scenarios, /api/session, /api/session/:id/turn, /api/session/:id/report');
 });

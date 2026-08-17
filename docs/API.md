@@ -82,7 +82,35 @@ what you type. A roll in the scenario's `fate_table` fires an authored twist.
 
 ## Notes
 
-- Sessions live in memory; restarting the server clears them.
+- Sessions are **persisted to disk** (`data/sessions/`) and survive server
+  restarts. On startup the server restores any saved sessions.
+- `DELETE /api/session/:id` removes a session (memory + disk).
 - The DM is the same engine as the web app: state clamped 0-100, per-turn
   delta capped ±10, end conditions + timeout produce the report.
 - See `scripts/play-tabletop.sh` for a ready-made interactive curl player.
+
+## Hosting the API remotely ("API on GitHub")
+
+GitHub Pages is static and **cannot** run the API server. To get a remote,
+curl-playable API, deploy the Node server to a container host:
+
+- **Render** (free tier): push this repo to GitHub, then in Render choose
+  **New + → Blueprint → this repo**. It reads `render.yaml` and provisions the
+  service. Set your LLM key in the Render dashboard.
+- **Railway / Fly.io / Docker**: use the included `Dockerfile`.
+
+Once deployed you get a URL like `https://tabletop-api.onrender.com` and can
+play from anywhere:
+
+```bash
+curl -X POST https://tabletop-api.onrender.com/api/session \
+  -H 'Content-Type: application/json' \
+  -d '{"scenario_id":"bramble_badger_deepfake",
+       "base_url":"https://api.deepseek.com/v1",
+       "api_key":"***",
+       "model":"deepseek-chat"}'
+```
+
+> The API is provider-flexible per request, so a hosted deployment works with
+> any OpenAI-compatible key (DeepSeek/OpenAI/Anthropic). Local Ollama is only
+> available when the server runs on the same machine as Ollama.
