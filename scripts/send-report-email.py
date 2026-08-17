@@ -20,8 +20,14 @@ from email.utils import formataddr
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 SMTP_USER = os.environ.get("SMTP_USER", "danoclawnor@gmail.com")
-SMTP_PASS = os.environ.get("SMTP_PASS", "***REDACTED***")
+# App password MUST come from the environment — never hardcode credentials.
+SMTP_PASS = os.environ.get("SMTP_PASS")
 REPORT_TO = os.environ.get("REPORT_TO", "legacyboy@gmail.com")
+
+
+if not SMTP_PASS:
+    print("error: SMTP_PASS env var is required (Gmail app password)", file=sys.stderr)
+    sys.exit(2)
 
 
 def main():
