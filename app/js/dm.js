@@ -60,6 +60,9 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## STATE',
     `Track these metrics between 0 and 100. Start from: ${JSON.stringify(scenario.opening_state)}.`,
+    '- Change any single metric by AT MOST 10 points per turn (usually 1-6).',
+    '- Do NOT max out or zero out metrics. Keep values in a believable mid-range so a 60-minute session has room to escalate and recover.',
+    '- Only change metrics that the action genuinely affects; leave the rest unchanged.',
     'Your reply must be STRICT JSON with exactly these fields:',
     '{"narrative": "<what happened, 2-5 sentences>", "state_delta": {"<metric>": <integer change>, ...}}',
     'Only include metrics you actually changed. Return valid JSON and nothing else.',
@@ -186,7 +189,10 @@ export class DMSession {
     const next = clone(state);
     for (const [k, v] of Object.entries(delta || {})) {
       if (typeof v !== 'number') continue;
-      next[k] = clamp((next[k] || 0) + v);
+      // Hard cap on per-turn change so a single roll can't swing a metric
+      // wildly, even if the model over-reports. Keeps the arc believable.
+      const capped = Math.max(-10, Math.min(10, v));
+      next[k] = clamp((next[k] || 0) + capped);
     }
     return next;
   }
