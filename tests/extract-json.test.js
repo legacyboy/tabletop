@@ -1,0 +1,36 @@
+// Verify the _extractJson fix handles markdown-fenced JSON (the poor-play bug).
+import { DMSession } from '../app/js/dm.js';
+
+const s = new DMSession({ chat: async () => '' }, { opening_state: {}, end_conditions: [] });
+
+const cases = [
+  {
+    name: 'plain JSON',
+    input: '{"narrative":"hi","state_delta":{"risk":5}}',
+    expect: { narrative: 'hi', state_delta: { risk: 5 } },
+  },
+  {
+    name: 'markdown-fenced JSON (the bug)',
+    input: '```json\n{"narrative":"satire","state_delta":{"reputation":-8}}\n```',
+    expect: { narrative: 'satire', state_delta: { reputation: -8 } },
+  },
+  {
+    name: 'prose + JSON block',
+    input: 'Here is the result:\n{"narrative":"ok","state_delta":{"morale":2}}',
+    expect: { narrative: 'ok', state_delta: { morale: 2 } },
+  },
+  {
+    name: 'no JSON at all',
+    input: 'The team handled it well.',
+    expect: {},
+  },
+];
+
+let pass = 0, fail = 0;
+for (const c of cases) {
+  const got = s._extractJson(c.input);
+  const ok = JSON.stringify(got) === JSON.stringify(c.expect);
+  if (ok) pass++; else { fail++; console.log('FAIL', c.name, 'got', JSON.stringify(got)); }
+}
+console.log(`${pass} passed, ${fail} failed`);
+process.exit(fail ? 1 : 0);

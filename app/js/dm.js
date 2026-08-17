@@ -221,10 +221,16 @@ export class DMSession {
     }
   }
 
-  /** Extract JSON from the raw DM reply, tolerating a bit of surrounding prose. */
+  /** Extract JSON from the raw DM reply, tolerating prose and markdown fences. */
   _extractJson(raw) {
     if (typeof raw !== 'string') return {};
-    const s = raw.trim();
+    let s = raw.trim();
+
+    // Strip markdown code fences (```json ... ```) which some models wrap
+    // their JSON in. Without this, the fence breaks JSON.parse and the
+    // structured output leaks into the narrative.
+    s = s.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
     try {
       const obj = JSON.parse(s);
       if (obj && typeof obj === 'object') return obj;
