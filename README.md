@@ -64,13 +64,19 @@ Open **⚙ DM / Keys**. Pick one:
 - **In-browser model (WebLLM)** — portable, standalone, offline. Runs a small
   Gemma/Llama model in the browser via WebGPU. Requires a WebGPU-capable
   browser (current Chrome/Edge). Model downloads once (~1-2 GB).
+- **Server (local)** — the DM runs on the **server box** (e.g. a local Ollama
+  on the same machine as the app server). The browser talks to the server's
+  `/api/dm` proxy, and the server calls the LLM. This is the right choice
+  when the app is served on your network: remote clients only need to reach
+  the server, not the LLM. No Ollama network exposure required.
 - **API key** — OpenAI, DeepSeek, Anthropic (OpenAI-compatible), or any
-  custom OpenAI-compatible endpoint — including a **local Ollama** for a fast
-  free Gemma. Keys are stored in the browser (localStorage) and sent only to
-  the chosen provider.
+  custom OpenAI-compatible endpoint. Keys are stored in the browser
+  (localStorage) and sent only to the chosen provider.
 
 > Free local Gemma via Ollama: run `OLLAMA_ORIGINS=* ollama serve`, then set
-> Base URL to `http://localhost:11434/v1` and model `gemma3:4b`.
+> Base URL to `http://localhost:11434/v1` and model `gemma3:4b`. For the
+> **Server (local)** option, Ollama only needs to be reachable from the server
+> (localhost is fine) — remote clients go through the server proxy.
 
 ## Layout
 

@@ -137,6 +137,32 @@ export async function handleApi(req, res, pathname, url) {
     return true;
   }
 
+  // POST /api/dm — DM proxy. Lets the web app talk to the LLM through the
+  // server instead of calling the provider directly from the browser. This is
+  // how a remote client reaches a local Ollama on the same box as the server
+  // (the client only needs the server, not Ollama).
+  if (pathname === '/api/dm' && req.method === 'POST') {
+    const body = await readBody(req);
+    if (!Array.isArray(body.messages) || !body.messages.length) {
+      return json(res, 400, { error: 'messages[] is required' });
+    }
+    let provider;
+    try {
+      provider = buildProvider(body);
+    } catch (err) {
+      return json(res, 400, { error: err.message });
+    }
+    try {
+      const content = await provider.chat(body.messages, {
+        temperature: body.temperature,
+        maxTokens: body.max_tokens,
+      });
+      return json(res, 200, { content });
+    } catch (err) {
+      return json(res, 502, { error: 'DM call failed: ' + err.message });
+    }
+  }
+
   // GET /api/scenarios
   if (pathname === '/api/scenarios' && req.method === 'GET') {
     const registry = await loadRegistry();

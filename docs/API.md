@@ -23,6 +23,7 @@ request with `base_url`, `api_key`, `model` (or set `OLLAMA_URL`,
 | POST | `/api/session` | Create a session |
 | GET | `/api/session/:id` | Session state + turn log |
 | POST | `/api/session/:id/turn` | Take a turn (action + roll) |
+| POST | `/api/dm` | DM proxy — server calls the LLM on the client's behalf |
 | GET | `/api/session/:id/report` | Two-part audit report (full audit + proof of play) |
 | POST | `/api/session/:id/report/email` | Generate the report and email it via Gmail |
 
@@ -109,6 +110,28 @@ curl -X POST localhost:8000/api/session \
 ```
 `roll` must be an integer 1-20. The DM never proposes actions — it reacts to
 what you type. A roll in the scenario's `fate_table` fires an authored twist.
+
+## DM proxy (`POST /api/dm`)
+
+Lets a client call the LLM **through the server** instead of directly from
+the browser. This is how a remote client reaches a local Ollama on the same
+box as the server — the client only needs the server, not Ollama.
+
+```bash
+curl -X POST localhost:8000/api/dm \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "base_url": "http://localhost:11434/v1",
+    "api_key": "",
+    "model": "gemma3:4b",
+    "messages": [{ "role": "user", "content": "Reply with exactly: ok" }]
+  }'
+# -> { "content": "ok" }
+```
+
+Body: `base_url`, `api_key` (optional), `model`, `messages[]`, plus optional
+`temperature` / `max_tokens`. The server makes the upstream call and returns
+`{ content }`. The web app's **Server (local)** DM option uses this endpoint.
 
 ## Notes
 

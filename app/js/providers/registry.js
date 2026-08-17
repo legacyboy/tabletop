@@ -13,6 +13,7 @@
 
 import { OpenAICompatibleProvider } from './openai-compatible.js';
 import { WebLLMProvider } from './webllm.js';
+import { ServerProxyProvider } from './server-proxy.js';
 
 const SETTINGS_KEY = 'tabletop.dm.settings.v1';
 
@@ -36,14 +37,22 @@ export const PRESETS = [
     baseUrl: 'https://api.anthropic.com/v1',
     model: 'claude-3-5-haiku-latest',
   },
+  {
+    id: 'server-local',
+    label: 'Server (local Ollama)',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'gemma3:4b',
+    viaServer: true,
+  },
 ];
 
 export function defaultSettings() {
   return {
-    provider: 'none',          // 'webllm' | 'openai-compatible' | 'none'
+    provider: 'none',          // 'webllm' | 'openai-compatible' | 'server-proxy' | 'none'
     apiKey: '',
     baseUrl: '',
     model: '',
+    viaServer: false,          // route through the server's /api/dm proxy
     // Company fetch controls
     allowCompanyFetch: true,
   };
@@ -67,12 +76,15 @@ function describeSelection(settings) {
   if (settings.provider === 'webllm') {
     return { id: 'webllm', label: 'In-browser (WebLLM)' };
   }
-  if (settings.provider === 'openai-compatible') {
+  if (settings.provider === 'openai-compatible' || settings.provider === 'server-proxy') {
     const preset = PRESETS.find((p) => p.baseUrl === settings.baseUrl);
+    const viaServer = settings.provider === 'server-proxy' || settings.viaServer;
     return {
-      id: 'openai-compatible',
-      label: preset ? preset.label : settings.baseUrl || 'Custom OpenAI-compatible',
-      detail: `${settings.model || 'model?'} @ ${settings.baseUrl || 'no url'}`,
+      id: settings.provider,
+      label: viaServer
+        ? (preset && preset.viaServer ? preset.label : 'Server proxy')
+        : (preset ? preset.label : settings.baseUrl || 'Custom OpenAI-compatible'),
+      detail: `${settings.model || 'model?'} @ ${settings.baseUrl || 'no url'}${viaServer ? ' (via server)' : ''}`,
     };
   }
   return { id: 'none', label: 'Not configured', detail: 'Open Settings to connect a DM.' };
@@ -98,8 +110,18 @@ export function buildProvider(settings = null) {
     });
   }
 
-  if (s.provider === 'openai-compatible') {
+  if (s.provider === 'openai-compatible' || s.provider === 'server-proxy') {
     if (!s.baseUrl) return null;
+    // Route through the server's /api/dm proxy when the user picked the
+    // server-local preset (or explicitly set viaServer). This lets a remote
+    // client reach a local Ollama on the server box without exposing Ollama.
+    if (s.provider === 'server-proxy' || s.viaServer) {
+      return new ServerProxyProvider({
+        baseUrl: s.baseUrl,
+        apiKey: s.apiKey,
+        model: s.model,
+      });
+    }
     return new OpenAICompatibleProvider({
       baseUrl: s.baseUrl,
       apiKey: s.apiKey,

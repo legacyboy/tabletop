@@ -106,7 +106,7 @@ function renderForm() {
 
 function renderDynamic() {
   const isWebLLM = current.provider === 'webllm';
-  const isApi = current.provider === 'openai-compatible';
+  const isApi = current.provider === 'openai-compatible' || current.provider === 'server-proxy';
   const isNone = current.provider === 'none';
 
   const show = (sel, on) => { if (el[sel]) el[sel].style.display = on ? '' : 'none'; };
