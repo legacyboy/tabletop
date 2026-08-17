@@ -48,7 +48,9 @@ check('fate on 1', s3.history[0].fate !== null);
 check('reputation dropped on 1', s3.state.reputation < scenario.opening_state.reputation);
 
 // 4. End condition detection: drive risk up via repeated low rolls + fate
-const s4 = new DMSession(new MockProvider(), scenario);
+//    (min_turns=0 so the stat end can fire immediately — this test checks
+//    detection, not the minimum-duration floor).
+const s4 = new DMSession(new MockProvider(), { ...scenario, min_turns: 0 });
 let endHit = false;
 for (let i = 0; i < 12 && !endHit; i++) {
   const res = await s4.takeTurn('Escalate aggressively', 11); // fate adds risk each time
@@ -56,6 +58,17 @@ for (let i = 0; i < 12 && !endHit; i++) {
   if (res.endCondition) endHit = true;
 }
 check('end condition fires when risk >= 90', endHit);
+
+// 4b. Minimum-duration floor: with min_turns set, a stat end does NOT fire early.
+const s4b = new DMSession(new MockProvider(), { ...scenario, min_turns: 20 });
+let earlyEnd = false;
+for (let i = 0; i < 10; i++) {
+  const res = await s4b.takeTurn('Escalate aggressively', 11);
+  s4b.state.risk = Math.min(100, s4b.state.risk + 20); // force toward threshold
+  if (res.endCondition) earlyEnd = true;
+}
+check('stat end does NOT fire before min_turns', !earlyEnd);
+check('min_turns floor respected (turn < 20)', s4b.turn < 20);
 
 // 5. Timeout end condition
 const timeout = s4.timeoutEnd();

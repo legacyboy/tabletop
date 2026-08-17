@@ -198,6 +198,10 @@ export class DMSession {
   }
 
   _checkEnd() {
+    // Don't let a stat-based ending fire too early — a real exercise should
+    // run at least `min_turns` (default 20) before a stat collapse can end it.
+    const minTurns = this.scenario.min_turns != null ? this.scenario.min_turns : 20;
+    if (this.turn < minTurns) return null;
     for (const c of this.scenario.end_conditions || []) {
       if (c.type === 'stat') {
         const v = this.state[c.stat];

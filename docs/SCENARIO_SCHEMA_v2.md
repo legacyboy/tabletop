@@ -83,7 +83,11 @@ Scenarios are listed in `scenarios/registry.json`.
   },
 
   // --- what ends the session ---
-  // stat-based: fires when a stat crosses the threshold.
+  // min_turns: minimum number of turns before a stat-based ending can fire.
+  //   A real exercise should run at least ~20 turns (~60 min) before a stat
+  //   collapse can end it. Defaults to 20 if omitted; set 0 to allow early ends.
+  "min_turns": 20,
+  // stat-based: fires when a stat crosses the threshold (after min_turns).
   // timeout:     fires when the running session timer hits duration_seconds.
   "end_conditions": [
     { "type": "stat", "stat": "budget", "operator": "lte", "value": 10,

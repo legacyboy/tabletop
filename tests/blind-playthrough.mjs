@@ -23,7 +23,7 @@ import { readFileSync } from 'node:fs';
 const OLLAMA = 'http://localhost:11434/v1';
 const DM_MODEL = 'gemma3:4b';
 const PLAYER_MODEL = process.argv[2] || 'glm-5.2:cloud';
-const TURNS = Number(process.argv[3]) || 4;
+const TURNS = Number(process.argv[3]) || 20;
 
 const scenario = JSON.parse(readFileSync('scenarios/bramble-badger-deepfake/scenario.json', 'utf8'));
 

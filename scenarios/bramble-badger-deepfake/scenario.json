@@ -2,6 +2,7 @@
   "scenario_id": "bramble_badger_deepfake",
   "title": "Bramble Badger Deepfake Crisis",
   "version": 2,
+  "min_turns": 20,
 
   "intro": {
     "video": "assets/bramble_badger_fake_exec_video.mp4",
