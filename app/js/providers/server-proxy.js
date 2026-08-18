@@ -14,7 +14,10 @@
 export class ServerProxyProvider {
   /**
    * @param {object} config
-   * @param {string} config.baseUrl   upstream LLM base URL (e.g. http://localhost:11434/v1)
+   * @param {string} [config.baseUrl]  upstream LLM base URL (e.g.
+   *   http://localhost:11434/v1). May be empty: the server's /api/dm handler
+   *   then falls back to its own OLLAMA_URL default, so the client never needs
+   *   to know where Ollama lives (used by the "Ollama (remote)" preset).
    * @param {string} config.apiKey    upstream API key (may be empty for local Ollama)
    * @param {string} config.model     upstream model (e.g. gemma3:4b)
    * @param {string} config.endpoint  server proxy path (default '/api/dm')
@@ -33,20 +36,23 @@ export class ServerProxyProvider {
 
   /** @returns {Promise<string>} the model's text reply. */
   async chat(messages, opts = {}) {
-    if (!this.baseUrl) throw new Error('Server proxy needs an upstream base URL.');
     if (!this.model) throw new Error('Server proxy needs a model name.');
+
+    const body = {
+      api_key: this.apiKey,
+      model: this.model,
+      messages,
+      temperature: opts.temperature ?? 0.8,
+      max_tokens: opts.maxTokens ?? 800,
+    };
+    // Only send an upstream base URL when the client actually set one; the
+    // server otherwise uses its own OLLAMA_URL default.
+    if (this.baseUrl) body.base_url = this.baseUrl;
 
     const res = await fetch(this.endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        base_url: this.baseUrl,
-        api_key: this.apiKey,
-        model: this.model,
-        messages,
-        temperature: opts.temperature ?? 0.8,
-        max_tokens: opts.maxTokens ?? 800,
-      }),
+      body: JSON.stringify(body),
       signal: opts.signal,
     });
 

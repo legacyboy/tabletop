@@ -27,8 +27,21 @@ const el = {};
 
 let current = null;
 
+/**
+ * Whether the Base URL field should be hidden for the current selection.
+ * Presets with no base URL (e.g. "Ollama (remote)", which is routed through
+ * the server's /api/dm proxy using the server-side OLLAMA_URL) must not show a
+ * Base URL field — the user never needs to type or see a URL.
+ */
+function hideBaseUrl() {
+  if (!current || !current.preset) return false;
+  const p = PRESETS.find((x) => x.id === current.preset);
+  // Hide when the selected preset carries no base URL of its own.
+  return !!p && !p.baseUrl;
+}
+
 export function initSettings() {
-  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'model', 'allowCompanyFetch',
+  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'allowCompanyFetch',
    'saveSettings', 'testConnection', 'settingsStatus', 'settingsSummary',
    'settingsBack', 'companyFetchHint',
   ].forEach((id) => { el[id] = $(id); });
@@ -47,11 +60,16 @@ export function initSettings() {
     const p = PRESETS.find((x) => x.id === el.preset.value);
     current.preset = el.preset.value;
     if (p) {
-      current.baseUrl = p.baseUrl;
+      current.baseUrl = p.baseUrl || '';
       current.model = p.model;
-      el.baseUrl.value = p.baseUrl;
+      current.viaServer = !!p.viaServer;
+      el.baseUrl.value = current.baseUrl;
       el.model.value = p.model;
+    } else {
+      // Custom preset: clear the server-route flag so a fresh URL is used.
+      current.viaServer = false;
     }
+    renderDynamic();
   };
 
   el.saveSettings.onclick = () => {
@@ -114,8 +132,12 @@ function renderDynamic() {
   const show = (sel, on) => { if (el[sel]) el[sel].style.display = on ? '' : 'none'; };
   show('preset', isApi);
   show('apiKey', isApi);
-  show('baseUrl', isApi);
   show('model', isApi || isWebLLM);
+  // Hide the Base URL field for presets that are server-routed with no client
+  // URL (e.g. "Ollama (remote)"): the user never sees or types a URL.
+  const showBaseUrl = isApi && !hideBaseUrl();
+  show('baseUrl', showBaseUrl);
+  show('baseUrlWrap', showBaseUrl);
 
   // Reflect the saved preset selection into the dropdown ('' = Custom).
   el.preset.value = current.preset || '';
@@ -134,6 +156,10 @@ function renderDynamic() {
   el.apiKey.disabled = isNone;
   el.baseUrl.disabled = isNone;
   el.model.disabled = isNone;
+
+  // When the preset hides the Base URL field, clear any stale value so the
+  // server proxy falls back to its own OLLAMA_URL default.
+  if (hideBaseUrl()) current.baseUrl = '';
 
   // Reflect current settings into the fields on first render.
   if (!el.baseUrl.dataset.touched) {
