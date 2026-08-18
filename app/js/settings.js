@@ -45,6 +45,7 @@ export function initSettings() {
 
   el.preset.onchange = () => {
     const p = PRESETS.find((x) => x.id === el.preset.value);
+    current.preset = el.preset.value;
     if (p) {
       current.baseUrl = p.baseUrl;
       current.model = p.model;
@@ -115,6 +116,9 @@ function renderDynamic() {
   show('apiKey', isApi);
   show('baseUrl', isApi);
   show('model', isApi || isWebLLM);
+
+  // Reflect the saved preset selection into the dropdown ('' = Custom).
+  el.preset.value = current.preset || '';
 
   // For WebLLM show a model hint and pre-fill the model from the offline
   // bundle (if present) so the field isn't blank.
