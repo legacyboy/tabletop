@@ -64,7 +64,21 @@ export class WebLLMProvider {
     let { CreateMLCEngine } = await import(this.libraryUrl);
 
     const engineConfig = {};
-    if (this.appConfig) engineConfig.appConfig = this.appConfig;
+    if (this.appConfig) {
+      // WebLLM needs absolute URLs for model/model_lib. The offline config
+      // stores root-relative paths (/vendor/...); resolve them against the
+      // current origin so CreateMLCEngine can construct valid URLs.
+      const origin = (typeof location !== 'undefined' && location.origin) || '';
+      const abs = (p) => (p && /^https?:\/\//.test(p) ? p : origin + p);
+      engineConfig.appConfig = {
+        ...this.appConfig,
+        model_list: (this.appConfig.model_list || []).map((m) => ({
+          ...m,
+          model: abs(m.model),
+          model_lib: abs(m.model_lib),
+        })),
+      };
+    }
     engineConfig.initProgressCallback = (report) => {
       this.onProgress({
         phase: report.text,
