@@ -53,15 +53,22 @@ export async function loadScenario(path) {
  * context with real company details. Returns a string on success, or null when
  * blocked/bypassed. Never throws.
  *
+ * The URL comes from the user-entered companyUrl in settings when set
+ * (overriding the scenario's own intro.company_url), else from
+ * scenario.intro.company_url. When neither is present, or when
+ * allowCompanyFetch is disabled, returns null without fetching.
+ *
  * Tries a direct browser fetch first (some sites allow CORS); if that fails
  * (blocked), falls back to the optional local proxy at /api/company (the tiny
  * Node server), which fetches server-side and avoids CORS entirely.
  */
-export async function fetchCompanyInfo(scenario) {
+export async function fetchCompanyInfo(scenario, opts = {}) {
   const settings = loadSettings();
   if (!settings.allowCompanyFetch) return null;
 
-  const url = scenario.intro && scenario.intro.company_url;
+  // Prefer the user-entered URL (explicit opt-in), else the scenario's.
+  const userUrl = opts.companyUrl || settings.companyUrl || '';
+  const url = (userUrl || '').trim() || (scenario.intro && scenario.intro.company_url);
   if (!url) return null;
 
   return (await directFetch(url)) || (await proxyFetch(url));

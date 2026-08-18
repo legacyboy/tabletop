@@ -96,6 +96,28 @@ const localState = await page.evaluate(() => ({
 check('server-local still pre-fills localhost baseUrl', localState.baseUrl === 'http://localhost:11434/v1');
 check('server-local still SHOWS the Base URL field', localState.baseUrlDisplay !== 'none');
 
+// --- Feature 3: company URL field in settings ---
+const companyField = await page.evaluate(() => ({
+  hasInput: !!document.getElementById('companyUrl'),
+  placeholder: (document.getElementById('companyUrl') || {}).placeholder || '',
+  checkLabel: (document.getElementById('allowCompanyFetch') || {}).parentElement.textContent || '',
+}));
+check('settings has a companyUrl input', companyField.hasInput);
+check('companyUrl input placeholder suggests example.com', companyField.placeholder === 'https://example.com');
+check('company fetch checkbox label references the URL field', /company URL below/i.test(companyField.checkLabel));
+
+// The companyUrl field persists across a save + reopen of settings.
+await page.evaluate(() => {
+  document.getElementById('companyUrl').value = 'https://example.org/acme';
+  document.getElementById('allowCompanyFetch').checked = true;
+  document.getElementById('saveSettings').click();
+});
+await new Promise((r) => setTimeout(r, 300));
+await page.evaluate(() => window.dispatchEvent(new CustomEvent('tabletop:refreshsettings')));
+await new Promise((r) => setTimeout(r, 300));
+const persisted = await page.evaluate(() => document.getElementById('companyUrl').value);
+check('companyUrl persists across settings refresh', persisted === 'https://example.org/acme');
+
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();
