@@ -1,11 +1,11 @@
 {
   "scenario_id": "new_executive_scenario",
   "title": "New Executive Scenario",
-  "version": 3,
+  "version": 4,
 
   "intro": {
     "video": "",
-    "narrative": "One paragraph read to / displayed for the group that sets the opening scene.",
+    "narrative": "One paragraph read to / displayed for the group that sets the opening scene. This is the PRIMARY thing shown to players.",
     "facilitator_notes": "Guidance for the moderator only (players should not see this).",
     "company_url": "",
     "company_info": "Optional static background about the organization."
@@ -34,14 +34,29 @@
       { "name": "Actor", "role": "Role", "interests": "What they want", "knowledge": "What they know" }
     ],
     "pressure_points": [
-      "An event the DM may inject if the group stalls.",
-      "Another event to keep tension when momentum drops."
+      "(Optional, backward-compat) An event the DM may inject if the group stalls.",
+      "Prefer the top-level 'events' array below for conditional, once-per-session events."
     ],
     "rules_of_play": [
       "Never propose actions or present a menu of choices; react only to what the group does.",
       "Only metrics the scenario tracks may change; keep values between 0 and 100."
     ]
   },
+
+  "events": [
+    {
+      "id": "e1",
+      "trigger": { "type": "stall", "turns": 2 },
+      "text": "An event that fires if the group stalls for 2 turns.",
+      "state_delta": { "morale": -4, "risk": 5 }
+    },
+    {
+      "id": "e2",
+      "trigger": { "type": "stat", "stat": "risk", "operator": "gte", "value": 60 },
+      "text": "An event that fires when risk crosses 60.",
+      "state_delta": { "risk": 5, "member_confidence": -3 }
+    }
+  ],
 
   "fate_table": {
     "1": { "kind": "crit_fail", "twist": "Roll 1 catastrophe.", "state_delta": { "morale": -8, "risk": 10 } },

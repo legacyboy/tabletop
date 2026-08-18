@@ -113,5 +113,70 @@ for (const [k, v] of Object.entries(s5.state)) {
   check(`clamp ${k} >= 0`, v >= 0);
 }
 
+// 8. Conditional events (v3): stall trigger fires after N stalled turns.
+const stallScenario = {
+  ...scenario,
+  events: [
+    { id: 'stall1', trigger: { type: 'stall', turns: 2 }, text: 'The room goes quiet.', state_delta: { morale: -5 } },
+  ],
+};
+const s6 = new DMSession(new MockProvider(), stallScenario);
+await s6.takeTurn('x', 10);   // stall turn 1 (very short action)
+check('stall event NOT fired after 1 stalled turn', !s6.firedEvents.has('stall1'));
+await s6.takeTurn('ok', 10);   // stall turn 2 -> fires
+check('stall event fires after 2 consecutive stalled turns', s6.firedEvents.has('stall1'));
+check('stall event state_delta applied', s6.state.morale === stallScenario.opening_state.morale - 5);
+check('stall event recorded in history', s6.history[1].events.includes('stall1'));
+
+// 8b. Stall counter resets on a meaningful action.
+const s6b = new DMSession(new MockProvider(), stallScenario);
+await s6b.takeTurn('x', 10);  // stall
+await s6b.takeTurn('Issue a real statement', 10);  // meaningful -> resets
+await s6b.takeTurn('x', 10);  // stall 1 again
+check('stall counter resets after a meaningful action', !s6b.firedEvents.has('stall1'));
+
+// 9. Conditional events (v3): stat trigger fires when the stat crosses threshold.
+const statScenario = {
+  ...scenario,
+  events: [
+    { id: 'stat1', trigger: { type: 'stat', stat: 'risk', operator: 'gte', value: 60 }, text: 'Regulator calls.', state_delta: { regulator_confidence: -5 } },
+  ],
+};
+const s7 = new DMSession(new MockProvider(), statScenario);
+s7.state.risk = 30;
+await s7.takeTurn('Act', 10);
+check('stat event NOT fired below threshold', !s7.firedEvents.has('stat1'));
+s7.state.risk = 70;  // cross threshold
+await s7.takeTurn('Act', 10);
+check('stat event fires when stat crosses threshold', s7.firedEvents.has('stat1'));
+check('stat event state_delta applied', s7.state.regulator_confidence === statScenario.opening_state.regulator_confidence - 5);
+
+// 9b. Fired events do NOT re-fire on subsequent turns.
+const before = s7.state.regulator_confidence;
+await s7.takeTurn('Act', 10);  // risk still >= 60, but event already fired
+check('fired event does NOT re-fire', s7.state.regulator_confidence === before);
+
+// 10. serialize/restore persist fired event ids (no re-fire after restore).
+const snap = s7.serialize();
+check('serialize includes firedEvents', Array.isArray(snap.firedEvents) && snap.firedEvents.includes('stat1'));
+const restored = DMSession.restore(new MockProvider(), statScenario, snap);
+restored.state.risk = 80;  // still above threshold
+await restored.takeTurn('Act', 10);
+check('restored session does NOT re-fire a previously fired event', !restored.history[0].events.includes('stat1'));
+
+// 11. Turn trigger fires on a specific turn number.
+const turnScenario = {
+  ...scenario,
+  events: [
+    { id: 'turn1', trigger: { type: 'turn', turn: 3 }, text: 'An influencer amplifies the clip.', state_delta: { reputation: -3 } },
+  ],
+};
+const s8 = new DMSession(new MockProvider(), turnScenario);
+await s8.takeTurn('Act', 10);  // turn 1
+await s8.takeTurn('Act', 10);  // turn 2
+check('turn event NOT fired before its turn', !s8.firedEvents.has('turn1'));
+await s8.takeTurn('Act', 10);  // turn 3 -> fires
+check('turn event fires on its turn number', s8.firedEvents.has('turn1'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

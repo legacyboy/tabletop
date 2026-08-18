@@ -207,7 +207,7 @@ async function beginSession() {
     state.session = new DMSession(provider, scenario);
     state.session.onTimerTick = renderTimer;
 
-    // Show moderator-only content.
+    // Show the group's opening scene (intro.narrative) + moderator-only notes.
     el.moderatorRead.textContent = scenario.intro.narrative || '';
     el.moderatorNotes.textContent = scenario.intro.facilitator_notes || '(no facilitator notes)';
 

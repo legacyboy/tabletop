@@ -21,7 +21,7 @@ export function validateScenario(scenario) {
   if (!scenario || typeof scenario !== 'object') return { valid: false, errors: ['Scenario is not an object'] };
   if (!scenario.scenario_id) errors.push('missing scenario_id');
   if (!scenario.title) errors.push('missing title');
-  if (scenario.version !== 2 && scenario.version !== 3) errors.push('version must be 2 or 3');
+  if (scenario.version !== 2 && scenario.version !== 3 && scenario.version !== 4) errors.push('version must be 2, 3, or 4');
   if (!scenario.intro || typeof scenario.intro !== 'object') errors.push('missing intro object');
   if (!scenario.opening_state || typeof scenario.opening_state !== 'object') errors.push('missing opening_state');
   if (!scenario.dm_brief || !scenario.dm_brief.situation) errors.push('dm_brief.situation is required');
