@@ -167,6 +167,59 @@ await new Promise((r) => setTimeout(r, 300));
 const persisted = await page.evaluate(() => document.getElementById('companyUrl').value);
 check('companyUrl persists across settings refresh', persisted === 'https://example.org/acme');
 
+// --- Feature 4: session-only API key ("Don't remember my key") ---
+// The rememberKey checkbox must exist and be checked by default.
+const rkDefault = await page.evaluate(() => ({
+  exists: !!document.getElementById('rememberKey'),
+  checked: document.getElementById('rememberKey') ? document.getElementById('rememberKey').checked : null,
+}));
+check('settings has a rememberKey checkbox', rkDefault.exists);
+check('rememberKey is checked by default', rkDefault.checked === true);
+
+// Uncheck it, enter a key, and save. The key must NOT be written to
+// localStorage, but the rest of the settings (provider/model/URL) must persist.
+await page.evaluate(() => {
+  document.getElementById('rememberKey').checked = false;
+  document.getElementById('apiKey').value = 'sk-session-only-secret';
+  document.getElementById('saveSettings').click();
+});
+await new Promise((r) => setTimeout(r, 300));
+const afterSave = await page.evaluate(() => {
+  const raw = localStorage.getItem('tabletop.dm.settings.v1');
+  const parsed = raw ? JSON.parse(raw) : null;
+  return {
+    raw,
+    storedKey: parsed ? parsed.apiKey : '(no settings)',
+    rememberKey: parsed ? parsed.rememberKey : null,
+  };
+});
+check('saving with rememberKey unchecked does NOT persist the key', afterSave.storedKey === '');
+check('saved settings record rememberKey=false', afterSave.rememberKey === false);
+
+// The key must still be usable for the current session: reloading settings
+// (as buildProvider does) should surface the in-memory key.
+const sessionKey = await page.evaluate(() => {
+  // Re-import the registry module fresh to read the in-memory key path.
+  return import('./app/js/providers/registry.js').then((m) => {
+    const s = m.loadSettings();
+    return s.apiKey;
+  });
+});
+check('session-only key is still available in memory for the current session', sessionKey === 'sk-session-only-secret');
+
+// Re-checking rememberKey and saving persists the key normally.
+await page.evaluate(() => {
+  document.getElementById('rememberKey').checked = true;
+  document.getElementById('apiKey').value = 'sk-persisted-secret';
+  document.getElementById('saveSettings').click();
+});
+await new Promise((r) => setTimeout(r, 300));
+const persistedKey = await page.evaluate(() => {
+  const raw = localStorage.getItem('tabletop.dm.settings.v1');
+  return raw ? JSON.parse(raw).apiKey : null;
+});
+check('re-checking rememberKey persists the key to localStorage', persistedKey === 'sk-persisted-secret');
+
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

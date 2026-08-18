@@ -42,7 +42,7 @@ function hideBaseUrl() {
 }
 
 export function initSettings() {
-  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'modelSelect', 'allowCompanyFetch', 'companyUrl',
+  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'modelSelect', 'allowCompanyFetch', 'companyUrl', 'rememberKey',
    'saveSettings', 'testConnection', 'settingsStatus', 'settingsSummary',
    'settingsBack', 'companyFetchHint',
   ].forEach((id) => { el[id] = $(id); });
@@ -95,6 +95,7 @@ export function initSettings() {
     current.model = el.model.value.trim();
     current.allowCompanyFetch = el.allowCompanyFetch.checked;
     current.companyUrl = el.companyUrl.value.trim();
+    current.rememberKey = el.rememberKey.checked;
 
     const check = buildProvider(current);
     if (current.provider !== 'none' && !check) {
@@ -186,6 +187,14 @@ function renderDynamic() {
     }
   }
 
+  // Show the local-Ollama tip only when the user is pointed at a local Ollama
+  // endpoint directly from the browser (where OLLAMA_ORIGINS=* matters). It's
+  // irrelevant for server-routed presets (the server reaches Ollama, not the
+  // browser) and for remote providers.
+  const isLocalOllama = isApi && !current.viaServer && !hideBaseUrl() &&
+    /(localhost|127\.0\.0\.1)[:/]/.test(current.baseUrl || '');
+  show('companyFetchHint', isLocalOllama);
+
   el.apiKey.disabled = isNone;
   el.baseUrl.disabled = isNone;
   el.model.disabled = isNone;
@@ -201,6 +210,7 @@ function renderDynamic() {
     el.apiKey.value = current.apiKey;
     el.allowCompanyFetch.checked = current.allowCompanyFetch;
     el.companyUrl.value = current.companyUrl;
+    el.rememberKey.checked = current.rememberKey;
     el.baseUrl.dataset.touched = '1';
   }
 }

@@ -106,9 +106,8 @@
       <section class="card wide">
         <h2>DM provider &amp; API keys</h2>
         <p class="muted small">
-          Pick how the dungeon master runs. Keys are stored only in this browser
-          (localStorage) and are sent straight to the provider you choose —
-          never to this app's host.
+          Choose how the dungeon master runs. Your key stays in your browser and
+          is sent only to the provider you pick — never to this app's host.
         </p>
 
         <label>Provider
@@ -140,9 +139,18 @@
           <select id="modelSelect" style="display:none"></select>
         </label>
 
-        <label id="apiKeyWrap">API key (optional for local Ollama)
+        <label id="apiKeyWrap">API key (optional)
           <input id="apiKey" type="password" autocomplete="off" placeholder="sk-..." />
         </label>
+
+        <label class="check">
+          <input id="rememberKey" type="checkbox" checked />
+          Remember my API key in this browser (uncheck to keep it only for this session)
+        </label>
+        <p class="muted small" id="rememberKeyHint">
+          When unchecked, your key is kept only in memory and is forgotten when you
+          close this tab. It is never sent to this app's host either way.
+        </p>
 
         <label class="check">
           <input id="allowCompanyFetch" type="checkbox" checked />

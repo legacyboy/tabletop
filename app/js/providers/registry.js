@@ -18,6 +18,13 @@ import { ServerProxyProvider } from './server-proxy.js';
 const SETTINGS_KEY = 'tabletop.dm.settings.v1';
 
 /**
+ * In-memory API key for session-only storage. When the user unchecks
+ * "Remember my key", the key is kept here (never written to localStorage) so
+ * the current session keeps working but the key is gone when the tab closes.
+ */
+let sessionApiKey = '';
+
+/**
  * Common Ollama models offered in the settings dropdown for the
  * "Ollama (remote)" preset. Each entry is { value, label } where value is the
  * model id sent to the server and label is what the user sees. gemma3:4b is
@@ -80,6 +87,9 @@ export function defaultSettings() {
     baseUrl: '',
     model: '',
     viaServer: false,          // route through the server's /api/dm proxy
+    // Key persistence: when true the API key is written to localStorage;
+    // when false it is kept only in memory for the current session.
+    rememberKey: true,
     // Company fetch controls
     allowCompanyFetch: true,
     companyUrl: '',          // user-provided company URL (overrides scenario intro.company_url)
@@ -90,14 +100,26 @@ export function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return defaultSettings();
-    return { ...defaultSettings(), ...JSON.parse(raw) };
+    const s = { ...defaultSettings(), ...JSON.parse(raw) };
+    // Session-only key: pull it from memory (if set this session) so the
+    // current session still works even though the key isn't persisted.
+    if (!s.rememberKey) s.apiKey = sessionApiKey;
+    return s;
   } catch {
     return defaultSettings();
   }
 }
 
 export function saveSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  if (settings.rememberKey) {
+    // Persist the key normally.
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } else {
+    // Session-only: keep the key in memory and persist everything else with
+    // the key cleared so it never touches localStorage.
+    sessionApiKey = settings.apiKey || '';
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, apiKey: '' }));
+  }
 }
 
 /**

@@ -89,6 +89,7 @@ const def = defaultSettings();
 check('defaultSettings includes companyUrl', 'companyUrl' in def);
 check('defaultSettings companyUrl defaults to empty string', def.companyUrl === '');
 check('defaultSettings allowCompanyFetch defaults true', def.allowCompanyFetch === true);
+check('defaultSettings rememberKey defaults true (key persisted)', def.rememberKey === true);
 
 // 8. OLLAMA_MODELS dropdown list is exported and well-formed.
 check('OLLAMA_MODELS is exported as an array', Array.isArray(OLLAMA_MODELS));
