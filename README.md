@@ -32,10 +32,11 @@ Open http://localhost:8000.
 
 ### Quick start — one-liner (MacBook / Linux, in-browser model)
 
-Clone, download the in-browser model bundle, and start the server in one go:
+Clone, download the in-browser model bundle, and start the server in one go.
+No Node/npm required — uses Python's built-in HTTP server:
 
 ```bash
-bash -c "git clone https://github.com/legacyboy/tabletop.git && cd tabletop && bash scripts/vendor-offline.sh && npm start"
+bash -c "git clone https://github.com/legacyboy/tabletop.git && cd tabletop && bash scripts/vendor-offline.sh && python3 -m http.server 8000"
 ```
 
 Then open **http://localhost:8000** and choose **In-browser model (WebLLM)** in
