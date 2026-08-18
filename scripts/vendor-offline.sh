@@ -41,14 +41,13 @@ echo "Vendoring WebLLM $WEBLLM_VERSION + $MODEL_ID into $VENDOR"
 mkdir -p "$VENDOR/webllm" "$VENDOR/wasm" "$MODEL_DIR"
 
 # 1. WebLLM library
+# Fetched directly from a CDN (no npm required) so the script works on any
+# machine without Node/npm installed.
 echo "==> WebLLM library"
 if [ ! -f "$VENDOR/webllm/index.js" ]; then
-  TMP="$(mktemp -d)"
-  (cd "$TMP" && npm pack "@mlc-ai/web-llm@$WEBLLM_VERSION" >/dev/null 2>&1 && tar xzf ./*.tgz)
-  cp "$TMP/package/lib/index.js" "$VENDOR/webllm/index.js"
-  cp "$TMP/package/lib/index.js.map" "$VENDOR/webllm/index.js.map" 2>/dev/null || true
-  rm -rf "$TMP"
-  echo "   copied webllm/index.js"
+  curl -sL --fail "https://unpkg.com/@mlc-ai/web-llm@$WEBLLM_VERSION/lib/index.js" -o "$VENDOR/webllm/index.js"
+  curl -sL --fail "https://unpkg.com/@mlc-ai/web-llm@$WEBLLM_VERSION/lib/index.js.map" -o "$VENDOR/webllm/index.js.map" 2>/dev/null || true
+  echo "   downloaded webllm/index.js"
 else
   echo "   already present"
 fi
