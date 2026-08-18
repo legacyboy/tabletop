@@ -19,6 +19,7 @@ import {
   loadSettings,
   saveSettings,
   describeProvider,
+  loadOfflineConfig,
 } from './providers/registry.js';
 
 const $ = (id) => document.getElementById(id);
@@ -115,8 +116,16 @@ function renderDynamic() {
   show('baseUrl', isApi);
   show('model', isApi || isWebLLM);
 
-  // For WebLLM show a model hint.
-  if (isWebLLM) el.model.placeholder = 'gemma3-1b-it-q4f16_1-MLC';
+  // For WebLLM show a model hint and pre-fill the model from the offline
+  // bundle (if present) so the field isn't blank.
+  if (isWebLLM) {
+    el.model.placeholder = 'gemma3-1b-it-q4f16_1-MLC';
+    const offline = loadOfflineConfig();
+    if (offline && offline.model_id && !el.model.value) {
+      el.model.value = offline.model_id;
+      current.model = offline.model_id;
+    }
+  }
 
   el.apiKey.disabled = isNone;
   el.baseUrl.disabled = isNone;

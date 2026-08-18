@@ -133,7 +133,7 @@ export function buildProvider(settings = null) {
 }
 
 /** Load the vendored offline bundle config, or null if not present. */
-function loadOfflineConfig() {
+export function loadOfflineConfig() {
   try {
     // Synchronous fetch of a static JSON file; only works when served over
     // http(s). Returns null if the bundle isn't vendored.
