@@ -17,6 +17,19 @@ import { ServerProxyProvider } from './server-proxy.js';
 
 const SETTINGS_KEY = 'tabletop.dm.settings.v1';
 
+/**
+ * Common Ollama models offered in the settings dropdown for the
+ * "Ollama (remote)" preset. Each entry is { value, label } where value is the
+ * model id sent to the server and label is what the user sees. gemma3:4b is
+ * first and is the preset default.
+ */
+export const OLLAMA_MODELS = [
+  { value: 'gemma3:4b', label: 'Gemma 3 4B' },
+  { value: 'glm-5.2:cloud', label: 'GLM 5.2' },
+  { value: 'deepseek-v4-flash:cloud', label: 'DeepSeek Flash' },
+  { value: 'qwen3-coder-next:cloud', label: 'Qwen' },
+];
+
 /** Built-in presets for the "plug a key" section. */
 export const PRESETS = [
   {
