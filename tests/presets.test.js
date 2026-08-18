@@ -6,7 +6,7 @@
  * and proxy (browser -> server -> local Ollama) paths to the right provider
  * classes. No network or DOM required.
  */
-import { PRESETS, buildProvider, describeProvider } from '../app/js/providers/registry.js';
+import { PRESETS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { ServerProxyProvider } from '../app/js/providers/server-proxy.js';
 
@@ -83,6 +83,12 @@ check('remote ollama labeled "Ollama (remote)"', remoteDesc.label === 'Ollama (r
 check('server-local labeled "Server (local Ollama)"', localDesc.label === 'Server (local Ollama)');
 check('server-local detail notes "via server"', localDesc.detail.includes('(via server)'));
 check('remote ollama (no URL) detail notes it is server-routed', remoteDesc.detail.includes('via server (Ollama)'));
+
+// 7. Company URL field is persisted in defaultSettings (for DM context fetch).
+const def = defaultSettings();
+check('defaultSettings includes companyUrl', 'companyUrl' in def);
+check('defaultSettings companyUrl defaults to empty string', def.companyUrl === '');
+check('defaultSettings allowCompanyFetch defaults true', def.allowCompanyFetch === true);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

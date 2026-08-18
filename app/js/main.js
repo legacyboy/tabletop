@@ -192,9 +192,12 @@ async function beginSession() {
 
     const scenario = state.scenario;
 
-    // Best-effort company enrichment (does not block play).
-    if (scenario.intro.company_url) {
-      fetchCompanyInfo(scenario).then((info) => {
+    // Best-effort company enrichment (does not block play). Uses the
+    // user-entered company URL from settings when present, else the
+    // scenario's intro.company_url. Gated by allowCompanyFetch.
+    const companyUrl = (settings.companyUrl || '').trim() || (scenario.intro.company_url || '');
+    if (companyUrl) {
+      fetchCompanyInfo(scenario, { companyUrl }).then((info) => {
         state.companyInfo = info;
         if (state.session) state.session.companyInfo = info;
         if (info) el.companyNote.textContent = 'Company info fetched: added to DM context.';

@@ -69,6 +69,7 @@ export function defaultSettings() {
     viaServer: false,          // route through the server's /api/dm proxy
     // Company fetch controls
     allowCompanyFetch: true,
+    companyUrl: '',          // user-provided company URL (overrides scenario intro.company_url)
   };
 }
 

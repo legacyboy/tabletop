@@ -41,7 +41,7 @@ function hideBaseUrl() {
 }
 
 export function initSettings() {
-  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'allowCompanyFetch',
+  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'allowCompanyFetch', 'companyUrl',
    'saveSettings', 'testConnection', 'settingsStatus', 'settingsSummary',
    'settingsBack', 'companyFetchHint',
   ].forEach((id) => { el[id] = $(id); });
@@ -77,6 +77,7 @@ export function initSettings() {
     current.baseUrl = el.baseUrl.value.trim();
     current.model = el.model.value.trim();
     current.allowCompanyFetch = el.allowCompanyFetch.checked;
+    current.companyUrl = el.companyUrl.value.trim();
 
     const check = buildProvider(current);
     if (current.provider !== 'none' && !check) {
@@ -167,6 +168,7 @@ function renderDynamic() {
     el.model.value = current.model;
     el.apiKey.value = current.apiKey;
     el.allowCompanyFetch.checked = current.allowCompanyFetch;
+    el.companyUrl.value = current.companyUrl;
     el.baseUrl.dataset.touched = '1';
   }
 }
