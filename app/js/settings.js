@@ -14,6 +14,7 @@
 
 import {
   PRESETS,
+  OLLAMA_MODELS,
   buildProvider,
   defaultSettings,
   loadSettings,
@@ -41,7 +42,7 @@ function hideBaseUrl() {
 }
 
 export function initSettings() {
-  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'allowCompanyFetch', 'companyUrl',
+  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'modelSelect', 'allowCompanyFetch', 'companyUrl',
    'saveSettings', 'testConnection', 'settingsStatus', 'settingsSummary',
    'settingsBack', 'companyFetchHint',
   ].forEach((id) => { el[id] = $(id); });
@@ -70,6 +71,22 @@ export function initSettings() {
       current.viaServer = false;
     }
     renderDynamic();
+  };
+
+  // When a model is picked from the dropdown, mirror it into the free-text
+  // input (which is what saveSettings reads) and hide the free-text field.
+  // Choosing "Custom…" (value "") reveals the free-text input instead.
+  el.modelSelect.onchange = () => {
+    const chosen = el.modelSelect.value;
+    if (chosen) {
+      current.model = chosen;
+      el.model.value = chosen;
+      el.model.style.display = 'none';
+    } else {
+      // "Custom…": reveal the free-text input so any model can be typed.
+      el.model.style.display = '';
+      el.model.focus();
+    }
   };
 
   el.saveSettings.onclick = () => {
@@ -143,6 +160,21 @@ function renderDynamic() {
   // Reflect the saved preset selection into the dropdown ('' = Custom).
   el.preset.value = current.preset || '';
 
+  // For the "Ollama (remote)" preset, offer a dropdown of common models
+  // instead of the free-text field. "Custom…" (value "") reveals the
+  // free-text input so any model can still be typed.
+  const isOllamaRemote = isApi && current.preset === 'ollama-remote';
+  if (isOllamaRemote) {
+    populateModelSelect();
+    const known = OLLAMA_MODELS.some((m) => m.value === current.model);
+    el.modelSelect.value = known ? current.model : '';
+    show('modelSelect', true);
+    show('model', !known);
+  } else {
+    show('modelSelect', false);
+    show('model', isApi || isWebLLM);
+  }
+
   // For WebLLM show a model hint and pre-fill the model from the offline
   // bundle (if present) so the field isn't blank.
   if (isWebLLM) {
@@ -171,6 +203,26 @@ function renderDynamic() {
     el.companyUrl.value = current.companyUrl;
     el.baseUrl.dataset.touched = '1';
   }
+}
+
+/**
+ * Build the model dropdown options from OLLAMA_MODELS plus a "Custom…"
+ * entry (value "") that reveals the free-text input. Rebuilt on each render
+ * so the list always reflects the registry constant.
+ */
+function populateModelSelect() {
+  if (!el.modelSelect) return;
+  el.modelSelect.innerHTML = '';
+  for (const m of OLLAMA_MODELS) {
+    const opt = document.createElement('option');
+    opt.value = m.value;
+    opt.textContent = m.label;
+    el.modelSelect.appendChild(opt);
+  }
+  const custom = document.createElement('option');
+  custom.value = '';
+  custom.textContent = 'Custom…';
+  el.modelSelect.appendChild(custom);
 }
 
 function renderSummary() {

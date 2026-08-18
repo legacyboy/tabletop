@@ -6,7 +6,7 @@
  * and proxy (browser -> server -> local Ollama) paths to the right provider
  * classes. No network or DOM required.
  */
-import { PRESETS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
+import { PRESETS, OLLAMA_MODELS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { ServerProxyProvider } from '../app/js/providers/server-proxy.js';
 
@@ -89,6 +89,17 @@ const def = defaultSettings();
 check('defaultSettings includes companyUrl', 'companyUrl' in def);
 check('defaultSettings companyUrl defaults to empty string', def.companyUrl === '');
 check('defaultSettings allowCompanyFetch defaults true', def.allowCompanyFetch === true);
+
+// 8. OLLAMA_MODELS dropdown list is exported and well-formed.
+check('OLLAMA_MODELS is exported as an array', Array.isArray(OLLAMA_MODELS));
+const modelValues = OLLAMA_MODELS.map((m) => m.value);
+check('OLLAMA_MODELS includes gemma3:4b', modelValues.includes('gemma3:4b'));
+check('OLLAMA_MODELS includes glm-5.2:cloud', modelValues.includes('glm-5.2:cloud'));
+check('OLLAMA_MODELS includes deepseek-v4-flash:cloud', modelValues.includes('deepseek-v4-flash:cloud'));
+check('OLLAMA_MODELS includes at least one qwen model', modelValues.some((v) => /qwen/i.test(v)));
+check('OLLAMA_MODELS ids are unique', new Set(modelValues).size === modelValues.length);
+check('OLLAMA_MODELS entries have value + label', OLLAMA_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
+check('OLLAMA_MODELS default (first) is gemma3:4b', OLLAMA_MODELS[0] && OLLAMA_MODELS[0].value === 'gemma3:4b');
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -96,6 +96,55 @@ const localState = await page.evaluate(() => ({
 check('server-local still pre-fills localhost baseUrl', localState.baseUrl === 'http://localhost:11434/v1');
 check('server-local still SHOWS the Base URL field', localState.baseUrlDisplay !== 'none');
 
+// --- Feature 2b: model dropdown for the "Ollama (remote)" preset ---
+// Re-select the remote preset and verify the dropdown replaces the free-text
+// model input, is populated from OLLAMA_MODELS, and stays in sync with the
+// hidden free-text input (which is what saveSettings reads).
+await page.select('#preset', 'ollama-remote');
+await new Promise((r) => setTimeout(r, 200));
+const dropdownState = await page.evaluate(() => ({
+  selectDisplay: document.getElementById('modelSelect').style.display,
+  modelDisplay: document.getElementById('model').style.display,
+  options: Array.from(document.getElementById('modelSelect').options).map((o) => o.value),
+  selected: document.getElementById('modelSelect').value,
+  modelValue: document.getElementById('model').value,
+}));
+check('remote ollama SHOWS the model dropdown', dropdownState.selectDisplay !== 'none');
+check('remote ollama HIDES the free-text model input', dropdownState.modelDisplay === 'none');
+check('dropdown includes gemma3:4b', dropdownState.options.includes('gemma3:4b'));
+check('dropdown includes glm-5.2:cloud', dropdownState.options.includes('glm-5.2:cloud'));
+check('dropdown includes deepseek-v4-flash:cloud', dropdownState.options.includes('deepseek-v4-flash:cloud'));
+check('dropdown includes a qwen model', dropdownState.options.some((v) => /qwen/i.test(v)));
+check('dropdown includes a Custom… option (value "")', dropdownState.options.includes(''));
+check('dropdown pre-selects the current model gemma3:4b', dropdownState.selected === 'gemma3:4b');
+check('free-text model input stays in sync with dropdown (gemma3:4b)', dropdownState.modelValue === 'gemma3:4b');
+
+// Picking a real model updates the hidden free-text input value.
+await page.select('#modelSelect', 'glm-5.2:cloud');
+await new Promise((r) => setTimeout(r, 200));
+const picked = await page.evaluate(() => ({
+  modelValue: document.getElementById('model').value,
+  modelDisplay: document.getElementById('model').style.display,
+}));
+check('picking a dropdown model updates the free-text input', picked.modelValue === 'glm-5.2:cloud');
+check('free-text input stays hidden after picking a model', picked.modelDisplay === 'none');
+
+// Picking "Custom…" (value "") reveals the free-text input.
+await page.select('#modelSelect', '');
+await new Promise((r) => setTimeout(r, 200));
+const custom = await page.evaluate(() => document.getElementById('model').style.display);
+check('picking Custom… reveals the free-text model input', custom !== 'none');
+
+// A non-remote preset (server-local) shows the free-text input, not the dropdown.
+await page.select('#preset', 'server-local');
+await new Promise((r) => setTimeout(r, 200));
+const nonRemote = await page.evaluate(() => ({
+  selectDisplay: document.getElementById('modelSelect').style.display,
+  modelDisplay: document.getElementById('model').style.display,
+}));
+check('non-remote preset HIDES the model dropdown', nonRemote.selectDisplay === 'none');
+check('non-remote preset SHOWS the free-text model input', nonRemote.modelDisplay !== 'none');
+
 // --- Feature 3: company URL field in settings ---
 const companyField = await page.evaluate(() => ({
   hasInput: !!document.getElementById('companyUrl'),
