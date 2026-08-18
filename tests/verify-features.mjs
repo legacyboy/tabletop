@@ -6,8 +6,10 @@ import puppeteer from 'puppeteer';
  *   1. Scenario change: "Change scenario" returns to the #phase-select screen
  *      (re-populated from the registry), and re-selecting a scenario reloads
  *      its intro.
- *   2. Remote Ollama preset: the settings UI offers "Ollama (remote)" for the
- *      openai-compatible provider and pre-fills baseUrl + model.
+ *   2. Remote Ollama preset: the settings UI offers "Ollama (remote)" and
+ *      HIDES the Base URL field (the connection routes via the server proxy,
+ *      so no URL is needed in the browser); server-local keeps its localhost
+ *      URL field.
  *
  * Requires the app server on :8000 (node server/serve.js). No mock LLM needed.
  */
@@ -39,11 +41,27 @@ check('select phase visible after "Change scenario"', selectVisible);
 const optionCount = await page.evaluate(() => document.getElementById('scenarioSelect').options.length);
 check('scenario dropdown repopulated (>= 1 option)', optionCount >= 1);
 
-// Re-select scenario 0 -> intro again.
-await page.select('#scenarioSelect', '0');
+// The select screen must not be a dead end: it needs explicit Load + Back.
+const hasLoadBtn = await page.evaluate(() => !!document.getElementById('loadScenarioBtn'));
+check('select screen has a "Load / Start" button', hasLoadBtn);
+const hasBackBtn = await page.evaluate(() => !!document.getElementById('selectBack'));
+check('select screen has a "Back" button', hasBackBtn);
+const hasHint = await page.evaluate(() => (document.getElementById('scenarioSummary').textContent || '').length > 0);
+check('select screen summary hints at the single available scenario', hasHint);
+
+// Load the (single) scenario via the explicit button -> intro again.
+await page.click('#loadScenarioBtn');
 await new Promise((r) => setTimeout(r, 400));
 const introAgain = await page.evaluate(() => document.getElementById('phase-intro').style.display === 'block');
-check('selecting a scenario returns to intro', introAgain);
+check('Load button returns to intro', introAgain);
+
+// The Back button must also escape the select screen back to the intro.
+await page.click('#changeScenario');
+await new Promise((r) => setTimeout(r, 400));
+await page.click('#selectBack');
+await new Promise((r) => setTimeout(r, 400));
+const backToIntro = await page.evaluate(() => document.getElementById('phase-intro').style.display === 'block');
+check('Back button returns to intro', backToIntro);
 
 // --- Feature 2: remote Ollama preset in settings ---
 await page.click('#settingsButton');
@@ -55,14 +73,28 @@ check('preset dropdown visible for openai-compatible provider', presetVisible);
 const presetOptions = await page.evaluate(() => Array.from(document.getElementById('preset').options).map((o) => o.value));
 check('preset dropdown includes ollama-remote', presetOptions.includes('ollama-remote'));
 
+// Selecting "Ollama (remote)" must NOT expose a base URL field at all — the
+// connection routes through the server proxy (viaServer), so no URL is needed.
 await page.select('#preset', 'ollama-remote');
 await new Promise((r) => setTimeout(r, 200));
-const prefill = await page.evaluate(() => ({
-  baseUrl: document.getElementById('baseUrl').value,
+const remoteState = await page.evaluate(() => ({
+  baseUrlDisplay: document.getElementById('baseUrl').style.display,
+  baseUrlWrapDisplay: document.getElementById('baseUrlWrap').style.display,
   model: document.getElementById('model').value,
 }));
-check('remote ollama pre-fills baseUrl', prefill.baseUrl === 'http://localhost:11434/v1');
-check('remote ollama pre-fills model gemma3:4b', prefill.model === 'gemma3:4b');
+check('remote ollama HIDES the Base URL field', remoteState.baseUrlDisplay === 'none');
+check('remote ollama HIDES the Base URL label/wrap', remoteState.baseUrlWrapDisplay === 'none');
+check('remote ollama pre-fills model gemma3:4b', remoteState.model === 'gemma3:4b');
+
+// Server (local) preset keeps its localhost base URL AND shows the field.
+await page.select('#preset', 'server-local');
+await new Promise((r) => setTimeout(r, 200));
+const localState = await page.evaluate(() => ({
+  baseUrl: document.getElementById('baseUrl').value,
+  baseUrlDisplay: document.getElementById('baseUrl').style.display,
+}));
+check('server-local still pre-fills localhost baseUrl', localState.baseUrl === 'http://localhost:11434/v1');
+check('server-local still SHOWS the Base URL field', localState.baseUrlDisplay !== 'none');
 
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);

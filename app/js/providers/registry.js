@@ -47,12 +47,15 @@ export const PRESETS = [
   {
     id: 'ollama-remote',
     label: 'Ollama (remote)',
-    baseUrl: 'http://localhost:11434/v1',
+    // No base URL field: this preset is routed through the app server's
+    // /api/dm proxy (viaServer), which reaches the remote Ollama using the
+    // server-side OLLAMA_URL (default http://localhost:11434/v1). A browser on
+    // the public internet can't reach a private remote Ollama directly, so we
+    // never expose a URL to the user — the connection "just goes to Ollama"
+    // from the server's perspective. The settings UI hides the Base URL field
+    // for this preset.
+    viaServer: true,
     model: 'gemma3:4b',
-    // No viaServer: a remote Ollama is reached DIRECTLY from the browser over
-    // its OpenAI-compatible /v1 API (not routed through the app server). The
-    // base URL host is editable — point it at the remote box, e.g.
-    // http://<host>:11434/v1 — and set an API key if that Ollama requires one.
   },
 ];
 
@@ -94,7 +97,13 @@ function findPreset(settings) {
     const byId = PRESETS.find((p) => p.id === settings.preset);
     if (byId) return byId;
   }
-  return PRESETS.find((p) => p.baseUrl === settings.baseUrl);
+  // Only fall back to base-URL matching when a URL is actually set. Presets
+  // with no base URL (e.g. remote Ollama, which routes via the server proxy)
+  // must not match anything by URL.
+  if (settings.baseUrl) {
+    return PRESETS.find((p) => p.baseUrl === settings.baseUrl);
+  }
+  return undefined;
 }
 
 function describeSelection(settings) {
@@ -104,12 +113,15 @@ function describeSelection(settings) {
   if (settings.provider === 'openai-compatible' || settings.provider === 'server-proxy') {
     const preset = findPreset(settings);
     const viaServer = settings.provider === 'server-proxy' || settings.viaServer;
+    // A server-routed preset with no base URL (e.g. remote Ollama) needs no
+    // URL in the browser — the server reaches Ollama with its own OLLAMA_URL.
+    const detailUrl = settings.baseUrl || (viaServer ? 'via server (Ollama)' : 'no url');
     return {
       id: settings.provider,
       label: viaServer
         ? (preset && preset.viaServer ? preset.label : 'Server proxy')
         : (preset ? preset.label : settings.baseUrl || 'Custom OpenAI-compatible'),
-      detail: `${settings.model || 'model?'} @ ${settings.baseUrl || 'no url'}${viaServer ? ' (via server)' : ''}`,
+      detail: `${settings.model || 'model?'} @ ${detailUrl}${viaServer && settings.baseUrl ? ' (via server)' : ''}`,
     };
   }
   return { id: 'none', label: 'Not configured', detail: 'Open Settings to connect a DM.' };
@@ -136,13 +148,19 @@ export function buildProvider(settings = null) {
   }
 
   if (s.provider === 'openai-compatible' || s.provider === 'server-proxy') {
-    if (!s.baseUrl) return null;
+    const viaServer = s.provider === 'server-proxy' || s.viaServer;
+    // A direct (browser -> provider) connection needs an explicit base URL.
+    // A server-routed connection may leave it blank: the server fills in its
+    // own OLLAMA_URL default (e.g. remote Ollama, where the user never sees a
+    // base URL field at all).
+    if (!viaServer && !s.baseUrl) return null;
     // Route through the server's /api/dm proxy when the user picked the
-    // server-local preset (or explicitly set viaServer). This lets a remote
-    // client reach a local Ollama on the server box without exposing Ollama.
-    if (s.provider === 'server-proxy' || s.viaServer) {
+    // server-local / remote-Ollama preset (or a set viaServer). This lets a
+    // client reach an Ollama on/behind the server box without exposing Ollama
+    // to the browser or asking the user for a URL.
+    if (viaServer) {
       return new ServerProxyProvider({
-        baseUrl: s.baseUrl,
+        baseUrl: s.baseUrl || '',
         apiKey: s.apiKey,
         model: s.model,
       });

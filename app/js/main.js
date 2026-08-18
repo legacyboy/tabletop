@@ -25,6 +25,7 @@ const state = {
   scenario: null,
   session: null,
   phase: 'select', // 'select' | 'intro' | 'play' | 'report'
+  selectReturn: 'select', // phase the Back button on the select screen returns to
   companyInfo: null,
 };
 
@@ -51,6 +52,7 @@ async function init() {
    'startButton', 'actionText', 'die', 'roll', 'manual', 'useManual', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'moderatorNotes', 'companyNote', 'settingsButton',
+   'loadScenarioBtn', 'selectBack',
   ].forEach((id) => { el[id] = $(id); });
 
   // Settings navigation.
@@ -61,6 +63,17 @@ async function init() {
   const changeScenario = $('changeScenario');
   if (changeScenario) changeScenario.onclick = () => showScenarioSelect();
   $('newSession').onclick = () => showScenarioSelect();
+
+  // Scenario-select screen: explicit Load/Start + Back affordances so the
+  // user is never stuck on a screen with no way forward or back.
+  el.loadScenarioBtn.onclick = () => {
+    const idx = Number(el.scenarioSelect.value);
+    if (state.registry[idx]) selectScenario(idx);
+  };
+  el.selectBack.onclick = () => {
+    const dest = state.selectReturn || (state.scenario ? 'intro' : 'select');
+    setPhase(dest);
+  };
 
   // Allow the settings panel's Back button to return to the scenario intro.
   window.addEventListener('tabletop:goback', () => {
@@ -79,7 +92,35 @@ function renderScenarioOptions() {
   el.scenarioSelect.innerHTML = state.registry
     .map((s, i) => `<option value="${i}">${s.title}</option>`)
     .join('');
-  el.scenarioSelect.onchange = () => selectScenario(Number(el.scenarioSelect.value));
+  // Changing the dropdown updates the summary (and keeps the Load button
+  // usable) rather than silently auto-advancing. The user explicitly commits
+  // with the Load / Start button.
+  el.scenarioSelect.onchange = () => {
+    updateSelectSummary();
+    if (el.loadScenarioBtn) el.loadScenarioBtn.disabled = false;
+  };
+  updateSelectSummary();
+}
+
+/** Show which scenario is highlighted in the dropdown, and hint when there is
+ *  only one option (so the screen is never confusing or dead-ended). */
+function updateSelectSummary() {
+  if (!el.scenarioSummary) return;
+  const idx = Number(el.scenarioSelect.value);
+  const count = state.registry.length;
+  const desc = state.registry[idx];
+  if (count === 0) {
+    el.scenarioSummary.textContent = 'No scenarios are installed yet.';
+    return;
+  }
+  if (count === 1 && desc) {
+    el.scenarioSummary.textContent =
+      `Only one scenario is available: ${desc.title}. Press "Load / Start" to continue.`;
+    return;
+  }
+  if (desc) {
+    el.scenarioSummary.textContent = `Selected: ${desc.title}. Press "Load / Start" to continue.`;
+  }
 }
 
 async function populateScenarios() {
@@ -99,6 +140,8 @@ async function showScenarioSelect() {
     state.session.stopTimer();
     state.session = null;
   }
+  // Remember where we came from so the Back button can return there.
+  state.selectReturn = state.phase === 'report' ? 'report' : (state.scenario ? 'intro' : 'select');
   state.registry = await loadRegistry();
   renderScenarioOptions();
   // Reflect the currently loaded scenario in the dropdown (if still present).
@@ -106,6 +149,7 @@ async function showScenarioSelect() {
     const idx = state.registry.findIndex((s) => s.id === state.scenario.scenario_id);
     if (idx >= 0) el.scenarioSelect.value = String(idx);
   }
+  updateSelectSummary();
   setPhase('select');
 }
 
@@ -115,7 +159,6 @@ async function selectScenario(index) {
   state.scenario = scenario;
 
   el.scenarioTitle.textContent = scenario.title;
-  el.scenarioSummary.textContent = scenario.intro.narrative;
 
   // Intro video (optional).
   const videoSrc = scenario.intro.video;
