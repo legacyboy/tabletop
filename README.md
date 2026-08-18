@@ -30,6 +30,24 @@ npm start        # or: node server/serve.js
 
 Open http://localhost:8000.
 
+### Quick start — one-liner (MacBook / Linux, in-browser model)
+
+Clone, download the in-browser model bundle, and start the server in one go:
+
+```bash
+bash -c "git clone https://github.com/legacyboy/tabletop.git && cd tabletop && bash scripts/vendor-offline.sh && npm start"
+```
+
+Then open **http://localhost:8000** and choose **In-browser model (WebLLM)** in
+DM/Keys. The first run downloads the ~590 MB model bundle (one time); after
+that it runs fully offline. Requires a WebGPU-capable browser (Chrome/Edge).
+
+> **Why localhost?** WebGPU only works in a *secure context* (HTTPS or
+> localhost). Opening the app over plain HTTP on a LAN IP (e.g.
+> `http://192.168.x.x:8000`) blocks `navigator.gpu`, so the in-browser model
+> won't start. Run it on `localhost` (or serve over HTTPS) for the in-browser
+> model to work.
+
 ## Hosting
 
 ### GitHub Pages (works with API keys)
