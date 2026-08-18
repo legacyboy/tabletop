@@ -19,7 +19,14 @@
 #   vendor/
 #     webllm/            @mlc-ai/web-llm library (JS)
 #     wasm/              the model's WebGPU WASM runtime
-#     models/<model_id>/  weights + tokenizer + config
+#     models/<model_id>/resolve/main/  weights + tokenizer + config
+#
+# NOTE: model files are stored under `resolve/main/` (not flat) because
+# WebLLM's `cleanModelUrl()` appends "resolve/main/" to any model URL that
+# isn't already a HuggingFace `.../resolve/.../` URL. The offline config
+# points `model` at `/vendor/models/<model_id>/`, and WebLLM resolves the
+# weights/config/tokenizer from `<model_id>/resolve/main/`. Mirroring HF's
+# layout keeps WebLLM's URL construction working with no code hacks.
 #
 # After running, the app's WebLLM provider detects vendor/ and loads locally.
 # NOTE: the in-browser model still requires a WebGPU-capable browser (Chrome/
@@ -36,9 +43,12 @@ WASM_URL="https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENDOR="$ROOT/vendor"
 MODEL_DIR="$VENDOR/models/$MODEL_ID"
+# See NOTE above: files live under resolve/main/ so WebLLM's cleanModelUrl()
+# (which appends "resolve/main/") resolves to the real files.
+MODEL_FILES_DIR="$MODEL_DIR/resolve/main"
 
 echo "Vendoring WebLLM $WEBLLM_VERSION + $MODEL_ID into $VENDOR"
-mkdir -p "$VENDOR/webllm" "$VENDOR/wasm" "$MODEL_DIR"
+mkdir -p "$VENDOR/webllm" "$VENDOR/wasm" "$MODEL_FILES_DIR"
 
 # 1. WebLLM library
 # Fetched directly from a CDN (no npm required) so the script works on any
@@ -64,8 +74,8 @@ fi
 # 3. Model weights + config + tokenizer
 echo "==> Model files"
 for f in mlc-chat-config.json ndarray-cache.json tensor-cache.json tokenizer.json tokenizer.model tokenizer_config.json added_tokens.json; do
-  if [ ! -f "$MODEL_DIR/$f" ]; then
-    curl -sL --fail "$HF/$f" -o "$MODEL_DIR/$f" && echo "   $f" || echo "   (skip) $f"
+  if [ ! -f "$MODEL_FILES_DIR/$f" ]; then
+    curl -sL --fail "$HF/$f" -o "$MODEL_FILES_DIR/$f" && echo "   $f" || echo "   (skip) $f"
   fi
 done
 
@@ -73,8 +83,8 @@ done
 echo "==> Weight shards"
 for i in $(seq 0 14); do
   f="params_shard_${i}.bin"
-  if [ ! -f "$MODEL_DIR/$f" ]; then
-    curl -sL --fail "$HF/$f" -o "$MODEL_DIR/$f" && echo "   $f" || { echo "   (stop at $f)"; break; }
+  if [ ! -f "$MODEL_FILES_DIR/$f" ]; then
+    curl -sL --fail "$HF/$f" -o "$MODEL_FILES_DIR/$f" && echo "   $f" || { echo "   (stop at $f)"; break; }
   fi
 done
 
