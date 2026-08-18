@@ -56,6 +56,12 @@ async function init() {
   // Settings navigation.
   $('settingsButton').onclick = () => setPhase('settings');
 
+  // Scenario navigation: "Change scenario" (intro) and "New session / scenario"
+  // (report) both return to the scenario-select screen and refresh the list.
+  const changeScenario = $('changeScenario');
+  if (changeScenario) changeScenario.onclick = () => showScenarioSelect();
+  $('newSession').onclick = () => showScenarioSelect();
+
   // Allow the settings panel's Back button to return to the scenario intro.
   window.addEventListener('tabletop:goback', () => {
     setPhase(state.scenario ? 'intro' : 'select');
@@ -68,16 +74,39 @@ async function init() {
   await populateScenarios();
 }
 
-async function populateScenarios() {
-  const registry = await loadRegistry();
-  state.registry = registry;
-
-  el.scenarioSelect.innerHTML = registry
+/** Fill the scenario <select> dropdown from the loaded registry. */
+function renderScenarioOptions() {
+  el.scenarioSelect.innerHTML = state.registry
     .map((s, i) => `<option value="${i}">${s.title}</option>`)
     .join('');
-
   el.scenarioSelect.onchange = () => selectScenario(Number(el.scenarioSelect.value));
+}
+
+async function populateScenarios() {
+  state.registry = await loadRegistry();
+  renderScenarioOptions();
+  // On first load, jump straight to the (first) scenario's intro.
   await selectScenario(0);
+}
+
+/**
+ * Return to the scenario-select phase, re-loading the registry so any new or
+ * updated scenarios appear. Stops any in-progress session so its timer does
+ * not keep counting down while the moderator picks a different scenario.
+ */
+async function showScenarioSelect() {
+  if (state.session) {
+    state.session.stopTimer();
+    state.session = null;
+  }
+  state.registry = await loadRegistry();
+  renderScenarioOptions();
+  // Reflect the currently loaded scenario in the dropdown (if still present).
+  if (state.scenario && state.scenario.scenario_id) {
+    const idx = state.registry.findIndex((s) => s.id === state.scenario.scenario_id);
+    if (idx >= 0) el.scenarioSelect.value = String(idx);
+  }
+  setPhase('select');
 }
 
 async function selectScenario(index) {
@@ -306,8 +335,6 @@ function renderReport(report) {
     a.click();
     URL.revokeObjectURL(a.href);
   };
-
-  $('newSession').onclick = () => setPhase('intro');
 }
 
 function logLine(html) {

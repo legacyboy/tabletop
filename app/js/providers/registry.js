@@ -44,11 +44,22 @@ export const PRESETS = [
     model: 'gemma3:4b',
     viaServer: true,
   },
+  {
+    id: 'ollama-remote',
+    label: 'Ollama (remote)',
+    baseUrl: 'http://localhost:11434/v1',
+    model: 'gemma3:4b',
+    // No viaServer: a remote Ollama is reached DIRECTLY from the browser over
+    // its OpenAI-compatible /v1 API (not routed through the app server). The
+    // base URL host is editable — point it at the remote box, e.g.
+    // http://<host>:11434/v1 — and set an API key if that Ollama requires one.
+  },
 ];
 
 export function defaultSettings() {
   return {
     provider: 'none',          // 'webllm' | 'openai-compatible' | 'server-proxy' | 'none'
+    preset: '',                // id of the chosen PRESETS entry ('' = custom)
     apiKey: '',
     baseUrl: '',
     model: '',
@@ -72,12 +83,26 @@ export function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
+/**
+ * Match a settings object to a built-in preset. Prefers the stored preset id
+ * (set when the user picks a dropdown entry) so presets that share a base URL
+ * (e.g. local vs remote Ollama) are told apart, then falls back to base-URL
+ * matching for older saved settings that predate the preset id field.
+ */
+function findPreset(settings) {
+  if (settings.preset) {
+    const byId = PRESETS.find((p) => p.id === settings.preset);
+    if (byId) return byId;
+  }
+  return PRESETS.find((p) => p.baseUrl === settings.baseUrl);
+}
+
 function describeSelection(settings) {
   if (settings.provider === 'webllm') {
     return { id: 'webllm', label: 'In-browser (WebLLM)' };
   }
   if (settings.provider === 'openai-compatible' || settings.provider === 'server-proxy') {
-    const preset = PRESETS.find((p) => p.baseUrl === settings.baseUrl);
+    const preset = findPreset(settings);
     const viaServer = settings.provider === 'server-proxy' || settings.viaServer;
     return {
       id: settings.provider,
