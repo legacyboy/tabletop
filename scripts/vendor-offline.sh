@@ -10,8 +10,10 @@
 # Usage:
 #   bash scripts/vendor-offline.sh [model_id]
 #
-#   model_id defaults to gemma-3-4b-it-q4f16_1-MLC (~560 MB, q4f16 4-bit).
-#   Other options: gemma-3-1b-it-q4f16_1-MLC (~150 MB, weaker DM).
+#   model_id defaults to gemma3-1b-it-q4f16_1-MLC (~150 MB, the only Gemma 3
+#   available in WebLLM v0.2.84). NOTE: the 4B Gemma (gemma-3-4b-it-q4f16_1-MLC)
+#   is NOT available in WebLLM — only the 1B is. If you need a bigger model,
+#   pick another from the WebLLM prebuilt set (e.g. Qwen3-4B-Instruct-2507).
 #
 # Output layout:
 #   vendor/
@@ -24,10 +26,12 @@
 # Edge). This script only vendors files; it does not test GPU execution.
 set -euo pipefail
 
-MODEL_ID="${1:-gemma-3-4b-it-q4f16_1-MLC}"
+MODEL_ID="${1:-gemma3-1b-it-q4f16_1-MLC}"
 WEBLLM_VERSION="0.2.84"
+# WASM libs are versioned under web-llm-models/<v>/base/ in the binary repo.
+WASM_BASENAME="gemma3-1b-it-q4f16_1_cs1k-webgpu.wasm"
 HF="https://huggingface.co/mlc-ai/${MODEL_ID}/resolve/main"
-WASM_URL="https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/${MODEL_ID}-webgpu.wasm"
+WASM_URL="https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_84/base/${WASM_BASENAME}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VENDOR="$ROOT/vendor"
@@ -51,9 +55,9 @@ fi
 
 # 2. WASM runtime
 echo "==> WASM runtime"
-if [ ! -f "$VENDOR/wasm/${MODEL_ID}-webgpu.wasm" ]; then
-  curl -sL --fail "$WASM_URL" -o "$VENDOR/wasm/${MODEL_ID}-webgpu.wasm"
-  echo "   downloaded ${MODEL_ID}-webgpu.wasm"
+if [ ! -f "$VENDOR/wasm/$WASM_BASENAME" ]; then
+  curl -sL --fail "$WASM_URL" -o "$VENDOR/wasm/$WASM_BASENAME"
+  echo "   downloaded $WASM_BASENAME"
 else
   echo "   already present"
 fi
@@ -66,9 +70,9 @@ for f in mlc-chat-config.json ndarray-cache.json tensor-cache.json tokenizer.jso
   fi
 done
 
-# Weight shards
+# Weight shards (1B model has 15 shards: 0-14)
 echo "==> Weight shards"
-for i in $(seq 0 68); do
+for i in $(seq 0 14); do
   f="params_shard_${i}.bin"
   if [ ! -f "$MODEL_DIR/$f" ]; then
     curl -sL --fail "$HF/$f" -o "$MODEL_DIR/$f" && echo "   $f" || { echo "   (stop at $f)"; break; }
@@ -79,13 +83,13 @@ done
 cat > "$VENDOR/offline-config.json" <<JSON
 {
   "model_id": "$MODEL_ID",
-  "library_url": "vendor/webllm/index.js",
+  "library_url": "/vendor/webllm/index.js",
   "app_config": {
     "model_list": [
       {
-        "model": "vendor/models/$MODEL_ID/",
+        "model": "/vendor/models/$MODEL_ID/",
         "model_id": "$MODEL_ID",
-        "model_lib": "vendor/wasm/${MODEL_ID}-webgpu.wasm"
+        "model_lib": "/vendor/wasm/$WASM_BASENAME"
       }
     ]
   }

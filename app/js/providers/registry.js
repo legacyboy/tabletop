@@ -104,7 +104,7 @@ export function buildProvider(settings = null) {
   if (s.provider === 'webllm') {
     const offline = loadOfflineConfig();
     return new WebLLMProvider({
-      model: (offline && offline.model_id) || s.model || 'gemma-3-4b-it-q4f16_1-MLC',
+      model: (offline && offline.model_id) || s.model || 'gemma3-1b-it-q4f16_1-MLC',
       libraryUrl: (offline && offline.library_url) || undefined,
       appConfig: (offline && offline.app_config) || undefined,
     });

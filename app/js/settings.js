@@ -116,7 +116,7 @@ function renderDynamic() {
   show('model', isApi || isWebLLM);
 
   // For WebLLM show a model hint.
-  if (isWebLLM) el.model.placeholder = 'gemma-3-4b-it-q4f16_1-MLC';
+  if (isWebLLM) el.model.placeholder = 'gemma3-1b-it-q4f16_1-MLC';
 
   el.apiKey.disabled = isNone;
   el.baseUrl.disabled = isNone;

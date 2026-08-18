@@ -15,13 +15,13 @@ import { loadSettings } from './providers/registry.js';
 
 const REGISTRY_PATH = 'scenarios/registry.json';
 
-/** Minimal v2 validation. Returns { valid, errors }. */
+/** Minimal v2/v3 validation. Returns { valid, errors }. */
 export function validateScenario(scenario) {
   const errors = [];
   if (!scenario || typeof scenario !== 'object') return { valid: false, errors: ['Scenario is not an object'] };
   if (!scenario.scenario_id) errors.push('missing scenario_id');
   if (!scenario.title) errors.push('missing title');
-  if (scenario.version !== 2) errors.push('version must be 2');
+  if (scenario.version !== 2 && scenario.version !== 3) errors.push('version must be 2 or 3');
   if (!scenario.intro || typeof scenario.intro !== 'object') errors.push('missing intro object');
   if (!scenario.opening_state || typeof scenario.opening_state !== 'object') errors.push('missing opening_state');
   if (!scenario.dm_brief || !scenario.dm_brief.situation) errors.push('dm_brief.situation is required');

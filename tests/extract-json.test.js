@@ -29,6 +29,16 @@ const cases = [
     input: '{\n  "narrative": "First line\nsecond line",\n  "state_delta": { "reputation": -10, "risk": 5 }\n}',
     expect: { state_delta: { reputation: -10, risk: 5 } },
   },
+  {
+    name: 'truncated mid-JSON (token cap) recovers narrative',
+    input: '```json\n{\n  "narrative": "The team swiftly drafted a statement acknowledging the video, assuring members that it\'s a hoax, and emphasizing the credit union\'s commitment to security. Simultaneously, ',
+    expect: { narrative: "The team swiftly drafted a statement acknowledging the video, assuring members that it's a hoax, and emphasizing the credit union's commitment to security. Simultaneously," },
+  },
+  {
+    name: 'double-escaped narrative is unescaped',
+    input: '{"narrative": "The CEO said \\"hello\\" to the board.", "state_delta": {"risk": 3}}',
+    expect: { narrative: 'The CEO said "hello" to the board.', state_delta: { risk: 3 } },
+  },
 ];
 
 let pass = 0, fail = 0;

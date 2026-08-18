@@ -154,7 +154,7 @@ export class DMSession {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { temperature: 0.8, maxTokens: 900 }
+      { temperature: 0.8, maxTokens: 1500 }
     );
 
     const parsed = this._extractJson(dmResult);
@@ -236,6 +236,23 @@ export class DMSession {
     }
   }
 
+  /** Normalize a successfully-parsed DM object: unescape a narrative that the
+   *  model double-escaped (e.g. "narrative": "\"The team...\""). */
+  _normalize(obj) {
+    if (obj && typeof obj === 'object' && typeof obj.narrative === 'string') {
+      // If the narrative still contains JSON escapes (\" or \n), unescape it.
+      if (/\\["nrt\\]/.test(obj.narrative)) {
+        obj.narrative = obj.narrative
+          .replace(/\\"/g, '"')
+          .replace(/\\n/g, '\n')
+          .replace(/\\r/g, '\r')
+          .replace(/\\t/g, '\t')
+          .replace(/\\\\/g, '\\');
+      }
+    }
+    return obj;
+  }
+
   /** Extract JSON from the raw DM reply, tolerating prose, markdown fences,
    *  and model-induced escaping issues in the narrative. */
   _extractJson(raw) {
@@ -250,7 +267,7 @@ export class DMSession {
     // Strategy 1: try the whole thing.
     try {
       const obj = JSON.parse(s);
-      if (obj && typeof obj === 'object') return obj;
+      if (obj && typeof obj === 'object') return this._normalize(obj);
     } catch {
       /* fall through */
     }
@@ -261,7 +278,7 @@ export class DMSession {
     if (open !== -1 && close > open) {
       try {
         const obj = JSON.parse(s.slice(open, close + 1));
-        if (obj && typeof obj === 'object') return obj;
+        if (obj && typeof obj === 'object') return this._normalize(obj);
       } catch {
         /* fall through */
       }
@@ -280,6 +297,24 @@ export class DMSession {
       } catch {
         /* ignore */
       }
+    }
+
+    // Strategy 4: truncated JSON. The model sometimes hits the token cap and
+    // the reply is cut off mid-object, so the whole thing won't parse. Recover
+    // the narrative string (the human-facing part) from the raw text so the
+    // play screen shows prose instead of a raw ```json fence. We look for the
+    // narrative value, strip surrounding quotes/escapes, and stop at the first
+    // unescaped quote that closes it.
+    const narrMatch = s.match(/"narrative"\s*:\s*"([\s\S]*?)(?:"|$)/);
+    if (narrMatch) {
+      let n = narrMatch[1];
+      // Unescape JSON string escapes (\" -> ", \n -> newline, \\ -> \).
+      try {
+        n = JSON.parse('"' + n + '"');
+      } catch {
+        n = n.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+      }
+      if (n && n.trim()) return { narrative: n.trim() };
     }
 
     return {};

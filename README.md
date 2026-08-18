@@ -49,7 +49,7 @@ API keys work fine.
 For a standalone, offline app (in-browser model, no server, no network):
 
 ```bash
-bash scripts/vendor-offline.sh   # downloads WebLLM + Gemma 4b (~560 MB) into vendor/
+bash scripts/vendor-offline.sh   # downloads WebLLM + Gemma 3 1B (~590 MB) into vendor/
 ```
 
 Then open the app and choose **In-browser model (WebLLM)** in DM/Keys. The app
@@ -63,7 +63,11 @@ Open **⚙ DM / Keys**. Pick one:
 
 - **In-browser model (WebLLM)** — portable, standalone, offline. Runs a small
   Gemma/Llama model in the browser via WebGPU. Requires a WebGPU-capable
-  browser (current Chrome/Edge). Model downloads once (~1-2 GB).
+  browser (current Chrome/Edge). Model downloads once (~1-2 GB). The bundled
+  model is **Gemma 3 1B** (`gemma3-1b-it-q4f16_1-MLC`) — the only Gemma 3
+  available in WebLLM. (The 4B Gemma is not in WebLLM's supported set; use
+  the Server (local) path with Ollama's `gemma3:4b` if you need a bigger
+  model.)
 - **Server (local)** — the DM runs on the **server box** (e.g. a local Ollama
   on the same machine as the app server). The browser talks to the server's
   `/api/dm` proxy, and the server calls the LLM. This is the right choice

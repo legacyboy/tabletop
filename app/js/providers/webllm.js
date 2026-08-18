@@ -21,7 +21,7 @@ const WEBLLM_CDN = 'https://esm.run/@mlc-ai/web-llm';
 export class WebLLMProvider {
   /**
    * @param {object} config
-   * @param {string} config.model     WebLLM model id, e.g. 'gemma-3-4b-it-q4f16_1-MLC'
+   * @param {string} config.model     WebLLM model id, e.g. 'gemma3-1b-it-q4f16_1-MLC'
    * @param {string} [config.libraryUrl] CDN or local URL for @mlc-ai/web-llm
    * @param {object} [config.appConfig]  Optional AppConfig for offline use:
    *   { model_list: [{ model, model_id, model_lib }] } where model/model_lib
@@ -30,7 +30,7 @@ export class WebLLMProvider {
    * @param {Function} [config.onProgress]  ({phase, loadedBytes, totalBytes}) => void
    */
   constructor(config = {}) {
-    this.model = config.model || 'gemma-3-4b-it-q4f16_1-MLC';
+    this.model = config.model || 'gemma3-1b-it-q4f16_1-MLC';
     this.libraryUrl = config.libraryUrl || WEBLLM_CDN;
     this.appConfig = config.appConfig || null;
     this.onProgress = config.onProgress || (() => {});
