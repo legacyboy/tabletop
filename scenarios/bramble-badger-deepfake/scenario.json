@@ -1,7 +1,7 @@
 {
   "scenario_id": "bramble_badger_deepfake",
   "title": "Bramble Badger Deepfake Crisis",
-  "version": 3,
+  "version": 4,
 
   "goal": {
     "description": "Neutralize the crisis and restore trust: bring reputation, member confidence, and regulator confidence back above healthy thresholds while keeping risk low.",
@@ -67,6 +67,39 @@
       "If the group stalls with no clear action for a while, inject a pressure point to move things."
     ]
   },
+
+  "events": [
+    {
+      "id": "e1",
+      "trigger": { "type": "stall", "turns": 2 },
+      "text": "A member waiting on hold posts a screenshot of a staff 'holding' answer that reads as confused.",
+      "state_delta": { "member_confidence": -4, "reputation": -3 }
+    },
+    {
+      "id": "e2",
+      "trigger": { "type": "stall", "turns": 3 },
+      "text": "A second spoof video drops, this time claiming accounts are being frozen for a 'cheese audit'.",
+      "state_delta": { "member_confidence": -6, "risk": 8 }
+    },
+    {
+      "id": "e3",
+      "trigger": { "type": "stat", "stat": "risk", "operator": "gte", "value": 60 },
+      "text": "A fraud spike report lands: several members report credential requests referencing the clip.",
+      "state_delta": { "risk": 6, "member_confidence": -4 }
+    },
+    {
+      "id": "e4",
+      "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
+      "text": "A regulator's office calls asking for a factual summary and this morning's timeline.",
+      "state_delta": { "regulator_confidence": -5, "risk": 4 }
+    },
+    {
+      "id": "e5",
+      "trigger": { "type": "turn", "turn": 6 },
+      "text": "An influencer with a large local following shares the clip with a skeptical caption, amplifying it.",
+      "state_delta": { "reputation": -3, "risk": 4 }
+    }
+  ],
 
   "fate_table": {
     "1": { "kind": "crit_fail", "twist": "Your first response is a disaster — an internal chat log is screenshot and leaks, showing the team publicly contradicting itself. Reputation and member confidence take a heavy hit.", "state_delta": { "reputation": -14, "member_confidence": -12, "risk": 12 } },

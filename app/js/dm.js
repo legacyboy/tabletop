@@ -48,6 +48,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     `Stakes: ${brief.stakes || 'Not provided.'}`,
     `Key actors:\n${actors || '(none)'}`,
     `Pressure points you MAY inject if the group stalls:\n${(brief.pressure_points || []).map((p) => '- ' + p).join('\n') || '(none)'}`,
+    `Pre-compiled events that fire on their own triggers (stall, stat threshold, or turn). When one fires, weave its text into the narrative and apply its state_delta:\n${(scenario.events || []).map((e) => '- [' + e.id + '] ' + e.text).join('\n') || '(none)'}`,
     `Rules of play:\n${(brief.rules_of_play || []).map((r) => '- ' + r).join('\n') || '(none)'}`,
     '',
     '## HOW TO PLAY (critical)',
@@ -70,9 +71,12 @@ function buildSystemPrompt(scenario, opts = {}) {
 }
 
 /** Build the user turn for the DM. */
-function buildUserTurn(scenario, run, action, roll, fate) {
+function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
   const fateLine = fate
     ? `The roll of ${roll} lands on a scripted fate event: "${fate.twist}". Weave this into the outcome.`
+    : '';
+  const eventLine = firedEvents && firedEvents.length
+    ? `A pre-compiled event fires this turn: ${firedEvents.map((e) => `"${e.text}"`).join(' ')} Weave it into the outcome and apply its consequences.`
     : '';
 
   return [
@@ -81,6 +85,7 @@ function buildUserTurn(scenario, run, action, roll, fate) {
     `The group has decided to do this: "${action}"`,
     `They rolled a D20 and got: ${roll}`,
     fateLine ? fateLine : '',
+    eventLine ? eventLine : '',
     '',
     'Adjudicate this action as the DM. Return the JSON judgment described in your instructions.',
   ].filter(Boolean).join('\n');
@@ -102,6 +107,11 @@ export class DMSession {
     this.state = clone(scenario.opening_state || {});
     this.turn = 0;
     this.history = [];   // transcript of turns for the closing report
+
+    // Pre-compiled conditional events (v3 schema). Each fires at most once.
+    this.events = Array.isArray(scenario.events) ? scenario.events : [];
+    this.firedEvents = new Set();   // ids of events already fired this session
+    this.stallCount = 0;             // consecutive turns with no meaningful action
 
     // Timer
     this.startedAt = null;
@@ -146,8 +156,16 @@ export class DMSession {
       this.state = this._applyDelta(this.state, fate.state_delta);
     }
 
+    // Evaluate pre-compiled conditional events BEFORE the DM adjudicates, so
+    // any that fire are woven into this turn's context and their state_delta
+    // is applied. Fired events are tracked and never re-fire.
+    const firedEvents = this._evaluateEvents(action);
+    for (const ev of firedEvents) {
+      if (ev.state_delta) this.state = this._applyDelta(this.state, ev.state_delta);
+    }
+
     const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo });
-    const user = buildUserTurn(this.scenario, this, action, roll, fate);
+    const user = buildUserTurn(this.scenario, this, action, roll, fate, firedEvents);
 
     const dmResult = await this.provider.chat(
       [
@@ -169,6 +187,7 @@ export class DMSession {
       action,
       roll,
       fate: fate ? fate.twist : null,
+      events: firedEvents.map((e) => e.id),
       narrative,
       state: clone(this.state),
       ts: Date.now(),
@@ -183,6 +202,46 @@ export class DMSession {
       roll,
       endCondition,
     };
+  }
+
+  /**
+   * Evaluate the scenario's pre-compiled conditional events against the
+   * current turn. Returns the list of events that fire (each at most once per
+   * session). Also updates the stall counter used by stall triggers.
+   *
+   * Trigger types:
+   *   { type: 'stall', turns: N }  fires after N consecutive turns with no
+   *                                meaningful action (empty/very short action).
+   *   { type: 'stat', stat, operator: 'gte'|'lte', value }  fires when the
+   *                                stat crosses the threshold.
+   *   { type: 'turn', turn: N }   fires on a specific turn number.
+   */
+  _evaluateEvents(action) {
+    const fired = [];
+    const isStall = !action || action.trim().length < 3;
+    this.stallCount = isStall ? this.stallCount + 1 : 0;
+
+    for (const ev of this.events) {
+      if (this.firedEvents.has(ev.id)) continue;   // each event fires once
+      const t = ev.trigger || {};
+      let hit = false;
+      if (t.type === 'stall') {
+        hit = this.stallCount >= (t.turns || 1);
+      } else if (t.type === 'stat') {
+        const v = this.state[t.stat];
+        if (typeof v === 'number') {
+          if (t.operator === 'gte' && v >= t.value) hit = true;
+          if (t.operator === 'lte' && v <= t.value) hit = true;
+        }
+      } else if (t.type === 'turn') {
+        hit = this.turn + 1 === (t.turn || 0);
+      }
+      if (hit) {
+        this.firedEvents.add(ev.id);
+        fired.push(ev);
+      }
+    }
+    return fired;
   }
 
   _applyDelta(state, delta) {
@@ -353,6 +412,8 @@ export class DMSession {
       durationSeconds: this.durationSeconds,
       ended: this.ended || false,
       ending: this.ending || null,
+      firedEvents: Array.from(this.firedEvents),
+      stallCount: this.stallCount,
     };
   }
 
@@ -369,6 +430,8 @@ export class DMSession {
     session.durationSeconds = snapshot.durationSeconds ?? session.durationSeconds;
     session.ended = snapshot.ended || false;
     session.ending = snapshot.ending || null;
+    session.firedEvents = new Set(snapshot.firedEvents || []);
+    session.stallCount = snapshot.stallCount || 0;
     return session;
   }
 }
