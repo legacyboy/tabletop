@@ -12,8 +12,24 @@ v3 builds on v2's open-ended, LLM-run model with three changes:
 3. **Hidden goal.** The goal lives in the engine and the DM's private brief
    only. It is **never shown to players** in the UI.
 
+v4 (the current version) adds the BDB-inspired features on top of v3:
+
+4. **Attack chain (kill chain).** A hidden, ordered set of stages the group
+   must discover and contain. The DM reveals a stage when the group's
+   investigation uncovers it, and marks it contained when the group neutralizes
+   it. The win condition becomes "contain all stages."
+5. **BDB-style metric set.** `risk` is replaced by `attacker_progress` (the
+   kill chain as a number), plus response-side metrics (`containment`,
+   `eradication`, `recovery`, `security_posture`) and `public_trust`.
+6. **Roll modifiers.** The group can "play" a defender capability (spend
+   budget) to get a +2/+3 on the next D20 roll.
+7. **Breach state.** A discrete ladder (`contained → active → escalated →
+   exfiltrated`) the DM narrates as the attack chain progresses.
+8. **Random mode.** A registry entry with no pre-authored scenario.json — the
+   DM generates the scenario on the fly.
+
 v1 was a **fixed decision tree**: players picked from authored options and the
-engine chose the outcome tier by D20. v2/v3 are **open-ended sessions run by
+engine chose the outcome tier by D20. v2/v3/v4 are **open-ended sessions run by
 an LLM dungeon master (DM)**. Players type *any* action into a free-text box,
 roll a D20, and the DM adjudicates the action + roll against the scenario
 context. The scenario file is *inspiration and structure, not a script* — it
@@ -53,10 +69,25 @@ Scenarios are listed in `scenarios/registry.json`.
   },
 
   // --- starting state the DM must track and update each turn ---
+  // BDB-style metric set. `attacker_progress` replaces the old vague `risk`.
+  // The engine tracks whatever metrics you define here (data-driven).
   "opening_state": {
-    "budget": 70, "reputation": 65, "morale": 70, "risk": 35,
-    "member_confidence": 68, "regulator_confidence": 60
+    "budget": 70, "public_trust": 65, "regulator_confidence": 60,
+    "security_posture": 60, "containment": 20, "eradication": 10,
+    "recovery": 10, "attacker_progress": 30
   },
+
+  // --- the hidden attack chain (kill chain) ---
+  // Ordered stages the group must discover and contain. Each has an id, an
+  // executive-friendly name (plain language, NOT MITRE jargon), and a symptom
+  // (what the group observes). `revealed` defaults to false. The DM reveals a
+  // stage when the group's investigation uncovers it, and marks it contained
+  // when the group neutralizes it. Win condition: contain all stages.
+  "attack_chain": [
+    { "id": "hook",   "name": "How they got in", "symptom": "Fraud callers reference the clip to harvest credentials.", "revealed": false },
+    { "id": "spread", "name": "How it spread",   "symptom": "The clip is amplified across community channels.", "revealed": false },
+    { "id": "take",   "name": "What they took",   "symptom": "Members report credential requests; funds are moving.", "revealed": false }
+  ],
 
   // --- facilitator metadata (not fed to players verbatim) ---
   "meta": {
@@ -90,8 +121,9 @@ Scenarios are listed in `scenarios/registry.json`.
   // Each event fires AT MOST ONCE per session, when its trigger is met. When
   // it fires, the engine applies its state_delta and tells the DM to weave
   // its text into the narrative for that turn. Trigger types:
-  //   stall: fires after N consecutive turns with no meaningful action
-  //          (empty or very short action text).
+  //   stall: fires after N consecutive turns the DM judged as no meaningful
+  //          progress (the DM's per-turn `progress` judgment, not action text
+  //          length).
   //   stat:  fires when a stat crosses a threshold (gte/lte).
   //   turn:  fires on a specific turn number (optional; stall/stat are the
   //          primary "conditional" triggers).
@@ -129,22 +161,26 @@ Scenarios are listed in `scenarios/registry.json`.
   // HIDDEN from players. Lives only in the engine and the DM's private brief.
   // When ALL win_conditions are met simultaneously, the scenario ends in
   // success. This is the objective the group works toward — not a timer.
+  // The win condition should reference attacker_progress + containment /
+  // eradication / recovery (the BDB-style "contain all stages" objective).
   "goal": {
-    "description": "Restore trust and deflate the crisis.",
+    "description": "Contain the attack chain and restore trust.",
     "win_conditions": [
-      { "stat": "reputation", "operator": "gte", "value": 60 },
-      { "stat": "member_confidence", "operator": "gte", "value": 60 },
-      { "stat": "risk", "operator": "lte", "value": 45 }
+      { "stat": "public_trust", "operator": "gte", "value": 60 },
+      { "stat": "containment", "operator": "gte", "value": 80 },
+      { "stat": "eradication", "operator": "gte", "value": 70 },
+      { "stat": "recovery", "operator": "gte", "value": 60 },
+      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
     ],
-    "ending": "Crisis resolved: trust restored. The exercise concludes."
+    "ending": "Crisis resolved: the attack chain is contained and trust restored."
   },
 
   // --- what ends the session in failure ---
   // stat-based lose conditions: fires when a stat crosses the threshold.
   // timeout:     fires when the running session timer hits duration_seconds.
   "end_conditions": [
-    { "type": "stat", "stat": "budget", "operator": "lte", "value": 10,
-      "ending": "Budget exhausted: the response cannot be sustained." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90,
+      "ending": "Attack overload: the event becomes a full enterprise incident." },
     { "type": "timeout", "duration_seconds": 3600,
       "ending": "Time ran out on the scheduled exercise." }
   ],
@@ -181,7 +217,7 @@ Trigger types:
 
 | type | fields | fires when |
 |---|---|---|
-| `stall` | `turns: N` | the group takes no meaningful action for N consecutive turns (empty or very short action text) |
+| `stall` | `turns: N` | the DM judges the group made no meaningful progress for N consecutive turns (per-turn `progress` judgment, not action text length) |
 | `stat` | `stat`, `operator` (`gte`/`lte`), `value` | the stat crosses the threshold |
 | `turn` | `turn: N` | the session reaches turn N (optional; stall/stat are the primary conditional triggers) |
 
@@ -202,4 +238,56 @@ The DM receives the current state each turn and returns an updated state with
 its judgment of the action's consequences. The engine clamps values to [0,100]
 and caps per-turn changes to ±10 so a session keeps a believable arc. Persisting
 state across turns is what makes a long session consequential and feeds
-`end_conditions` (e.g. "risk > 90 = the event becomes a full incident").
+`end_conditions` (e.g. "attacker_progress > 90 = the event becomes a full
+incident").
+
+## Attack chain (kill chain)
+
+The `attack_chain` array gives a scenario a hidden, ordered set of stages the
+group must discover and contain. Each stage has:
+
+- `id` — a stable slug (e.g. `hook`, `spread`, `take`).
+- `name` — an **executive-friendly** plain-language name (e.g. "How they got
+  in", "How it spread", "What they took"). Do NOT use technical MITRE jargon
+  (no "C2 and Exfil", "Persistence", "Lateral Movement") — executives won't
+  know or care.
+- `symptom` — the executive-facing description of what the group observes that
+  hints at this stage.
+- `revealed` — bool, default `false`. The DM reveals a stage when the group's
+  investigation plausibly uncovers it.
+
+The DM's brief lists the hidden chain. The DM reveals a stage when the group
+uncovers it, and marks it contained when the group neutralizes it. The engine
+tracks `revealed`/`contained` per stage in the session (persisted across a
+restore) and feeds the current chain state to the DM each turn.
+
+**Win condition:** containing ALL stages is a success (the BDB-style "contain
+all stages" win), even if the numeric goal thresholds aren't all met yet. The
+`goal.win_conditions` should also reference `attacker_progress` + containment /
+eradication / recovery.
+
+## Roll modifiers (defender capabilities)
+
+The group can "play" a defender capability (spend budget) to get a +2/+3 on
+the next D20 roll. The engine tracks a `rollModifier` in the session (persisted
+across a restore). When a defender action grants a modifier, the next roll is
+adjusted. The DM brief explains this mechanic. The modifier **nudges** the roll
+— it does not replace the DM's judgment.
+
+## Breach state
+
+A discrete breach ladder the DM narrates as the attack chain progresses:
+`contained → active → escalated → exfiltrated`. It is derived from the attack
+chain (how many stages are revealed but not yet contained) and is more legible
+to executives than an abstract number. It is tracked in the session (persisted)
+and fed to the DM each turn.
+
+## Random mode
+
+A registry entry with `"random": true` (or `id: "random"`) has **no
+pre-authored scenario.json**. When selected, the DM generates the scenario on
+the fly: an appropriate executive scenario, opening state, goal, and events,
+from a generic prompt. The engine uses a minimal valid scenario shell and the
+DM system prompt includes a RANDOM MODE block that instructs the DM to invent
+the scenario. Keep it executive-focused — the DM should generate an appropriate
+executive tabletop scenario (security, reputation, operational, etc.).

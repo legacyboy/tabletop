@@ -21,10 +21,72 @@
 const STATE_MIN = 0;
 const STATE_MAX = 100;
 
+// Hard cap on the TOTAL change to any single metric within one turn, across
+// ALL delta sources (fate twist + pre-compiled events + DM judgment). Without
+// this, a single turn could swing a metric by +30 (fate 10 + event 10 + DM 10)
+// and snowball the session into a foregone loss. Keeps the arc believable.
+const PER_TURN_MAX_CHANGE = 15;
+
 const clamp = (v) => Math.max(STATE_MIN, Math.min(STATE_MAX, v));
 
 /** Deep clone a JSON-safe object. */
 const clone = (o) => JSON.parse(JSON.stringify(o));
+
+/**
+ * The discrete breach ladder the DM narrates as the attack chain progresses.
+ * More legible to executives than an abstract number.
+ */
+const BREACH_STATES = ['contained', 'active', 'escalated', 'exfiltrated'];
+
+/**
+ * Build the session's live attack-chain state from a scenario's authored
+ * `attack_chain` array. Each stage gets a `revealed` and `contained` flag
+ * (both default false). The DM reveals a stage when the group's investigation
+ * plausibly uncovers it, and marks it contained when the group neutralizes it.
+ */
+function initAttackChain(scenario) {
+  const chain = Array.isArray(scenario.attack_chain) ? scenario.attack_chain : [];
+  return chain.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    symptom: stage.symptom || '',
+    revealed: !!stage.revealed,
+    contained: false,
+  }));
+}
+
+/**
+ * Derive the current breach state from the attack chain. The breach escalates
+ * as stages fire (are revealed but not yet contained) and de-escalates as
+ * stages are contained. Falls back to 'active' when there is no chain.
+ */
+function deriveBreachState(chain) {
+  if (!chain || chain.length === 0) return 'active';
+  const revealed = chain.filter((s) => s.revealed);
+  const contained = chain.filter((s) => s.contained);
+  if (contained.length === chain.length) return 'contained';
+  if (revealed.length === 0) return 'contained';
+  // Escalation is driven by how many stages are out in the open and unresolved.
+  const unresolved = revealed.length - contained.length;
+  if (unresolved >= 3) return 'exfiltrated';
+  if (unresolved >= 2) return 'escalated';
+  return 'active';
+}
+
+/**
+ * Build the DM's view of the attack chain: the hidden stages (name + symptom)
+ * plus which are revealed and which are contained. This is fed to the DM each
+ * turn so it can reveal/contain stages and narrate the breach.
+ */
+function chainBrief(chain) {
+  if (!chain || chain.length === 0) return '(no attack chain)';
+  return chain
+    .map((s) => {
+      const status = s.contained ? 'CONTAINED' : s.revealed ? 'REVEALED' : 'hidden';
+      return `- [${s.id}] ${s.name} (${status}): ${s.symptom}`;
+    })
+    .join('\n');
+}
 
 /**
  * Build the system prompt that turns the LLM into THE DM for this scenario.
@@ -39,9 +101,27 @@ function buildSystemPrompt(scenario, opts = {}) {
     ? `\n\n## Public company information (from a live source)\n${opts.companyInfo}`
     : '';
 
+  // RANDOM MODE: when the scenario is a generated shell (no pre-authored
+  // content), the DM invents an appropriate executive scenario on the fly.
+  const isRandom = scenario.scenario_id === 'random_generated' || opts.random === true;
+  const randomBlock = isRandom
+    ? [
+        '',
+        '## RANDOM MODE — GENERATE THE SCENARIO',
+        'No pre-authored scenario is provided. You must generate an appropriate executive tabletop scenario on the fly.',
+        'Choose a realistic executive scenario type (security incident, reputation/misinformation crisis, operational or financial disruption, regulatory matter, etc.).',
+        'Invent: the opening scene (what the group observes), the stakes, the key actors, the tracked metrics and their opening values, the goal, and a hidden attack chain of 3-5 stages.',
+        'Keep it EXECUTIVE-FOCUSED: describe the attack in plain language (e.g. "How they got in", "How it spread", "What they took") \u2014 NOT technical MITRE jargon.',
+        'Use the BDB-style metric set where appropriate: budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress.',
+        'The win condition is to contain all attack-chain stages and restore the response metrics.',
+        'Start the session by narrating the opening scene you invented, then adjudicate the group\u2019s actions against it.',
+      ].join('\n')
+    : '';
+
   return [
     'You are the dungeon master (facilitator) of an executive tabletop simulation.',
     `Scenario: ${scenario.title}.`,
+    randomBlock,
     '',
     '## Your private briefing',
     `Situation: ${brief.situation || 'Not provided.'}`,
@@ -64,8 +144,29 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- Change any single metric by AT MOST 10 points per turn (usually 1-6).',
     '- Do NOT max out or zero out metrics. Keep values in a believable mid-range so a 60-minute session has room to escalate and recover.',
     '- Only change metrics that the action genuinely affects; leave the rest unchanged.',
+    '- A GOOD action on a GOOD roll (roughly 12+) should STABILIZE or IMPROVE the relevant metrics, not punish them. Do not keep dropping public_trust or other metrics every turn even when the group acts sensibly.',
+    '- A bad roll (roughly 1-5) is where real damage happens. Reserve large negative deltas for genuinely bad outcomes, not for competent actions.',
+    '- The session should be winnable: the group must be able to recover. Do not make it a foregone loss by turn 4-5.',
+    '- Advance `attacker_progress` ONLY when the group fails, stalls, or takes a genuinely harmful action, or when a scripted event/fate twist calls for it. Do NOT raise attacker_progress every turn, and never on a good, competent action with a decent roll.',
+    '',
+    '## THE ATTACK CHAIN (kill chain)',
+    'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
+    'Your job is to REVEAL a stage when the group\u2019s investigation plausibly uncovers it, and mark it CONTAINED when the group neutralizes it.',
+    'The current chain state is fed to you each turn. Reveal stages gradually as the group investigates \u2014 do not dump the whole chain at once.',
+    'The win condition is to contain ALL stages. The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten.',
+    '',
+    '## ROLL MODIFIERS (defender capabilities)',
+    'The group may spend budget to "play" a defender capability (e.g. activate a monitoring playbook, escalate to the board, issue a public statement).',
+    'When they do, the engine applies a +2/+3 modifier to their next D20 roll. The modifier nudges the roll \u2014 it does not replace your judgment.',
+    'If a roll modifier is active, the turn will tell you the adjusted roll. Use it as a mild nudge toward success, but keep your judgment in the loop.',
+    '',
+    '## DETECTION AS A RESOURCE',
+    'Investigation and response are limited. The group cannot do everything at once \u2014 enforce a realistic limit on how many distinct investigation/response actions they can take in a single turn, and make activating monitoring cost budget.',
+    '',
     'Your reply must be STRICT JSON with exactly these fields:',
-    '{"narrative": "<what happened, 2-5 sentences>", "state_delta": {"<metric>": <integer change>, ...}}',
+    '{"narrative": "<what happened, 2-5 sentences>", "state_delta": {"<metric>": <integer change>, ...}, "progress": true|false, "reveal_stage": "<stage id>|null", "contain_stage": "<stage id>|null"}',
+    '"progress": true if the group\u2019s action meaningfully advanced the situation, false if they stalled, went in circles, or made no real progress. Blank/short actions are NOT automatically stalls \u2014 judge the substance of what they did.',
+    '"reveal_stage": the id of an attack-chain stage the group just uncovered (or null). "contain_stage": the id of a stage the group just neutralized (or null).',
     'Only include metrics you actually changed. Return valid JSON and nothing else.',
   ].join('\n') + company;
 }
@@ -78,12 +179,20 @@ function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
   const eventLine = firedEvents && firedEvents.length
     ? `A pre-compiled event fires this turn: ${firedEvents.map((e) => `"${e.text}"`).join(' ')} Weave it into the outcome and apply its consequences.`
     : '';
+  const modifierLine = run.rollModifier
+    ? `A defender capability is active: the group spent budget to play it, granting a +${run.rollModifier} modifier. The adjusted roll is ${roll + run.rollModifier}. Treat this as a mild nudge toward success, but keep your judgment in the loop.`
+    : '';
+  const chainLine = run.attackChain && run.attackChain.length
+    ? `\nCurrent attack chain:\n${chainBrief(run.attackChain)}\nCurrent breach state: ${run.breachState}`
+    : '';
 
   return [
     `Turn ${run.turn + 1}. Current state: ${JSON.stringify(run.state)}`,
+    chainLine ? chainLine : '',
     '',
     `The group has decided to do this: "${action}"`,
     `They rolled a D20 and got: ${roll}`,
+    modifierLine ? modifierLine : '',
     fateLine ? fateLine : '',
     eventLine ? eventLine : '',
     '',
@@ -103,6 +212,7 @@ export class DMSession {
     this.provider = provider;
     this.scenario = scenario;
     this.companyInfo = null;  // optional enrichment appended to the DM brief
+    this.random = false;       // random mode: DM generates the scenario on the fly
 
     this.state = clone(scenario.opening_state || {});
     this.turn = 0;
@@ -111,7 +221,22 @@ export class DMSession {
     // Pre-compiled conditional events (v3 schema). Each fires at most once.
     this.events = Array.isArray(scenario.events) ? scenario.events : [];
     this.firedEvents = new Set();   // ids of events already fired this session
-    this.stallCount = 0;             // consecutive turns with no meaningful action
+    this.stallCount = 0;             // consecutive turns the DM judged as no meaningful progress
+
+    // BDB-inspired attack chain (kill chain). Each stage: {id, name, symptom,
+    // revealed, contained}. The DM reveals/contains stages; the win condition
+    // is to contain all of them.
+    this.attackChain = initAttackChain(scenario);
+    this.breachState = deriveBreachState(this.attackChain);
+
+    // Roll modifier: a defender capability the group "played" (spent budget)
+    // to nudge the next D20 roll. Persisted so it survives a restore.
+    this.rollModifier = 0;
+
+    // Consecutive-turn streaks for stat end conditions that require a stat to
+    // stay at/below (or at/above) a threshold for N turns before failing.
+    // Keyed by end-condition index; reset when the stat leaves the zone.
+    this.statStreaks = {};
 
     // Timer
     this.startedAt = null;
@@ -151,21 +276,14 @@ export class DMSession {
     const fateKey = String(roll);
     const fate = this.scenario.fate_table ? this.scenario.fate_table[fateKey] : null;
 
-    // Apply the fate twist's own state delta.
-    if (fate && fate.state_delta) {
-      this.state = this._applyDelta(this.state, fate.state_delta);
-    }
+    // Pre-chat: find stat/turn events that will fire this turn so they can be
+    // woven into the DM's context. Stall events are judged AFTER the DM
+    // reports progress, so they are evaluated below. Fired events are
+    // tracked and never re-fire.
+    const preFired = this._pendingStatTurnEvents();
 
-    // Evaluate pre-compiled conditional events BEFORE the DM adjudicates, so
-    // any that fire are woven into this turn's context and their state_delta
-    // is applied. Fired events are tracked and never re-fire.
-    const firedEvents = this._evaluateEvents(action);
-    for (const ev of firedEvents) {
-      if (ev.state_delta) this.state = this._applyDelta(this.state, ev.state_delta);
-    }
-
-    const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo });
-    const user = buildUserTurn(this.scenario, this, action, roll, fate, firedEvents);
+    const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
+    const user = buildUserTurn(this.scenario, this, action, roll, fate, preFired);
 
     const dmResult = await this.provider.chat(
       [
@@ -176,11 +294,47 @@ export class DMSession {
     );
 
     const parsed = this._extractJson(dmResult);
-    const narrative = parsed.narrative || dmResult;
+    // Never let raw JSON leak to the player as the narrative. If extraction
+    // produced no narrative and the raw reply still looks like a JSON object,
+    // fall back to a safe generic line rather than showing the JSON fence.
+    let narrative = parsed.narrative || dmResult;
+    if (!parsed.narrative) {
+      const looksLikeJson = /^[{\[]/.test(String(dmResult).trim()) || /^"[\s\S]*"$/.test(String(dmResult).trim());
+      if (looksLikeJson) narrative = 'The situation developed. (The moderator narrative could not be parsed cleanly.)';
+    }
     const delta = parsed.state_delta || {};
 
-    this.state = this._applyDelta(this.state, delta);
+    // The DM judges whether the group made meaningful progress this turn.
+    // A missing `progress` field defaults to progress (reset to 0) so a
+    // missing field never falsely triggers a stall.
+    this.stallCount = parsed.progress === false ? this.stallCount + 1 : 0;
+
+    // The DM may reveal or contain an attack-chain stage this turn.
+    this._applyChainJudgment(parsed);
+
+    // Evaluate all pre-compiled events now that the stall counter reflects the
+    // DM's judgment for this turn. Stat/turn events already fired above are
+    // skipped (dedup); stall events fire here when the counter reaches N.
+    const firedEvents = this._evaluateEvents(action);
+
+    // Combine ALL delta sources for this turn (fate twist + fired events + DM
+    // judgment) and apply them together with a hard per-turn total cap, so a
+    // single turn can never swing a metric wildly and snowball the session.
+    const combined = {};
+    const merge = (d) => {
+      for (const [k, v] of Object.entries(d || {})) {
+        if (typeof v === 'number') combined[k] = (combined[k] || 0) + v;
+      }
+    };
+    if (fate && fate.state_delta) merge(fate.state_delta);
+    for (const ev of firedEvents) merge(ev.state_delta);
+    merge(delta);
+    this.state = this._applyDelta(this.state, combined);
+
     this.turn += 1;
+
+    // A roll modifier is consumed by the roll it was granted for.
+    this.rollModifier = 0;
 
     const event = {
       turn: this.turn,
@@ -190,6 +344,8 @@ export class DMSession {
       events: firedEvents.map((e) => e.id),
       narrative,
       state: clone(this.state),
+      attack_chain: clone(this.attackChain),
+      breach_state: this.breachState,
       ts: Date.now(),
     };
     this.history.push(event);
@@ -200,26 +356,79 @@ export class DMSession {
       event,
       state: clone(this.state),
       roll,
+      attack_chain: clone(this.attackChain),
+      breach_state: this.breachState,
       endCondition,
     };
   }
 
   /**
+   * Apply the DM's attack-chain judgment for this turn: reveal a stage the
+   * group uncovered, and/or contain a stage the group neutralized. Re-derives
+   * the breach state after any change.
+   */
+  _applyChainJudgment(parsed) {
+    let changed = false;
+    if (parsed.reveal_stage) {
+      const stage = this.attackChain.find((s) => s.id === parsed.reveal_stage);
+      if (stage && !stage.revealed) {
+        stage.revealed = true;
+        changed = true;
+      }
+    }
+    if (parsed.contain_stage) {
+      const stage = this.attackChain.find((s) => s.id === parsed.contain_stage);
+      if (stage && !stage.contained) {
+        stage.contained = true;
+        stage.revealed = true; // containing implies you found it
+        changed = true;
+      }
+    }
+    if (changed) this.breachState = deriveBreachState(this.attackChain);
+  }
+
+  /**
+   * Find stat/turn events that will fire this turn (for weaving into the DM's
+   * context BEFORE the DM adjudicates). Does NOT mutate firedEvents or apply
+   * deltas; the authoritative evaluation happens in _evaluateEvents after the
+   * DM's progress judgment. Stall events are excluded here because they depend
+   * on the DM's per-turn judgment.
+   */
+  _pendingStatTurnEvents() {
+    const pending = [];
+    for (const ev of this.events) {
+      if (this.firedEvents.has(ev.id)) continue;   // each event fires once
+      const t = ev.trigger || {};
+      let hit = false;
+      if (t.type === 'stat') {
+        const v = this.state[t.stat];
+        if (typeof v === 'number') {
+          if (t.operator === 'gte' && v >= t.value) hit = true;
+          if (t.operator === 'lte' && v <= t.value) hit = true;
+        }
+      } else if (t.type === 'turn') {
+        hit = this.turn + 1 === (t.turn || 0);
+      }
+      if (hit) pending.push(ev);
+    }
+    return pending;
+  }
+
+  /**
    * Evaluate the scenario's pre-compiled conditional events against the
    * current turn. Returns the list of events that fire (each at most once per
-   * session). Also updates the stall counter used by stall triggers.
+   * session). The stall counter is maintained by the DM's per-turn progress
+   * judgment (see takeTurn), not by action text length.
    *
    * Trigger types:
-   *   { type: 'stall', turns: N }  fires after N consecutive turns with no
-   *                                meaningful action (empty/very short action).
+   *   { type: 'stall', turns: N }  fires after N consecutive turns the DM
+   *                                judged as no meaningful progress.
    *   { type: 'stat', stat, operator: 'gte'|'lte', value }  fires when the
    *                                stat crosses the threshold.
    *   { type: 'turn', turn: N }   fires on a specific turn number.
    */
   _evaluateEvents(action) {
     const fired = [];
-    const isStall = !action || action.trim().length < 3;
-    this.stallCount = isStall ? this.stallCount + 1 : 0;
 
     for (const ev of this.events) {
       if (this.firedEvents.has(ev.id)) continue;   // each event fires once
@@ -248,22 +457,35 @@ export class DMSession {
     const next = clone(state);
     for (const [k, v] of Object.entries(delta || {})) {
       if (typeof v !== 'number') continue;
-      // Hard cap on per-turn change so a single roll can't swing a metric
-      // wildly, even if the model over-reports. Keeps the arc believable.
-      const capped = Math.max(-10, Math.min(10, v));
+      // Hard cap on the TOTAL per-turn change so a single turn can't swing a
+      // metric wildly, even if the model over-reports or multiple delta
+      // sources stack. Keeps the arc believable and prevents snowballing.
+      const capped = Math.max(-PER_TURN_MAX_CHANGE, Math.min(PER_TURN_MAX_CHANGE, v));
       next[k] = clamp((next[k] || 0) + capped);
     }
     return next;
   }
 
   _checkEnd() {
-    // Lose conditions: a stat crosses a failure threshold -> the scenario ends badly.
-    for (const c of this.scenario.end_conditions || []) {
-      if (c.type === 'stat') {
-        const v = this.state[c.stat];
-        if (c.operator === 'lte' && v <= c.value) return { ...c, current: v, result: 'failure' };
-        if (c.operator === 'gte' && v >= c.value) return { ...c, current: v, result: 'failure' };
+    // Lose conditions: a stat crosses a failure threshold -> the scenario ends
+    // badly. If the condition has a `consecutive` field, the stat must stay in
+    // the failure zone for that many consecutive turns before it fires (so a
+    // single bad turn doesn't end the session — the group gets a chance to
+    // recover).
+    const endConditions = this.scenario.end_conditions || [];
+    for (let i = 0; i < endConditions.length; i++) {
+      const c = endConditions[i];
+      if (c.type !== 'stat') continue;
+      const v = this.state[c.stat];
+      if (typeof v !== 'number') continue;
+      const inZone = (c.operator === 'lte' && v <= c.value) || (c.operator === 'gte' && v >= c.value);
+      if (!inZone) {
+        this.statStreaks[i] = 0;   // left the zone -> reset the streak
+        continue;
       }
+      const need = c.consecutive || 1;
+      this.statStreaks[i] = (this.statStreaks[i] || 0) + 1;
+      if (this.statStreaks[i] >= need) return { ...c, current: v, result: 'failure' };
     }
 
     // Goal (win condition): all goal thresholds met simultaneously -> the
@@ -279,7 +501,34 @@ export class DMSession {
       if (allMet) return { type: 'goal', result: 'success', ending: goal.ending, ...goal };
     }
 
+    // Attack-chain win: if the scenario defines an attack_chain and the goal
+    // references it (or the chain is the objective), containing ALL stages is a
+    // success even if the numeric thresholds are not all met yet. This is the
+    // BDB-style "contain all stages" win.
+    if (this.attackChain.length && this.attackChain.every((s) => s.contained)) {
+      const goal = this.scenario.goal;
+      return {
+        type: 'goal',
+        result: 'success',
+        ending: (goal && goal.ending) || 'All attack-chain stages contained. The exercise concludes.',
+        ...(goal || {}),
+        chain_contained: true,
+      };
+    }
+
     return null;
+  }
+
+  /**
+   * Grant a roll modifier for the next D20 roll. Called when the group "plays"
+   * a defender capability (spends budget). The modifier nudges the next roll;
+   * it is consumed by that roll. Returns the new modifier value.
+   * @param {number} amount  +2 or +3 (clamped to a sane range).
+   */
+  grantRollModifier(amount) {
+    const n = Number(amount) || 0;
+    this.rollModifier = Math.max(0, Math.min(5, n));
+    return this.rollModifier;
   }
 
   /** Timeout end condition (called by the UI when the timer hits 0). */
@@ -296,17 +545,38 @@ export class DMSession {
   }
 
   /** Normalize a successfully-parsed DM object: unescape a narrative that the
-   *  model double-escaped (e.g. "narrative": "\"The team...\""). */
+   *  model double-escaped (e.g. "narrative": "\"The team...\"") or that is
+   *  itself a JSON string or object. Never lets raw JSON structure leak. */
   _normalize(obj) {
-    if (obj && typeof obj === 'object' && typeof obj.narrative === 'string') {
-      // If the narrative still contains JSON escapes (\" or \n), unescape it.
-      if (/\\["nrt\\]/.test(obj.narrative)) {
-        obj.narrative = obj.narrative
-          .replace(/\\"/g, '"')
-          .replace(/\\n/g, '\n')
-          .replace(/\\r/g, '\r')
-          .replace(/\\t/g, '\t')
-          .replace(/\\\\/g, '\\');
+    if (obj && typeof obj === 'object') {
+      // The narrative may itself be a JSON object (e.g. {"narrative": {...}})
+      // or a double-encoded JSON string. Recover the innermost prose.
+      let n = obj.narrative;
+      if (typeof n === 'object' && n !== null) {
+        n = n.narrative;
+      }
+      if (typeof n === 'string') {
+        const trimmed = n.trim();
+        // Double-encoded: the narrative is itself a JSON string (starts with
+        // a quote, brace, or bracket). Parse it down to prose.
+        if (/^["{\[]/.test(trimmed)) {
+          try {
+            const inner = JSON.parse(trimmed);
+            if (typeof inner === 'string') n = inner;
+            else if (inner && typeof inner === 'object' && typeof inner.narrative === 'string') n = inner.narrative;
+          } catch { /* fall through to escape-unescape */ }
+        }
+        // If the narrative still contains JSON escapes (\" or \n), unescape it.
+        if (/\\["nrt\\]/.test(n)) {
+          n = n
+            .replace(/\\"/g, '"')
+            .replace(/\\n/g, '\n')
+            .replace(/\\r/g, '\r')
+            .replace(/\\t/g, '\t')
+            .replace(/\\\\/g, '\\');
+        }
+        // Final guard: never let raw JSON structure leak into the narrative.
+        obj.narrative = this._cleanNarrative(n);
       }
     }
     return obj;
@@ -346,15 +616,30 @@ export class DMSession {
     // Strategy 3: models sometimes wrap the whole thing in ANOTHER layer of
     // quotes, or the narrative contains escapes (\"...\", literal \n) that
     // make the full object unparseable while state_delta itself is fine.
-    // Pull out just the state_delta object as a fallback, since that's the
-    // machine-critical part; the narrative can fall back to the raw text.
+    // Pull out just the state_delta object as a fallback, and ALSO try to
+    // recover the narrative (Strategy 4 logic) so we never return state_delta
+    // alone and let the raw JSON leak into the play screen.
     const deltaMatch = s.match(/"state_delta"\s*:\s*(\{[\s\S]*?\})/);
     if (deltaMatch) {
+      let delta = null;
       try {
-        const delta = JSON.parse(deltaMatch[1]);
-        if (delta && typeof delta === 'object') return { state_delta: delta };
+        const d = JSON.parse(deltaMatch[1]);
+        if (d && typeof d === 'object') delta = d;
       } catch {
-        /* ignore */
+        /* state_delta itself is malformed; ignore */
+      }
+      if (delta) {
+        // Recover the narrative too (if present) so the play screen shows
+        // prose, not the raw JSON object.
+        const narrMatch = s.match(/"narrative"\s*:\s*"([\s\S]*?)(?:"|$)/);
+        let narrative = null;
+        if (narrMatch) {
+          let n = narrMatch[1];
+          try { n = JSON.parse('"' + n + '"'); }
+          catch { n = n.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\'); }
+          narrative = this._cleanNarrative(n.trim());
+        }
+        return narrative ? { narrative, state_delta: delta } : { state_delta: delta };
       }
     }
 
@@ -373,10 +658,82 @@ export class DMSession {
       } catch {
         n = n.replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
       }
-      if (n && n.trim()) return { narrative: n.trim() };
+      if (n && n.trim()) return { narrative: this._cleanNarrative(n.trim()) };
+    }
+
+    // Strategy 5 (final safety net): the model returned something that is NOT
+    // parseable JSON but still looks like a JSON object (starts with a brace/
+    // bracket or is a quoted JSON string). Never let raw JSON structure leak
+    // to the player — strip it down to the best prose we can find. If the raw
+    // reply is already clean prose, return {} and let the caller use the raw
+    // text as the narrative.
+    if (/^[{\[]/.test(s) || /^"[\s\S]*"$/.test(s)) {
+      const cleaned = this._cleanNarrative(s);
+      if (cleaned && cleaned.trim()) return { narrative: cleaned.trim() };
     }
 
     return {};
+  }
+
+  /**
+   * Final safety net: strip any residual JSON structure out of a narrative so
+   * raw JSON never leaks to the player. Handles the case where the model
+   * double-encodes the narrative (e.g. "narrative": "\"The CEO...\"") or
+   * where a recovered narrative is still a JSON object. Returns clean prose,
+   * or the input unchanged if it is already prose.
+   */
+  _cleanNarrative(text) {
+    if (typeof text !== 'string' || !text) return text;
+    let t = text.trim();
+
+    // Only treat it as JSON to strip if it actually looks like a JSON object
+    // (starts with a brace/bracket) or is a quoted JSON string. Plain prose
+    // that merely mentions a key name is left untouched.
+    const looksLikeJson = /^[{\[]/.test(t) || /^"[\s\S]*"$/.test(t);
+    if (!looksLikeJson) return t;
+
+    // If it is a JSON object, pull out the narrative value (recursively, in
+    // case it is double-encoded) and return that.
+    if (/^[{\[]/.test(t)) {
+      try {
+        const obj = JSON.parse(t);
+        if (obj && typeof obj === 'object') {
+          let n = obj.narrative;
+          if (typeof n === 'object' && n !== null) n = n.narrative;
+          // Double-encoded: the narrative is itself a JSON string.
+          if (typeof n === 'string' && /^["{\[]/.test(n.trim())) {
+            try { n = JSON.parse(n.trim()); } catch { /* keep as-is */ }
+          }
+          if (typeof n === 'string' && n.trim()) return n.trim();
+        }
+      } catch {
+        /* fall through to regex extraction */
+      }
+
+      // Regex fallback: grab the narrative value, unescape it.
+      const m = t.match(/"narrative"\s*:\s*"([\s\S]*?)(?:"|$)/);
+      if (m) {
+        let n = m[1];
+        try { n = JSON.parse('"' + n + '"'); } catch { /* keep */ }
+        if (n && n.trim()) return n.trim();
+      }
+
+      // Last resort: strip all JSON punctuation and keys to leave prose.
+      return t
+        .replace(/^[{\[]+/, '')
+        .replace(/[}\]]+$/, '')
+        .replace(/"(narrative|state_delta|reveal_stage|contain_stage|progress)"\s*:\s*/g, '')
+        .replace(/[{}[\]"]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    // Quoted JSON string: unquote it.
+    try {
+      const parsed = JSON.parse(t);
+      if (typeof parsed === 'string') return parsed.trim();
+    } catch { /* keep as-is */ }
+    return t;
   }
 
   /** Build the closing / audit report. */
@@ -393,6 +750,8 @@ export class DMSession {
       duration_minutes: minutes,
       final_state: clone(this.state),
       log: clone(this.history),
+      attack_chain: clone(this.attackChain),
+      breach_state: this.breachState,
       audit_note: (this.scenario.report && this.scenario.report.audit_note) || '',
     };
   }
@@ -414,6 +773,10 @@ export class DMSession {
       ending: this.ending || null,
       firedEvents: Array.from(this.firedEvents),
       stallCount: this.stallCount,
+      attackChain: clone(this.attackChain),
+      breachState: this.breachState,
+      rollModifier: this.rollModifier,
+      statStreaks: clone(this.statStreaks),
     };
   }
 
@@ -432,6 +795,10 @@ export class DMSession {
     session.ending = snapshot.ending || null;
     session.firedEvents = new Set(snapshot.firedEvents || []);
     session.stallCount = snapshot.stallCount || 0;
+    session.attackChain = clone(snapshot.attackChain || session.attackChain);
+    session.breachState = snapshot.breachState || deriveBreachState(session.attackChain);
+    session.rollModifier = snapshot.rollModifier || 0;
+    session.statStreaks = clone(snapshot.statStreaks || {});
     return session;
   }
 }

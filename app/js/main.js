@@ -14,7 +14,7 @@
  * before any roll, and the DM receives that action verbatim.
  */
 
-import { loadRegistry, loadScenario, fetchCompanyInfo } from './scenarios.js';
+import { loadRegistry, loadScenario, fetchCompanyInfo, isRandomEntry, randomScenarioShell } from './scenarios.js';
 import { buildProvider, loadSettings, describeProvider } from './providers/registry.js';
 import { DMSession } from './dm.js';
 
@@ -52,7 +52,7 @@ async function init() {
    'startButton', 'actionText', 'die', 'roll', 'manual', 'useManual', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'moderatorNotes', 'companyNote', 'settingsButton',
-   'loadScenarioBtn', 'selectBack',
+   'loadScenarioBtn', 'selectBack', 'playCapability', 'breachState', 'attackChain', 'rollModifier',
   ].forEach((id) => { el[id] = $(id); });
 
   // Settings navigation.
@@ -155,8 +155,13 @@ async function showScenarioSelect() {
 
 async function selectScenario(index) {
   const desc = state.registry[index];
-  const scenario = await loadScenario(desc.path);
+  // Random mode: no pre-authored scenario.json — the DM generates the
+  // scenario on the fly. Use the generated shell.
+  const scenario = isRandomEntry(desc)
+    ? randomScenarioShell()
+    : await loadScenario(desc.path);
   state.scenario = scenario;
+  state.isRandom = isRandomEntry(desc);
 
   el.scenarioTitle.textContent = scenario.title;
 
@@ -206,6 +211,8 @@ async function beginSession() {
 
     state.session = new DMSession(provider, scenario);
     state.session.onTimerTick = renderTimer;
+    // Random mode: tell the DM to generate the scenario.
+    if (state.isRandom) state.session.random = true;
 
     // Show the group's opening scene (intro.narrative) + moderator-only notes.
     el.moderatorRead.textContent = scenario.intro.narrative || '';
@@ -256,6 +263,24 @@ function bindRollFlow(scenario) {
     }
     await resolveTurn(action, v);
   };
+
+  // Play a defender capability: spend budget to grant a +2/+3 on the next
+  // roll. The DM brief explains this mechanic; the modifier nudges the roll.
+  if (el.playCapability) {
+    el.playCapability.onclick = () => {
+      const session = state.session;
+      if (!session) return;
+      const budget = session.state.budget;
+      if (typeof budget !== 'number' || budget < 10) {
+        el.outcome.textContent = 'Not enough budget to play a defender capability (needs 10).';
+        return;
+      }
+      session.state.budget = Math.max(0, budget - 10);
+      session.grantRollModifier(3);
+      el.outcome.textContent = 'Defender capability played: +3 on the next roll (budget -10).';
+      renderState();
+    };
+  }
 }
 
 async function resolveTurn(action, roll) {
@@ -314,6 +339,37 @@ function renderState() {
     .map(([k, v]) => `<div class="stateItem"><b>${humanize(k)}</b>: ${v}</div>`)
     .join('');
 
+  // Breach state + attack chain (revealed stages only — hidden stages stay
+  // hidden so the kill chain is a discoverable mystery, not a spoiler).
+  const breachEl = $('breachState');
+  if (breachEl) {
+    breachEl.textContent = session.breachState || '—';
+    breachEl.className = 'breach' + (session.breachState ? ' ' + session.breachState : '');
+  }
+  const chainEl = $('attackChain');
+  if (chainEl) {
+    const revealed = (session.attackChain || []).filter((s) => s.revealed);
+    if (revealed.length === 0) {
+      chainEl.textContent = 'Nothing confirmed yet. Keep investigating.';
+    } else {
+      chainEl.innerHTML = revealed
+        .map((s) => `<div class="stateItem">${s.contained ? '✅' : '🔍'} <b>${escapeHtml(s.name)}</b>${s.contained ? ' — contained' : ''}</div>`)
+        .join('');
+    }
+  }
+
+  // Roll modifier indicator.
+  const modEl = $('rollModifier');
+  if (modEl) {
+    if (session.rollModifier > 0) {
+      modEl.textContent = `+${session.rollModifier} on next roll (defender capability active)`;
+      modEl.style.display = 'block';
+    } else {
+      modEl.textContent = '';
+      modEl.style.display = 'none';
+    }
+  }
+
   const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
   el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
 }
@@ -362,6 +418,21 @@ function renderReport(report) {
   add('Turns', report.turns);
   add('Duration (min)', report.duration_minutes ?? '—');
   add('Final state', JSON.stringify(report.final_state, null, 2));
+
+  // BDB-style debrief: which attack-chain stages the group contained and
+  // which they missed. Executive-focused (plain-language stage names).
+  if (report.attack_chain && report.attack_chain.length) {
+    const contained = report.attack_chain.filter((s) => s.contained);
+    const missed = report.attack_chain.filter((s) => !s.contained);
+    const debrief = [
+      `Contained (${contained.length}/${report.attack_chain.length}):`,
+      ...contained.map((s) => `  ✅ ${s.name}`),
+      missed.length ? `Missed (${missed.length}):` : '',
+      ...missed.map((s) => `  ❌ ${s.name}`),
+    ].filter(Boolean).join('\n');
+    add('Attack chain debrief', debrief);
+    add('Final breach state', report.breach_state || '—');
+  }
 
   report.log.forEach((e, i) => {
     const div = document.createElement('div');

@@ -241,6 +241,62 @@ const persistedKey = await page.evaluate(() => {
 });
 check('re-checking rememberKey persists the key to localStorage', persistedKey === 'sk-persisted-secret');
 
+// --- Feature 5 (PR8): random scenario entry in the selector ---
+// Return to the scenario select screen and verify the "Random scenario"
+// option is present alongside the authored scenario. We're in the settings
+// phase, so go back to the intro first, then "Change scenario".
+await page.click('#settingsBack');
+await new Promise((r) => setTimeout(r, 400));
+await page.click('#changeScenario');
+await new Promise((r) => setTimeout(r, 400));
+const selectVisible2 = await page.evaluate(() => document.getElementById('phase-select').style.display === 'block');
+check('select phase visible after Change scenario', selectVisible2);
+const selectOptions = await page.evaluate(() =>
+  Array.from(document.getElementById('scenarioSelect').options).map((o) => o.textContent.trim())
+);
+check('scenario selector includes the Random scenario option', selectOptions.some((t) => /random/i.test(t)));
+check('scenario selector still includes the authored scenario', selectOptions.some((t) => /Bramble Badger/i.test(t)));
+
+// Selecting the random scenario loads the generated shell (no pre-authored file).
+const randomIdx = await page.evaluate(() =>
+  Array.from(document.getElementById('scenarioSelect').options).findIndex((o) => /random/i.test(o.textContent))
+);
+await page.select('#scenarioSelect', String(randomIdx));
+await new Promise((r) => setTimeout(r, 200));
+await page.click('#loadScenarioBtn');
+await new Promise((r) => setTimeout(r, 400));
+const randomIntro = await page.evaluate(() => ({
+  title: document.getElementById('scenarioTitle').textContent,
+  introVisible: document.getElementById('phase-intro').style.display === 'block',
+}));
+check('random scenario loads into the intro phase', randomIntro.introVisible);
+check('random scenario title shown', /Random/i.test(randomIntro.title));
+
+// --- Feature 6 (PR8): kill chain does NOT leak to players ---
+// The hidden attack-chain stage names/symptoms must NOT appear in the DOM
+// before the group has revealed them. The goal/win_conditions must also stay
+// hidden. (The play phase is not entered without a DM, but the intro DOM must
+// not contain the hidden chain.)
+const chainLeak = await page.evaluate(() => {
+  const body = document.body.innerText;
+  return /How they got in|How it spread|What they took|win_conditions|attacker_progress.*lte/i.test(body);
+});
+check('hidden attack chain does NOT leak to players in the intro', !chainLeak);
+
+// --- Feature 7 (PR8): play-phase UI elements exist ---
+// The play phase has a breach-state display, an attack-chain panel, and a
+// "play a defender capability" (roll modifier) button.
+const playUI = await page.evaluate(() => ({
+  breach: !!document.getElementById('breachState'),
+  chain: !!document.getElementById('attackChain'),
+  capBtn: !!document.getElementById('playCapability'),
+  mod: !!document.getElementById('rollModifier'),
+}));
+check('play phase has a breach-state element', playUI.breach);
+check('play phase has an attack-chain panel', playUI.chain);
+check('play phase has a defender-capability (roll modifier) button', playUI.capBtn);
+check('play phase has a roll-modifier indicator', playUI.mod);
+
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);
 await browser.close();

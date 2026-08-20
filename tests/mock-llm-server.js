@@ -38,9 +38,9 @@ const server = createServer((req, res) => {
           : `Mixed result: the statement steadies most members, but a follow-up rumour about a "cheese audit" keeps the story alive.`;
 
       const delta =
-        roll >= 20 ? { reputation: 6, morale: 4, member_confidence: 5 }
-        : roll <= 1 ? { reputation: -12, risk: 10 }
-        : { member_confidence: -2, risk: 2 };
+        roll >= 20 ? { public_trust: 6, containment: 4, recovery: 5 }
+        : roll <= 1 ? { public_trust: -12, attacker_progress: 10 }
+        : { public_trust: -2, attacker_progress: 2 };
 
       const reply = JSON.stringify({ narrative, state_delta: delta });
       res.writeHead(200, { 'Content-Type': 'application/json' });

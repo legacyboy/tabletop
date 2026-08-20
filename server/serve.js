@@ -1,8 +1,7 @@
 /**
  * Optional local server for Executive Tabletop D20.
  *
- * The core app is 100% browser-side and works served statically (or even
- * offline once WebLLM weights + library are vendored). This server adds two
+ * The app runs on API keys and can be served statically. This server adds two
  * conveniences:
  *
  *   1. Static file serving (dev convenience) -> http://localhost:8000

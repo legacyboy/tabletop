@@ -25,9 +25,9 @@ const cases = [
     expect: {},
   },
   {
-    name: 'narrative with literal line break (state_delta survives)',
+    name: 'narrative with literal line break (state_delta survives, narrative recovered)',
     input: '{\n  "narrative": "First line\nsecond line",\n  "state_delta": { "reputation": -10, "risk": 5 }\n}',
-    expect: { state_delta: { reputation: -10, risk: 5 } },
+    expect: { narrative: 'First line\nsecond line', state_delta: { reputation: -10, risk: 5 } },
   },
   {
     name: 'truncated mid-JSON (token cap) recovers narrative',
@@ -39,6 +39,26 @@ const cases = [
     input: '{"narrative": "The CEO said \\"hello\\" to the board.", "state_delta": {"risk": 3}}',
     expect: { narrative: 'The CEO said "hello" to the board.', state_delta: { risk: 3 } },
   },
+  {
+    name: 'double-encoded narrative (narrative is itself a JSON string)',
+    input: '{"narrative": "\\"The CEO convened the board and issued a statement.\\"", "state_delta": {"public_trust": -2}}',
+    expect: { narrative: 'The CEO convened the board and issued a statement.', state_delta: { public_trust: -2 } },
+  },
+  {
+    name: 'raw JSON object leaked as narrative is stripped to prose',
+    input: '{"narrative": {"narrative": "The team acted decisively.", "state_delta": {"public_trust": 2}}}',
+    expect: { narrative: 'The team acted decisively.' },
+  },
+  {
+    name: 'unparseable JSON with narrative key falls back to clean prose',
+    input: '{"narrative": "The team issued a statement and monitored the situation.", "state_delta": {',
+    expect: { narrative: 'The team issued a statement and monitored the situation.' },
+  },
+  {
+    name: 'unescaped quote in narrative: state_delta preserved, narrative truncated to prose (no JSON leak)',
+    input: '```json\n{\n  "narrative": "A member posts a screenshot that reads as \"confused\". [e1]",\n  "state_delta": { "public_trust": -5 },\n  "progress": true,\n  "reveal_stage": "null",\n  "contain_stage": "null"\n}\n```',
+    expect: { narrative: 'A member posts a screenshot that reads as', state_delta: { public_trust: -5 } },
+  },
 ];
 
 let pass = 0, fail = 0;
@@ -47,5 +67,13 @@ for (const c of cases) {
   const ok = JSON.stringify(got) === JSON.stringify(c.expect);
   if (ok) pass++; else { fail++; console.log('FAIL', c.name, 'got', JSON.stringify(got)); }
 }
+
+// Extra: takeTurn-level guard — a DM reply that is raw JSON (even unparseable)
+// must NEVER surface as the player-facing narrative.
+const s2 = new DMSession({ chat: async () => '```json\n{"narrative": "The team acted.\" state_delta missing", "state_delta": {', }, { opening_state: { public_trust: 50 }, end_conditions: [] });
+const r = await s2.takeTurn('Act', 10);
+const looksLikeJson = /^[{\[]/.test(r.narrative.trim()) || r.narrative.includes('state_delta') || r.narrative.includes('narrative\"');
+if (!looksLikeJson) pass++; else { fail++; console.log('FAIL takeTurn never leaks raw JSON, got:', JSON.stringify(r.narrative)); }
+
 console.log(`${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

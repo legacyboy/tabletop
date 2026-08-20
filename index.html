@@ -69,6 +69,14 @@
         <div id="stateList"></div>
         <p id="flags" class="small muted"></p>
       </section>
+      <section class="card">
+        <h2>Breach status</h2>
+        <div id="breachState" class="breach">—</div>
+        <h3>What we've confirmed</h3>
+        <div id="attackChain" class="small muted">Nothing confirmed yet. Keep investigating.</div>
+        <p id="rollModifier" class="small muted" style="display:none"></p>
+        <button id="playCapability" class="ghost">Play a defender capability (+3 next roll, -10 budget)</button>
+      </section>
       <section class="card wide">
         <h2>What does the group do?</h2>
         <textarea id="actionText" rows="4"
@@ -113,7 +121,6 @@
         <label>Provider
           <select id="providerSelect">
             <option value="none">Not configured</option>
-            <option value="webllm">In-browser model (WebLLM / Gemma) — portable</option>
             <option value="openai-compatible">API key (OpenAI / DeepSeek / Anthropic / local Ollama)</option>
             <option value="server-proxy">Server (local) — DM runs on the server box</option>
           </select>

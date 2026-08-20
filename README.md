@@ -30,24 +30,20 @@ npm start        # or: node server/serve.js
 
 Open http://localhost:8000.
 
-### Quick start — one-liner (MacBook / Linux, in-browser model)
+### Quick start
 
-Clone, download the in-browser model bundle, and start the server in one go.
-No Node/npm required — uses Python's built-in HTTP server:
+Clone and start the server:
 
 ```bash
-bash -c "git clone https://github.com/legacyboy/tabletop.git && cd tabletop && bash scripts/vendor-offline.sh && python3 -m http.server 8000"
+git clone https://github.com/legacyboy/tabletop.git
+cd tabletop
+npm start        # or: node server/serve.js
 ```
 
-Then open **http://localhost:8000** and choose **In-browser model (WebLLM)** in
-DM/Keys. The first run downloads the ~590 MB model bundle (one time); after
-that it runs fully offline. Requires a WebGPU-capable browser (Chrome/Edge).
-
-> **Why localhost?** WebGPU only works in a *secure context* (HTTPS or
-> localhost). Opening the app over plain HTTP on a LAN IP (e.g.
-> `http://192.168.x.x:8000`) blocks `navigator.gpu`, so the in-browser model
-> won't start. Run it on `localhost` (or serve over HTTPS) for the in-browser
-> model to work.
+Open **http://localhost:8000**, then in **⚙ DM / Keys** plug an API key for
+OpenAI / DeepSeek / Anthropic (or point at a local Ollama) and start a
+scenario. The app runs entirely on API keys — there is no in-browser model or
+large local bundle to download.
 
 ## Hosting
 
@@ -56,45 +52,25 @@ that it runs fully offline. Requires a WebGPU-capable browser (Chrome/Edge).
 The app is a static site and deploys to GitHub Pages automatically (see
 `.github/workflows/pages.yml`). Once enabled, it's live at
 `https://legacyboy.github.io/tabletop/` and works with any API-key provider
-(DeepSeek, OpenAI, Anthropic) directly from the browser. The in-browser model
-and local Ollama are not available on Pages (no WebGPU / no local runner), but
-API keys work fine.
+(DeepSeek, OpenAI, Anthropic) directly from the browser. The **Server (local)**
+Ollama path needs the server proxy, so it's not available on a static Pages
+host — use API keys there.
 
 > The GitHub **wiki** is static Markdown and cannot run the app — use it for
 > scenario docs and guides. The interactive app lives on Pages.
-
-### Fully-offline portable bundle
-
-For a standalone, offline app (in-browser model, no server, no network):
-
-```bash
-bash scripts/vendor-offline.sh   # downloads WebLLM + Gemma 3 1B (~590 MB) into vendor/
-```
-
-Then open the app and choose **In-browser model (WebLLM)** in DM/Keys. The app
-detects `vendor/` and loads the model from local files. Requires a WebGPU
-browser (Chrome/Edge). The vendored files are git-ignored (large binaries);
-re-run the script on each machine.
 
 ## Choosing a DM
 
 Open **⚙ DM / Keys**. Pick one:
 
-- **In-browser model (WebLLM)** — portable, standalone, offline. Runs a small
-  Gemma/Llama model in the browser via WebGPU. Requires a WebGPU-capable
-  browser (current Chrome/Edge). Model downloads once (~1-2 GB). The bundled
-  model is **Gemma 3 1B** (`gemma3-1b-it-q4f16_1-MLC`) — the only Gemma 3
-  available in WebLLM. (The 4B Gemma is not in WebLLM's supported set; use
-  the Server (local) path with Ollama's `gemma3:4b` if you need a bigger
-  model.)
+- **API key** — OpenAI, DeepSeek, Anthropic (OpenAI-compatible), or any
+  custom OpenAI-compatible endpoint. Keys are stored in the browser
+  (localStorage) and sent only to the chosen provider.
 - **Server (local)** — the DM runs on the **server box** (e.g. a local Ollama
   on the same machine as the app server). The browser talks to the server's
   `/api/dm` proxy, and the server calls the LLM. This is the right choice
   when the app is served on your network: remote clients only need to reach
   the server, not the LLM. No Ollama network exposure required.
-- **API key** — OpenAI, DeepSeek, Anthropic (OpenAI-compatible), or any
-  custom OpenAI-compatible endpoint. Keys are stored in the browser
-  (localStorage) and sent only to the chosen provider.
 
 > Free local Gemma via Ollama: run `OLLAMA_ORIGINS=* ollama serve`, then set
 > Base URL to `http://localhost:11434/v1` and model `gemma3:4b`. For the
@@ -113,7 +89,7 @@ app/js/
   providers/              Pluggable LLM adapters
     registry.js           Provider selection + setting persistence
     openai-compatible.js  OpenAI / DeepSeek / Anthropic / Ollama
-    webllm.js             In-browser model (portable)
+    server-proxy.js       Server /api/dm proxy (server-box LLM)
 server/
   serve.js                Static server + optional /api/company proxy
 scenarios/

@@ -121,6 +121,20 @@ video {
   margin-bottom: 8px;
 }
 
+.breach {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: #0d1424;
+  border: 1px solid #ffffff22;
+  color: #ffd166;
+}
+.breach.contained { color: #4bd5ff; }
+.breach.exfiltrated { color: #ff6b6b; }
+
 .stateItem, .option, .logItem, pre, #reportBody .stateItem {
   background: #0d1424;
   border: 1px solid #ffffff22;
