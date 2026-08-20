@@ -501,12 +501,14 @@ export class DMSession {
       if (allMet) return { type: 'goal', result: 'success', ending: goal.ending, ...goal };
     }
 
-    // Attack-chain win: if the scenario defines an attack_chain and the goal
-    // references it (or the chain is the objective), containing ALL stages is a
-    // success even if the numeric thresholds are not all met yet. This is the
-    // BDB-style "contain all stages" win.
-    if (this.attackChain.length && this.attackChain.every((s) => s.contained)) {
-      const goal = this.scenario.goal;
+    // Attack-chain win: if the scenario defines an attack_chain AND an explicit
+    // goal, containing ALL stages is a success even if the numeric thresholds
+    // are not all met yet (BDB-style "contain all stages" win). This only
+    // fires when the scenario opts into a goal. A scenario with NO goal (e.g.
+    // an executive "deal with the fallout" exercise) must NOT auto-win on
+    // containment — it runs to timeout or a lose condition, and the report is
+    // the debrief.
+    if (goal && this.attackChain.length && this.attackChain.every((s) => s.contained)) {
       return {
         type: 'goal',
         result: 'success',

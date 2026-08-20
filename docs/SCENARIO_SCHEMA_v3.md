@@ -225,12 +225,30 @@ Trigger types:
 DM may inject them if the group stalls), but new scenarios should use the
 top-level `events` array.
 
-## Hidden goal
+## Goal (win condition) — OPTIONAL
 
-The `goal` object is used by the engine (`dm.js`) to detect a successful end
-when all `win_conditions` are met simultaneously. It is **not rendered in the
-UI** — players never see the goal, its win conditions, or its ending text. It
-stays in the DM's private brief only. Do not surface it to players.
+The `goal` object is **optional**. It is used by the engine (`dm.js`) to detect
+an explicit successful end when all `win_conditions` are met simultaneously. It
+is **not rendered in the UI** — players never see the goal, its win conditions,
+or its ending text. It stays in the DM's private brief only. Do not surface it
+to players.
+
+**Two modes — pick based on the exercise type:**
+
+- **IT / kill-chain exercise (use a `goal`).** There is a concrete objective —
+  find and kill the threat, contain all attack-chain stages, restore the system.
+  The group "wins" when they hit the thresholds or contain all stages. Example:
+  a BDB-style incident-response scenario.
+- **Executive / fallout exercise (omit `goal`).** There is no discrete thing to
+  "win" against — a data leak, PR scandal, or regulatory probe is *fallout you
+  manage*. The session runs to a lose condition or the timeout, and the closing
+  report is the debrief (final metrics + which stages were contained vs missed).
+  There is no artificial "you hit 80 containment, you win" bell.
+
+When `goal` is omitted, the engine does **not** auto-win on attack-chain
+containment — the scenario ends only on a lose condition or timeout. Authors
+should still provide `end_conditions` (lose thresholds + a timeout) so every
+scenario has a defined ending.
 
 ## State tracking
 
@@ -261,10 +279,11 @@ uncovers it, and marks it contained when the group neutralizes it. The engine
 tracks `revealed`/`contained` per stage in the session (persisted across a
 restore) and feeds the current chain state to the DM each turn.
 
-**Win condition:** containing ALL stages is a success (the BDB-style "contain
-all stages" win), even if the numeric goal thresholds aren't all met yet. The
-`goal.win_conditions` should also reference `attacker_progress` + containment /
-eradication / recovery.
+**Win condition (only when a `goal` is defined):** containing ALL stages is a
+success (the BDB-style "contain all stages" win), even if the numeric goal
+thresholds aren't all met yet. If the scenario has **no** `goal`, containing
+all stages does NOT auto-end the session — the exercise runs to its lose
+condition or timeout (the executive/fallout mode).
 
 ## Roll modifiers (defender capabilities)
 

@@ -230,14 +230,16 @@ check('breach state active after one stage contained', s11.breachState === 'acti
 
 // 15. Containing ALL stages is a win (BDB-style "contain all stages").
 const s12 = new DMSession(new MockProvider({ reveal: 'hook', contain: 'hook' }), scenario);
-// Reveal + contain all stages across turns.
+// Reveal + contain all stages across turns; track whether a goal end fires.
+let end12 = null;
 for (const stage of scenario.attack_chain) {
   s12.provider = new MockProvider({ reveal: stage.id, contain: stage.id });
   const res = await s12.takeTurn('Contain ' + stage.id, 15);
-  if (res.endCondition) break;
+  if (res.endCondition) { end12 = res.endCondition; break; }
 }
-check('containing all stages ends in success', s12.ended === undefined ? true : true);
-// The last turn should have produced a goal end condition.
+check('containing all stages ends in success (goal win)', !!end12 && end12.result === 'success');
+check('goal win is the contain-all-stages success', !!end12 && end12.type === 'goal');
+// All stages contained + breach fully de-escalated.
 const lastRes = s12.history[s12.history.length - 1];
 check('all stages contained', s12.attackChain.every((s) => s.contained));
 check('breach state contained at end', s12.breachState === 'contained');
@@ -369,6 +371,37 @@ check('roll modifier consumed after the roll', s21.rollModifier === 0);
 const s22 = new DMSession(new CapturingProvider(), scenario);
 await s22.takeTurn('Act normally', 10);
 check('no adjusted-roll line when no modifier', !s22.provider.lastUser.includes('adjusted roll'));
+
+// ===== NEW: no-goal mode (executive "deal with the fallout" exercise) =====
+// 27. A scenario with NO goal and an attack_chain must NOT auto-win when all
+//     stages are contained. It runs to timeout or a lose condition instead;
+//     the report is the debrief. (IT/BDB scenarios define a goal and DO win on
+//     containment; executive scenarios without a goal do not.)
+const noGoalScenario = {
+  ...scenario,
+  goal: undefined,  // no win condition
+};
+const s23 = new DMSession(new MockProvider({ reveal: 'hook', contain: 'hook' }), noGoalScenario);
+// Contain all stages across turns; track whether an end condition ever fires.
+let ended23 = null;
+for (const stage of noGoalScenario.attack_chain) {
+  s23.provider = new MockProvider({ reveal: stage.id, contain: stage.id });
+  const res = await s23.takeTurn('Contain ' + stage.id, 15);
+  if (res.endCondition) { ended23 = res.endCondition; break; }
+}
+check('no-goal scenario does NOT auto-win on full containment', s23.attackChain.every((s) => s.contained) && !ended23);
+
+// 28. A no-goal scenario still ends on a lose condition.
+const s24 = new DMSession(new MockProvider(), noGoalScenario);
+s24.state.public_trust = 5;   // below 15
+const r24a = await s24.takeTurn('Act', 10);  // streak 1 (consecutive 2)
+check('no-goal scenario does not end on first bad turn', !r24a.endCondition);
+s24.state.public_trust = 5;
+const r24b = await s24.takeTurn('Act', 10);  // streak 2 -> lose fires
+check('no-goal scenario still ends on a lose condition', r24b.endCondition && r24b.endCondition.result === 'failure');
+
+// 29. A no-goal scenario with a timeout ends cleanly on timeout.
+check('no-goal scenario keeps its timeout end condition', noGoalScenario.end_conditions.some((c) => c.type === 'timeout'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
