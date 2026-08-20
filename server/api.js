@@ -33,6 +33,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DMSession } from '../app/js/dm.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
+import { randomScenarioShell } from '../app/js/scenarios.js';
 import { saveSession, loadAll, deleteSession } from './persistence.js';
 import { buildReport, renderReportHtml } from './report.js';
 import { sendEmail } from './gmail.js';
@@ -63,6 +64,8 @@ async function loadScenarioById(id) {
   const registry = await loadRegistry();
   const entry = registry.find((s) => s.id === id);
   if (!entry) return null;
+  // Random mode: no pre-authored scenario.json — return the generated shell.
+  if (entry.random === true || entry.id === 'random') return randomScenarioShell();
   const raw = await readFile(join(ROOT, entry.path), 'utf8');
   return JSON.parse(raw);
 }

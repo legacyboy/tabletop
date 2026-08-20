@@ -89,6 +89,20 @@ export function buildReport(session, opts = {}) {
       'This report is generated from the session log. The fingerprint is a SHA-256 hash of the full turn log, final state, and scenario id; any alteration invalidates it.',
   };
 
+  // BDB-style debrief: which attack-chain stages the group contained and
+  // which they missed. Executive-focused (plain-language stage names).
+  const chain = session.attackChain || [];
+  const chainDebrief = chain.length
+    ? {
+        title: 'Attack chain debrief',
+        contained: chain.filter((s) => s.contained).map((s) => s.name),
+        missed: chain.filter((s) => !s.contained).map((s) => s.name),
+        contained_count: chain.filter((s) => s.contained).length,
+        total: chain.length,
+        breach_state: session.breachState || '—',
+      }
+    : null;
+
   return {
     report_title: (session.scenario.report && session.scenario.report.title_note) || 'Tabletop Exercise Report',
     scenario: session.scenario.title,
@@ -105,6 +119,7 @@ export function buildReport(session, opts = {}) {
       description: 'Evidence the exercise was conducted, for an auditor.',
       ...proof,
     },
+    attack_chain_debrief: chainDebrief,
     recommendations: opts.recommendations || [],
     audit_note: (session.scenario.report && session.scenario.report.audit_note) || '',
   };
@@ -163,6 +178,18 @@ export function renderReportHtml(report) {
       <thead><tr style="background:#eef2f7"><th style="padding:8px;border:1px solid #ddd;text-align:left">Metric</th><th style="padding:8px;border:1px solid #ddd">Value</th></tr></thead>
       <tbody>${stateRows}</tbody>
     </table>
+
+    ${report.attack_chain_debrief ? `
+    <h3 style="color:#1f3a5f;margin-top:24px">Attack chain debrief</h3>
+    <p style="color:#555">Which stages of the attack the group contained and which they missed.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tbody>
+        <tr><td style="padding:6px;border:1px solid #ddd;width:40%"><b>Contained</b></td><td style="padding:6px;border:1px solid #ddd">${esc((report.attack_chain_debrief.contained || []).join(', ') || 'None')} (${report.attack_chain_debrief.contained_count}/${report.attack_chain_debrief.total})</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Missed</b></td><td style="padding:6px;border:1px solid #ddd">${esc((report.attack_chain_debrief.missed || []).join(', ') || 'None')}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Final breach state</b></td><td style="padding:6px;border:1px solid #ddd">${esc(report.attack_chain_debrief.breach_state)}</td></tr>
+      </tbody>
+    </table>
+    ` : ''}
 
     <h2 style="color:#1f3a5f;border-bottom:2px solid #1f3a5f;padding-bottom:6px;margin-top:32px">${esc(report.part2_proof.title)}</h2>
     <p style="color:#555">${esc(report.part2_proof.description)}</p>

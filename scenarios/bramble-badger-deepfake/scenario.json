@@ -4,31 +4,35 @@
   "version": 4,
 
   "goal": {
-    "description": "Neutralize the crisis and restore trust: bring reputation, member confidence, and regulator confidence back above healthy thresholds while keeping risk low.",
+    "description": "Contain the attack chain and restore trust: contain all stages of the fraud piggybacking on the deepfake, bring public trust and regulator confidence back above healthy thresholds, and keep attacker progress low.",
     "win_conditions": [
-      { "stat": "reputation", "operator": "gte", "value": 60 },
-      { "stat": "member_confidence", "operator": "gte", "value": 60 },
+      { "stat": "public_trust", "operator": "gte", "value": 60 },
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
-      { "stat": "risk", "operator": "lte", "value": 45 }
+      { "stat": "containment", "operator": "gte", "value": 80 },
+      { "stat": "eradication", "operator": "gte", "value": 70 },
+      { "stat": "recovery", "operator": "gte", "value": 60 },
+      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
     ],
-    "ending": "Crisis resolved: public trust is restored, the joke has deflated, and the board and regulator are confident in the response. The exercise concludes."
+    "ending": "Crisis resolved: the attack chain is fully contained, public trust is restored, the joke has deflated, and the board and regulator are confident in the response. The exercise concludes."
   },
 
   "intro": {
     "video": "assets/bramble_badger_fake_exec_video.mp4",
     "narrative": "A cartoon badger executive video is spreading fast through community channels. In it, the CGI 'Bramble Badger' claims digital banking is powered by raccoons, that member withdrawals are switching to cheese wheels, and that a 'cheese reserve' backs every account. The clip is absurd, but the framing around it claims it was leaked from an internal executive message, and members are already calling. You are the executive team, on the clock.",
-    "facilitator_notes": "Show the intro video, read the narrative, then hand control to the group. Do not suggest actions. Let them decide. End when the timer runs out or when the group stabilizes the situation and wants to hotwash. Watch whether they address the misinformation, the fraud piggybacking risk, and the board/regulator channel.",
+    "facilitator_notes": "Show the intro video, read the narrative, then hand control to the group. Do not suggest actions. Let them decide. End when the timer runs out or when the group stabilizes the situation and wants to hotwash. Watch whether they address the misinformation, the fraud piggybacking risk, and the board/regulator channel. The hidden attack chain is the fraud piggybacking on the deepfake — the group must discover and contain each stage.",
     "company_url": "",
     "company_info": "Bramble Badger Credit Union is a mid-sized member-owned financial cooperative. Members trust the familiar badger mascot. It is not a bank, so 'cheese reserve' messaging lands hard with members and can tip into panic. Regulators and the deposit insurer watch public confidence closely."
   },
 
   "opening_state": {
     "budget": 70,
-    "reputation": 65,
-    "morale": 70,
-    "risk": 35,
-    "member_confidence": 68,
-    "regulator_confidence": 60
+    "public_trust": 65,
+    "regulator_confidence": 60,
+    "security_posture": 60,
+    "containment": 20,
+    "eradication": 10,
+    "recovery": 10,
+    "attacker_progress": 30
   },
 
   "meta": {
@@ -38,9 +42,31 @@
     "learning_objectives": [
       "Practice coordinated misinformation response under time pressure",
       "Exercise public-communications escalation and message discipline",
-      "Test detection of fraud piggybacking on a viral incident"
+      "Test detection of fraud piggybacking on a viral incident",
+      "Practice containing a staged attack chain (kill chain) as a team"
     ]
   },
+
+  "attack_chain": [
+    {
+      "id": "hook",
+      "name": "How they got in",
+      "symptom": "Fraud callers are referencing the Bramble Badger clip to convince members to reveal online banking credentials. The spoof video is being used as a social-engineering hook.",
+      "revealed": false
+    },
+    {
+      "id": "spread",
+      "name": "How it spread",
+      "symptom": "The clip is being amplified across community channels and by local influencers, and a second spoof claims accounts are frozen for a 'cheese audit'. The story is spreading faster than the team can respond.",
+      "revealed": false
+    },
+    {
+      "id": "take",
+      "name": "What they took",
+      "symptom": "Several members report credential requests referencing the clip, and a fraud spike report lands. Fraudsters are harvesting member credentials and moving funds.",
+      "revealed": false
+    }
+  ],
 
   "dm_brief": {
     "situation": "A spoof CGI video of the credit union's badger mascot is circulating and being framed as a leaked internal executive message. Some members believe it and are calling, moving funds, and asking about a 'cheese reserve'. Fraudsters are referencing the clip to social-engineer members into revealing online banking credentials. The executive team must respond publicly, reassure members and staff, guard against fraud, and keep the board and regulator informed.",
@@ -63,8 +89,12 @@
       "Never propose actions or present a menu of choices. Only react to what the group decides.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
       "Show consequences of the roll, but let the group's stated action drive the logic.",
-      "Update the tracked metrics (budget, reputation, morale, risk, member_confidence, regulator_confidence) to reflect outcomes.",
-      "If the group stalls with no clear action for a while, inject a pressure point to move things."
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
+      "If the group stalls with no clear action for a while, inject a pressure point to move things.",
+      "Enforce detection as a resource: the group cannot do everything at once, and activating monitoring costs budget.",
+      "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
+      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll."
     ]
   },
 
@@ -73,44 +103,43 @@
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
       "text": "A member waiting on hold posts a screenshot of a staff 'holding' answer that reads as confused.",
-      "state_delta": { "member_confidence": -4, "reputation": -3 }
+      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
       "text": "A second spoof video drops, this time claiming accounts are being frozen for a 'cheese audit'.",
-      "state_delta": { "member_confidence": -6, "risk": 8 }
+      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "risk", "operator": "gte", "value": 60 },
+      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
       "text": "A fraud spike report lands: several members report credential requests referencing the clip.",
-      "state_delta": { "risk": 6, "member_confidence": -4 }
+      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
       "text": "A regulator's office calls asking for a factual summary and this morning's timeline.",
-      "state_delta": { "regulator_confidence": -5, "risk": 4 }
+      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
     },
     {
       "id": "e5",
       "trigger": { "type": "turn", "turn": 6 },
       "text": "An influencer with a large local following shares the clip with a skeptical caption, amplifying it.",
-      "state_delta": { "reputation": -3, "risk": 4 }
+      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster — an internal chat log is screenshot and leaks, showing the team publicly contradicting itself. Reputation and member confidence take a heavy hit.", "state_delta": { "reputation": -14, "member_confidence": -12, "risk": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos strikes: the clip spawns a barrage of memes claiming a 'cheese audit' and a rumour that accounts are being frozen. A second wave of worried members calls at once.", "state_delta": { "member_confidence": -6, "risk": 8, "morale": -3 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team not only neutralizes the joke but turns it into a trusted-safety talking point that gets repeated by community voices for weeks. Reputation soars.", "state_delta": { "reputation": 10, "member_confidence": 8, "regulator_confidence": 5 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster — an internal chat log is screenshot and leaks, showing the team publicly contradicting itself. Public trust and containment take a heavy hit.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos strikes: the clip spawns a barrage of memes claiming a 'cheese audit' and a rumour that accounts are being frozen. A second wave of worried members calls at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team not only neutralizes the joke but turns it into a trusted-safety talking point that gets repeated by community voices for weeks. Public trust soars and the attack is pushed back.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
   },
 
   "end_conditions": [
-    { "type": "stat", "stat": "reputation", "operator": "lte", "value": 15, "ending": "Reputation collapse: executive confidence is lost before the facts are controlled." },
-    { "type": "stat", "stat": "member_confidence", "operator": "lte", "value": 15, "ending": "Member confidence collapse: operations move into full crisis response." },
-    { "type": "stat", "stat": "risk", "operator": "gte", "value": 90, "ending": "Risk overload: the event becomes a full enterprise incident." },
+    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Public trust collapse: executive confidence is lost before the facts are controlled." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Attack overload: the fraud wave becomes a full enterprise incident and members are harmed." },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 

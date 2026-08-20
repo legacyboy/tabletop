@@ -36,9 +36,9 @@ try {
   session.start();
 
   // 3 turns: high, middle, low rolls -> verify different narratives/deltas.
-  const r1 = await session.takeTurn('Release a clear public statement', 18);
+  const r1 = await session.takeTurn('Release a clear public statement', 20);
   check('turn1 narrative', r1.narrative.length > 30);
-  check('turn1 success-ish delta', r1.state.reputation >= scenario.opening_state.reputation);
+  check('turn1 success-ish delta', r1.state.public_trust >= scenario.opening_state.public_trust);
 
   const r2 = await session.takeTurn('Engage with the reporter', 9);
   check('turn2 processed', session.turn === 2);

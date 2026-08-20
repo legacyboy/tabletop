@@ -72,8 +72,9 @@ fires, the engine applies its `state_delta` and tells the DM to weave its
 ```
 
 Trigger types:
-- `{ "type": "stall", "turns": N }` — fires after N consecutive turns with no
-  meaningful action (empty or very short action text).
+- `{ "type": "stall", "turns": N }` — fires after N consecutive turns the
+  DM judged as no meaningful progress (the DM's per-turn `progress` judgment,
+  not action text length).
 - `{ "type": "stat", "stat": "<name>", "operator": "gte"|"lte", "value": N }` —
   fires when the stat crosses the threshold.
 - `{ "type": "turn", "turn": N }` — fires on a specific turn number (optional;
@@ -98,24 +99,47 @@ flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
 The `goal` object defines the win condition. It is used by the engine to end
 the session in success when all `win_conditions` are met simultaneously, and
 it lives in the DM's private brief. It is **never shown to players** in the UI.
+The win condition should reference `attacker_progress` + containment /
+eradication / recovery (the BDB-style "contain all stages" objective).
 
 ```json
 "goal": {
-  "description": "Restore trust and deflate the crisis.",
+  "description": "Contain the attack chain and restore trust.",
   "win_conditions": [
-    { "stat": "reputation", "operator": "gte", "value": 60 },
-    { "stat": "risk", "operator": "lte", "value": 45 }
+    { "stat": "public_trust", "operator": "gte", "value": 60 },
+    { "stat": "containment", "operator": "gte", "value": 80 },
+    { "stat": "eradication", "operator": "gte", "value": 70 },
+    { "stat": "recovery", "operator": "gte", "value": 60 },
+    { "stat": "attacker_progress", "operator": "lte", "value": 20 }
   ],
-  "ending": "Crisis resolved: trust restored."
+  "ending": "Crisis resolved: the attack chain is contained and trust restored."
 }
 ```
+
+### Roll modifiers (defender capabilities)
+The group can "play" a defender capability (spend budget) to get a +2/+3 on
+the next D20 roll. The engine tracks a `rollModifier` in the session. The DM
+brief explains this mechanic. The modifier **nudges** the roll — it does not
+replace the DM's judgment.
+
+### Breach state
+A discrete breach ladder (`contained → active → escalated → exfiltrated`) the
+DM narrates as the attack chain progresses. It is derived from the attack chain
+and is more legible to executives than an abstract number.
+
+### Random mode
+A registry entry with `"random": true` (or `id: "random"`) has **no
+pre-authored scenario.json**. When selected, the DM generates the scenario on
+the fly from a generic prompt. Keep it executive-focused — the DM should
+generate an appropriate executive tabletop scenario (security, reputation,
+operational, etc.).
 
 ### End conditions
 End the session when a stat crosses a threshold, or on timeout:
 
 ```json
 "end_conditions": [
-  { "type": "stat", "stat": "risk", "operator": "gte", "value": 90, "ending": "Risk overload: full enterprise incident." },
+  { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "ending": "Attack overload: full enterprise incident." },
   { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out." }
 ]
 ```

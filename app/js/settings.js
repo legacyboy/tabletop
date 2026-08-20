@@ -1,8 +1,7 @@
 /**
  * DM Settings UI.
  *
- * Lets the moderator configure which LLM runs the DM:
- *   - In-browser model (WebLLM) for the portable, standalone path
+ * Lets the moderator configure which LLM runs the DM via API keys:
  *   - An OpenAI-compatible API (OpenAI / DeepSeek / Anthropic-compatible /
  *     custom), including a local Ollama endpoint for a fast free Gemma.
  *
@@ -20,7 +19,6 @@ import {
   loadSettings,
   saveSettings,
   describeProvider,
-  loadOfflineConfig,
 } from './providers/registry.js';
 
 const $ = (id) => document.getElementById(id);
@@ -144,14 +142,13 @@ function renderForm() {
 }
 
 function renderDynamic() {
-  const isWebLLM = current.provider === 'webllm';
   const isApi = current.provider === 'openai-compatible' || current.provider === 'server-proxy';
   const isNone = current.provider === 'none';
 
   const show = (sel, on) => { if (el[sel]) el[sel].style.display = on ? '' : 'none'; };
   show('preset', isApi);
   show('apiKey', isApi);
-  show('model', isApi || isWebLLM);
+  show('model', isApi);
   // Hide the Base URL field for presets that are server-routed with no client
   // URL (e.g. "Ollama (remote)"): the user never sees or types a URL.
   const showBaseUrl = isApi && !hideBaseUrl();
@@ -173,18 +170,7 @@ function renderDynamic() {
     show('model', !known);
   } else {
     show('modelSelect', false);
-    show('model', isApi || isWebLLM);
-  }
-
-  // For WebLLM show a model hint and pre-fill the model from the offline
-  // bundle (if present) so the field isn't blank.
-  if (isWebLLM) {
-    el.model.placeholder = 'gemma3-1b-it-q4f16_1-MLC';
-    const offline = loadOfflineConfig();
-    if (offline && offline.model_id && !el.model.value) {
-      el.model.value = offline.model_id;
-      current.model = offline.model_id;
-    }
+    show('model', isApi);
   }
 
   // Show the local-Ollama tip only when the user is pointed at a local Ollama

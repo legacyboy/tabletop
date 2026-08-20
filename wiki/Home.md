@@ -12,8 +12,7 @@ ends it on an end condition or timeout, producing an audit-ready report.
 ## Play it
 
 The live app is at **https://legacyboy.github.io/tabletop/** (works with an
-API key such as DeepSeek, OpenAI, or Anthropic). For a fully-offline portable
-bundle, see the repo README (`scripts/vendor-offline.sh`).
+API key such as DeepSeek, OpenAI, or Anthropic).
 
 ## The flow
 
@@ -32,10 +31,10 @@ bundle, see the repo README (`scripts/vendor-offline.sh`).
 
 ## Choosing a DM
 
-- **In-browser model (WebLLM)** — portable, standalone, offline. Runs a small
-  Gemma model in the browser via WebGPU (Chrome/Edge).
 - **API key** — OpenAI, DeepSeek, Anthropic, or any OpenAI-compatible endpoint,
   including a local Ollama for a fast free Gemma.
+- **Server (local)** — the DM runs on the server box via the `/api/dm` proxy
+  (e.g. a local Ollama the browser can't reach directly).
 
 > The GitHub **wiki** is static documentation. The interactive app runs on
-> **GitHub Pages** (API keys) or locally (in-browser model / Ollama).
+> **GitHub Pages** or locally — both use API keys; there is no in-browser model.

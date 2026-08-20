@@ -55,7 +55,7 @@ const afterRoll = await page.evaluate(() => ({
 }));
 check('die shows 15', afterRoll.die === '15');
 check('narrative populated', afterRoll.narrative.length > 20);
-check('state dashboard populated', afterRoll.stateCount === 6);
+check('state dashboard populated', afterRoll.stateCount === 8);
 check('log has entry', afterRoll.logCount >= 1);
 
 console.log('  NARRATIVE:', afterRoll.narrative.slice(0, 90));
