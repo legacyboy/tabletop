@@ -159,11 +159,18 @@ fire regardless of the free-form action:
 Numbers not listed are adjudicated purely by the DM. Use the fate table for
 flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
 
-**Goal (win condition)** — the **objective the group is trying to achieve**.
-When ALL `win_conditions` are met **simultaneously**, the scenario ends in
-**success** — the group has resolved the situation. This is what makes a
-session feel like it has a point: the group works toward a concrete outcome,
-not just a timer.
+**Goal (win condition) — OPTIONAL** — the **objective the group is trying to
+achieve**. When ALL `win_conditions` are met **simultaneously**, the scenario
+ends in **success** — the group has resolved the situation. This is what makes
+an IT / kill-chain session feel like it has a point: the group works toward a
+concrete outcome (find and kill the threat), not just a timer.
+
+**Use a `goal` for IT / kill-chain exercises. OMIT it for executive / fallout
+exercises** (e.g. a data leak, PR scandal, or regulatory probe) — there is no
+discrete thing to "win" against, only *fallout you manage*. Without a `goal`,
+the session runs to a lose condition or the timeout, and the closing report is
+the debrief (final metrics + which attack-chain stages were contained vs
+missed). There is no artificial "you hit 80 containment, you win" bell.
 
 ```json
 "goal": {

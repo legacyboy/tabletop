@@ -95,12 +95,28 @@ of the free-form action:
 Numbers not listed are adjudicated purely by the DM. Use the fate table for
 flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
 
-### Goal (hidden from players)
-The `goal` object defines the win condition. It is used by the engine to end
-the session in success when all `win_conditions` are met simultaneously, and
-it lives in the DM's private brief. It is **never shown to players** in the UI.
-The win condition should reference `attacker_progress` + containment /
-eradication / recovery (the BDB-style "contain all stages" objective).
+### Goal (win condition) — OPTIONAL
+
+The `goal` object is **optional**. It defines the win condition for exercises
+that have a concrete objective. It is used by the engine to end the session in
+success when all `win_conditions` are met simultaneously (or when all
+attack-chain stages are contained), and it lives in the DM's private brief. It
+is **never shown to players** in the UI.
+
+**Two modes — pick based on the exercise type:**
+
+- **IT / kill-chain exercise (use a `goal`).** A concrete objective exists —
+  find and kill the threat, contain all attack-chain stages, restore the
+  system. The group "wins" when they hit the thresholds or contain all stages.
+- **Executive / fallout exercise (omit `goal`).** No discrete thing to "win"
+  against — a data leak, PR scandal, or regulatory probe is *fallout you
+  manage*. Omit `goal`; the session runs to a lose condition or timeout, and
+  the closing report is the debrief (final metrics + contained vs missed
+  stages). No artificial "you hit 80, you win" bell.
+
+If you include a `goal`, the win condition should reference `attacker_progress`
++ containment / eradication / recovery (the BDB-style "contain all stages"
+objective).
 
 ```json
 "goal": {

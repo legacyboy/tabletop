@@ -2,7 +2,6 @@
   "scenario_id": "new_executive_scenario",
   "title": "New Executive Scenario",
   "version": 4,
-
   "intro": {
     "video": "",
     "narrative": "One paragraph read to / displayed for the group that sets the opening scene. This is the PRIMARY thing shown to players.",
@@ -10,7 +9,6 @@
     "company_url": "",
     "company_info": "Optional static background about the organization."
   },
-
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -21,19 +19,17 @@
     "recovery": 10,
     "attacker_progress": 30
   },
-
   "meta": {
     "suggested_minutes": 60,
     "difficulty": "medium",
     "tags": [],
     "learning_objectives": []
   },
-
   "attack_chain": [
     {
       "id": "stage1",
       "name": "How they got in",
-      "symptom": "What the group observes that hints at this stage. Plain language, executive-friendly — no technical jargon.",
+      "symptom": "What the group observes that hints at this stage. Plain language, executive-friendly \u2014 no technical jargon.",
       "revealed": false
     },
     {
@@ -49,12 +45,16 @@
       "revealed": false
     }
   ],
-
   "dm_brief": {
     "situation": "Full background the DM uses to adjudicate. Describe the world, the current problem, and what is at stake.",
     "stakes": "What is lost if the group fails.",
     "key_actors": [
-      { "name": "Actor", "role": "Role", "interests": "What they want", "knowledge": "What they know" }
+      {
+        "name": "Actor",
+        "role": "Role",
+        "interests": "What they want",
+        "knowledge": "What they know"
+      }
     ],
     "pressure_points": [
       "(Optional, backward-compat) An event the DM may inject if the group stalls.",
@@ -67,44 +67,97 @@
       "Enforce detection as a resource: the group cannot do everything at once, and activating monitoring costs budget."
     ]
   },
-
   "events": [
     {
       "id": "e1",
-      "trigger": { "type": "stall", "turns": 2 },
+      "trigger": {
+        "type": "stall",
+        "turns": 2
+      },
       "text": "An event that fires if the group stalls for 2 turns.",
-      "state_delta": { "public_trust": -4, "attacker_progress": 5 }
+      "state_delta": {
+        "public_trust": -4,
+        "attacker_progress": 5
+      }
     },
     {
       "id": "e2",
-      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "trigger": {
+        "type": "stat",
+        "stat": "attacker_progress",
+        "operator": "gte",
+        "value": 60
+      },
       "text": "An event that fires when attacker_progress crosses 60.",
-      "state_delta": { "attacker_progress": 5, "public_trust": -3 }
+      "state_delta": {
+        "attacker_progress": 5,
+        "public_trust": -3
+      }
     }
   ],
-
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Roll 1 catastrophe.", "state_delta": { "public_trust": -8, "attacker_progress": 10 } },
-    "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "public_trust": 6, "attacker_progress": -8 } }
+    "1": {
+      "kind": "crit_fail",
+      "twist": "Roll 1 catastrophe.",
+      "state_delta": {
+        "public_trust": -8,
+        "attacker_progress": 10
+      }
+    },
+    "20": {
+      "kind": "crit_success",
+      "twist": "Roll 20 outstanding win.",
+      "state_delta": {
+        "public_trust": 6,
+        "attacker_progress": -8
+      }
+    }
   },
-
   "goal": {
-    "description": "What the group is trying to achieve. When ALL win_conditions are met simultaneously, the scenario ends in success. The win condition is to contain all attack-chain stages and restore the response metrics.",
+    "description": "OPTIONAL goal (win condition). Use it for IT/kill-chain exercises where there is a concrete objective to achieve (hit all win_conditions, or contain all attack-chain stages). OMIT goal for executive/fallout exercises (e.g. a data leak) where there is no \"win\" \u2014 the session then runs to a lose condition or timeout and the report is the debrief. When ALL win_conditions are met simultaneously, the scenario ends in success.",
     "win_conditions": [
-      { "stat": "public_trust", "operator": "gte", "value": 60 },
-      { "stat": "containment", "operator": "gte", "value": 80 },
-      { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      {
+        "stat": "public_trust",
+        "operator": "gte",
+        "value": 60
+      },
+      {
+        "stat": "containment",
+        "operator": "gte",
+        "value": 80
+      },
+      {
+        "stat": "eradication",
+        "operator": "gte",
+        "value": 70
+      },
+      {
+        "stat": "recovery",
+        "operator": "gte",
+        "value": 60
+      },
+      {
+        "stat": "attacker_progress",
+        "operator": "lte",
+        "value": 20
+      }
     ],
     "ending": "Crisis resolved: the attack chain is contained and trust restored. The exercise concludes."
   },
-
   "end_conditions": [
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "ending": "Attack overload: the event becomes a full enterprise incident." },
-    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+    {
+      "type": "stat",
+      "stat": "attacker_progress",
+      "operator": "gte",
+      "value": 90,
+      "ending": "Attack overload: the event becomes a full enterprise incident."
+    },
+    {
+      "type": "timeout",
+      "duration_seconds": 3600,
+      "ending": "Time ran out on the scheduled exercise."
+    }
   ],
-
   "report": {
     "title_note": "Tabletop Report",
     "audit_note": "Generated automatically at session end or timeout."
