@@ -230,14 +230,16 @@ check('breach state active after one stage contained', s11.breachState === 'acti
 
 // 15. Containing ALL stages is a win (BDB-style "contain all stages").
 const s12 = new DMSession(new MockProvider({ reveal: 'hook', contain: 'hook' }), scenario);
-// Reveal + contain all stages across turns.
+// Reveal + contain all stages across turns; track whether a goal end fires.
+let end12 = null;
 for (const stage of scenario.attack_chain) {
   s12.provider = new MockProvider({ reveal: stage.id, contain: stage.id });
   const res = await s12.takeTurn('Contain ' + stage.id, 15);
-  if (res.endCondition) break;
+  if (res.endCondition) { end12 = res.endCondition; break; }
 }
-check('containing all stages ends in success', s12.ended === undefined ? true : true);
-// The last turn should have produced a goal end condition.
+check('containing all stages ends in success (goal win)', !!end12 && end12.result === 'success');
+check('goal win is the contain-all-stages success', !!end12 && end12.type === 'goal');
+// All stages contained + breach fully de-escalated.
 const lastRes = s12.history[s12.history.length - 1];
 check('all stages contained', s12.attackChain.every((s) => s.contained));
 check('breach state contained at end', s12.breachState === 'contained');
