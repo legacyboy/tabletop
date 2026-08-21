@@ -14,6 +14,11 @@
  *      update.
  *   4. State changes are clamped to [0,100]. End conditions are checked.
  *
+ * End conditions: the session ends on the goal (win) being met, the timeout
+ * firing, or the group manually ending the exercise. Stat thresholds (e.g. a
+ * metric hitting 100) do NOT end the game — a bad stat is a consequence the
+ * group keeps managing, not a hard stop (Dan's design).
+ *
  * The DM is explicitly instructed NOT to propose actions or lead the group —
  * it only reacts to what the group actually typed.
  */
@@ -133,11 +138,12 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## HOW TO PLAY (critical)',
     '- The group types a free-form action. Do NOT present them with a menu of options.',
+    '- A single turn can contain MULTIPLE coordinated actions across different departments (e.g. comms issues a statement AND the fraud team freezes accounts AND legal contacts the regulator). Realistic turns are 2-3 coordinated actions, not one narrow action.',
     '- You must NEVER lead the group, propose actions, or steer them toward a choice. React only to what they actually did.',
-    '- Judge the group\u2019s action fairly and realistically for this organization.',
-    '- The D20 roll you receive reflects the action\u2019s outcome quality. Use it to decide if the action lands, partially succeeds, or backfires. 20 = outstanding success, 1 = severe failure, middle numbers = partial/ordinary.',
+    '- Judge the group\u2019s actions fairly and realistically for this organization. Address each of the coordinated actions in your response.',
+    '- The D20 roll you receive reflects the overall outcome quality of the turn. Use it to decide if the actions land, partially succeed, or backfire. 20 = outstanding success, 1 = severe failure, middle numbers = partial/ordinary.',
     '- Make the world respond concretely: consequences, reactions from actors/regulators/media, resource changes, new complications. Keep it tense and believable.',
-    '- Keep narrative responses vivid but concise (roughly 2-5 sentences).',
+    '- Keep narrative responses vivid but concise (roughly 3-6 sentences).',
     '',
     '## STATE',
     `Track these metrics between 0 and 100. Start from: ${JSON.stringify(scenario.opening_state)}.`,
@@ -148,6 +154,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- A bad roll (roughly 1-5) is where real damage happens. Reserve large negative deltas for genuinely bad outcomes, not for competent actions.',
     '- The session should be winnable: the group must be able to recover. Do not make it a foregone loss by turn 4-5.',
     '- Advance `attacker_progress` ONLY when the group fails, stalls, or takes a genuinely harmful action, or when a scripted event/fate twist calls for it. Do NOT raise attacker_progress every turn, and never on a good, competent action with a decent roll.',
+    '- The complete response arc is CONTAIN \u2192 ERADICATE \u2192 RECOVER. A group that only does public relations and containment but never eradicates the root cause or restores operations will keep losing ground to `attacker_progress`. Reflect this in outcomes: eradication and recovery efforts should be rewarded when the group attempts them.',
     '',
     '## THE ATTACK CHAIN (kill chain)',
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
@@ -467,26 +474,12 @@ export class DMSession {
   }
 
   _checkEnd() {
-    // Lose conditions: a stat crosses a failure threshold -> the scenario ends
-    // badly. If the condition has a `consecutive` field, the stat must stay in
-    // the failure zone for that many consecutive turns before it fires (so a
-    // single bad turn doesn't end the session — the group gets a chance to
-    // recover).
-    const endConditions = this.scenario.end_conditions || [];
-    for (let i = 0; i < endConditions.length; i++) {
-      const c = endConditions[i];
-      if (c.type !== 'stat') continue;
-      const v = this.state[c.stat];
-      if (typeof v !== 'number') continue;
-      const inZone = (c.operator === 'lte' && v <= c.value) || (c.operator === 'gte' && v >= c.value);
-      if (!inZone) {
-        this.statStreaks[i] = 0;   // left the zone -> reset the streak
-        continue;
-      }
-      const need = c.consecutive || 1;
-      this.statStreaks[i] = (this.statStreaks[i] || 0) + 1;
-      if (this.statStreaks[i] >= need) return { ...c, current: v, result: 'failure' };
-    }
+    // NOTE: Stat-based lose conditions are intentionally NOT enforced here.
+    // Dan's design: a metric hitting 100 (or any failure threshold) must NOT
+    // end the game — the exercise runs until the team decides it's done (manual
+    // end) or the timeout fires. A bad stat is a consequence the group must
+    // keep managing, not a hard stop. Only the goal (win) and timeout end the
+    // session automatically.
 
     // Goal (win condition): all goal thresholds met simultaneously -> the
     // group has achieved the objective, so the scenario ends successfully.

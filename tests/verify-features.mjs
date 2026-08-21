@@ -291,11 +291,13 @@ const playUI = await page.evaluate(() => ({
   chain: !!document.getElementById('attackChain'),
   capBtn: !!document.getElementById('playCapability'),
   mod: !!document.getElementById('rollModifier'),
+  endBtn: !!document.getElementById('endExercise'),
 }));
 check('play phase has a breach-state element', playUI.breach);
 check('play phase has an attack-chain panel', playUI.chain);
 check('play phase has a defender-capability (roll modifier) button', playUI.capBtn);
 check('play phase has a roll-modifier indicator', playUI.mod);
+check('play phase has an end-exercise (manual conclude) button', playUI.endBtn);
 
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);

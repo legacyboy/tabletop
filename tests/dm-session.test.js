@@ -57,8 +57,11 @@ await s3.takeTurn('Do nothing', 1);
 check('fate on 1', s3.history[0].fate !== null);
 check('public_trust dropped on 1', s3.state.public_trust < scenario.opening_state.public_trust);
 
-// 4. End condition detection: drive attacker_progress up via repeated low rolls
-//    + fate until a failure end fires.
+// 4. End condition detection: stat thresholds (e.g. attacker_progress >= 90)
+//    must NOT end the game — Dan's design: no instant loss on a metric hitting
+//    100. The exercise runs until the team decides it's done (manual end) or
+//    the timeout fires. Drive attacker_progress to the ceiling and confirm the
+//    session does NOT auto-end.
 const s4 = new DMSession(new MockProvider(), scenario);
 let endHit = false;
 for (let i = 0; i < 40 && !endHit; i++) {
@@ -66,7 +69,7 @@ for (let i = 0; i < 40 && !endHit; i++) {
   s4.state.attacker_progress = Math.min(100, s4.state.attacker_progress + 20); // force toward threshold
   if (res.endCondition) endHit = true;
 }
-check('failure end fires when attacker_progress >= 90', endHit);
+check('stat threshold does NOT end the game (no instant loss at 100)', !endHit);
 
 // 4b. Goal (win condition): when all goal thresholds are met simultaneously,
 //     the scenario ends successfully.
@@ -318,7 +321,8 @@ const apBefore18 = capScenario.opening_state.attacker_progress;
 const apAfter18 = s18.state.attacker_progress;
 check('per-turn attacker_progress rise capped at 15', apAfter18 - apBefore18 <= 15);
 
-// 23. serialize/restore persist statStreaks.
+// 23. serialize/restore persist statStreaks (kept for backward-compat with
+//     saved sessions, though stat thresholds no longer end the game).
 const streakScenario = {
   ...scenario,
   end_conditions: [
@@ -327,26 +331,27 @@ const streakScenario = {
 };
 const s19 = new DMSession(new MockProvider(), streakScenario);
 s19.state.public_trust = 10;  // in the failure zone
-const res19a = await s19.takeTurn('Act', 10);  // turn 1: streak 1, not yet failed
-check('consecutive lose does NOT fire on first bad turn', !res19a.endCondition);
+const res19a = await s19.takeTurn('Act', 10);  // turn 1: streak 1
+check('stat threshold does NOT end on first bad turn', !res19a.endCondition);
 const snap19 = s19.serialize();
 check('serialize includes statStreaks', typeof snap19.statStreaks === 'object');
 const restored19 = DMSession.restore(new MockProvider(), streakScenario, snap19);
 restored19.state.public_trust = 10;  // still in the zone
-const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2 -> fires
-check('consecutive lose fires after 2 consecutive bad turns', res19.endCondition && res19.endCondition.result === 'failure');
+const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2
+check('stat threshold does NOT end even after 2 consecutive bad turns', !res19.endCondition);
 
-// 24. Consecutive lose resets when the stat leaves the zone.
+// 24. Consecutive lose resets when the stat leaves the zone (mechanism kept,
+//     but it no longer ends the game).
 const s20 = new DMSession(new MockProvider(), streakScenario);
 s20.state.public_trust = 10;  // in zone
 await s20.takeTurn('Act', 10);  // streak 1
 s20.state.public_trust = 50;   // leaves zone
 const res20a = await s20.takeTurn('Act', 10);  // streak resets
-check('consecutive lose does NOT fire after leaving the zone', !res20a.endCondition);
+check('stat threshold does NOT fire after leaving the zone', !res20a.endCondition);
 s20.state.public_trust = 10;   // back in zone
 await s20.takeTurn('Act', 10);  // streak 1 again
-const res20b = await s20.takeTurn('Act', 10);  // streak 2 -> fires
-check('consecutive lose fires after re-entering zone for 2 turns', res20b.endCondition && res20b.endCondition.result === 'failure');
+const res20b = await s20.takeTurn('Act', 10);  // streak 2
+check('stat threshold does NOT end after re-entering zone for 2 turns', !res20b.endCondition);
 
 // ===== NEW: roll-modifier mechanic (targeted) =====
 // 25. A granted roll modifier is fed to the DM as an adjusted roll and is
@@ -374,8 +379,8 @@ check('no adjusted-roll line when no modifier', !s22.provider.lastUser.includes(
 
 // ===== NEW: no-goal mode (executive "deal with the fallout" exercise) =====
 // 27. A scenario with NO goal and an attack_chain must NOT auto-win when all
-//     stages are contained. It runs to timeout or a lose condition instead;
-//     the report is the debrief. (IT/BDB scenarios define a goal and DO win on
+//     stages are contained. It runs to timeout or a manual end instead; the
+//     report is the debrief. (IT/BDB scenarios define a goal and DO win on
 //     containment; executive scenarios without a goal do not.)
 const noGoalScenario = {
   ...scenario,
@@ -391,14 +396,16 @@ for (const stage of noGoalScenario.attack_chain) {
 }
 check('no-goal scenario does NOT auto-win on full containment', s23.attackChain.every((s) => s.contained) && !ended23);
 
-// 28. A no-goal scenario still ends on a lose condition.
+// 28. A no-goal scenario does NOT end on a stat lose condition either — the
+//     game runs until the team decides it's done (manual end) or the timeout
+//     fires, regardless of whether a goal is defined.
 const s24 = new DMSession(new MockProvider(), noGoalScenario);
 s24.state.public_trust = 5;   // below 15
 const r24a = await s24.takeTurn('Act', 10);  // streak 1 (consecutive 2)
 check('no-goal scenario does not end on first bad turn', !r24a.endCondition);
 s24.state.public_trust = 5;
-const r24b = await s24.takeTurn('Act', 10);  // streak 2 -> lose fires
-check('no-goal scenario still ends on a lose condition', r24b.endCondition && r24b.endCondition.result === 'failure');
+const r24b = await s24.takeTurn('Act', 10);  // streak 2
+check('no-goal scenario does NOT end on a stat lose condition', !r24b.endCondition);
 
 // 29. A no-goal scenario with a timeout ends cleanly on timeout.
 check('no-goal scenario keeps its timeout end condition', noGoalScenario.end_conditions.some((c) => c.type === 'timeout'));

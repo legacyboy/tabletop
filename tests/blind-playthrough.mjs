@@ -63,12 +63,15 @@ if (RANDOM) {
 // Player system prompt: they advise the executive team, blind to the design.
 // Framed as "helping a crisis team" (not "you ARE the team") because some
 // models (DeepSeek Pro) return empty on direct roleplay framing.
+// A realistic executive turn is 2-3 COORDINATED actions across departments,
+// not a single narrow action — this mirrors how a real team operates.
 const playerSystem = [
   'You are helping a crisis management team at a financial cooperative.',
-  'Given a developing situation, state the single most sensible next action the team should take.',
+  'Given a developing situation, state the 2-3 coordinated actions the team should take THIS turn, spread across relevant departments (e.g. communications issues a statement, the fraud/security team acts, legal or the CEO handles the regulator/board).',
   'Be concrete, decisive, and realistic. You are under time pressure.',
-  'Reply with ONLY a short, concrete action (1-3 sentences). Do not ask questions — state what the team does.',
-  'Never return an empty or blank reply. If you are unsure, still commit to one concrete action.',
+  'Reply with ONLY the 2-3 actions, one per line, each a short concrete instruction (1 sentence each). Do not ask questions — state what the team does.',
+  'Coordinate them: they should reinforce each other, not contradict.',
+  'Never return an empty or blank reply. If you are unsure, still commit to 2 concrete actions.',
   'Do not mention that you are an AI or a model.',
 ].join('\n');
 
@@ -78,9 +81,9 @@ const playerSystem = [
 // A test that silently falls back to a canned action on empty replies gives
 // misleading balance results, so we treat empty as a hard failure to fix.
 const playerActionTemplates = [
-  (ctx) => ctx + '\n\nWhat does your team do next? Reply with ONE concrete action.',
-  (ctx) => ctx + '\n\nGive exactly ONE specific, actionable step the team takes right now (1-2 sentences). Do not be vague. Do not return blank.',
-  (ctx) => ctx + '\n\nYou MUST reply with a concrete action now. State the single most important thing the team does. No preamble, no questions, no blank.',
+  (ctx) => ctx + '\n\nWhat does your team do next? Reply with the 2-3 coordinated actions (one per line).',
+  (ctx) => ctx + '\n\nGive exactly 2-3 specific, actionable steps the team takes right now, across departments (one per line). Do not be vague. Do not return blank.',
+  (ctx) => ctx + '\n\nYou MUST reply with 2-3 concrete actions now, one per line, across different departments. No preamble, no questions, no blank.',
 ];
 
 // Tried-and-true constructive fallback if the model still refuses to answer

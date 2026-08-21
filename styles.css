@@ -41,6 +41,8 @@ button:hover { outline: 2px solid #4bd5ff; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 button.primary { background: #1f6fb2; border-color: #4bd5ff66; }
 button.ghost { background: transparent; }
+button.danger { color: #ff6b6b; border-color: #ff6b6b66; }
+button.danger:hover { outline-color: #ff6b6b; }
 
 .header-actions { display: flex; align-items: center; gap: 10px; }
 .dm-badge {
@@ -144,6 +146,8 @@ video {
   color: #dfe9ff;
   white-space: pre-wrap;
 }
+.stateItem.danger { border-color: #ff6b6b88; background: #2a1218; }
+.dangerNote { color: #ff6b6b; font-size: 12px; font-weight: 600; margin-left: 4px; }
 #log { max-height: 240px; overflow-y: auto; }
 .logItem { font-size: 13px; padding: 8px 10px; margin: 5px 0; }
 
