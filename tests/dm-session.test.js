@@ -512,5 +512,11 @@ check('system prompt has STORY BEATS section', beatProv9.lastSystem.includes('TH
 check('system prompt has the forward-momentum rule', beatProv9.lastSystem.includes('KEEP THE MOMENTUM'));
 check('system prompt bans menus but requires world advancement', beatProv9.lastSystem.includes('advance the world') && beatProv9.lastSystem.includes('NEVER present a menu'));
 
+// 40. The momentum rule must advance with EVENTS, never DIRECTIVES - the DM
+//     must not suggest solutions or tell the team what to decide/do (Dan:
+//     'it can lay out the problems but not suggest a solution').
+check('prompt advances with events, not directives', beatProv9.lastSystem.includes('ADVANCE WITH EVENTS, NEVER DIRECTIVES'));
+check('prompt bans leading phrasings', ['the team needs to', 'consider', 'the next step is to', 'it may be wise to'].every((p) => beatProv9.lastSystem.includes(p)) && beatProv9.lastSystem.includes('Those lead the group'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
