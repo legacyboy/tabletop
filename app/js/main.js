@@ -353,18 +353,83 @@ function renderState() {
     const inZone = (c.operator === 'lte' && v <= c.value) || (c.operator === 'gte' && v >= c.value);
     if (inZone) dangerStats[c.stat] = c;
   }
-  el.stateList.innerHTML = Object.entries(session.state)
-    .map(([k, v]) => {
-      const danger = dangerStats[k] ? ' danger' : '';
-      const note = dangerStats[k]
-        ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>`
-        : '';
-      return `<div class="stateItem${danger}"><b>${humanize(k)}</b>: ${v}${note}</div>`;
-    })
-    .join('');
+
+  const s = session.state;
+  const parts = [];
+
+  // ---- Budget: a live balance + spend log (a raw number alone is not
+  // informational). ----
+  const budget = typeof s.budget === 'number' ? s.budget : null;
+  const spent = session.budgetSpend || 0;
+  const lastSpent = session.lastBudgetSpend || 0;
+  parts.push(
+    `<div class="stateItem budgetCard">` +
+      `<div class="budgetLine"><b>Budget</b><span class="budgetBal">${budget === null ? '—' : budget}</span></div>` +
+      `<div class="budgetSpend">` +
+        (lastSpent > 0 ? `This turn: spent <b>${lastSpent}</b> · ` : `This turn: no spend · `) +
+        `Total spent: <b>${spent}</b>` +
+      `</div>` +
+    `</div>`
+  );
+
+  // ---- Traffic-light metrics (higher = better): green / yellow / red. ----
+  const lightStats = ['public_trust', 'regulator_confidence', 'containment', 'eradication', 'recovery'];
+  for (const k of lightStats) {
+    const v = s[k];
+    if (typeof v !== 'number') continue;
+    const light = dangerStats[k] ? 'red' : trafficLight(v);
+    const note = dangerStats[k]
+      ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>`
+      : '';
+    parts.push(
+      `<div class="stateItem stateLight">` +
+        `<span class="lightDot ${light}"></span>` +
+        `<b>${humanize(k)}</b>` +
+        `<span class="lightWord ${light}">${labelOf(light)}</span>` +
+        `<span class="lightVal">${v}</span>${note}` +
+      `</div>`
+    );
+  }
+
+  // ---- attacker_progress: a green->yellow->red progress bar (higher = worse). ----
+  const ap = s.attacker_progress;
+  if (typeof ap === 'number') {
+    const pct = Math.max(0, Math.min(100, ap));
+    const zone = ap <= 20 ? 'green' : ap <= 59 ? 'yellow' : 'red';
+    parts.push(
+      `<div class="stateItem">` +
+        `<div class="apRow"><b>Attacker progress</b><span class="lightWord ${zone}">${labelOf(zone)}</span></div>` +
+        `<div class="apBar"><div class="apFill ${zone}" style="width:${pct}%"></div></div>` +
+      `</div>`
+    );
+  }
+
+  // ---- Anything else the scenario tracks that we don't have a widget for:
+  // show as a plain number (keeps custom metrics visible). ----
+  const rendered = new Set(['budget', ...lightStats, 'attacker_progress', 'security_posture']);
+  const extras = Object.keys(s).filter((k) => !rendered.has(k) && typeof s[k] === 'number');
+  for (const k of extras) {
+    const v = s[k];
+    const danger = dangerStats[k] ? ' danger' : '';
+    const note = dangerStats[k]
+      ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>` : '';
+    parts.push(`<div class="stateItem${danger}"><b>${humanize(k)}</b>: ${v}${note}</div>`);
+  }
+
+  el.stateList.innerHTML = parts.join('');
 
   const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
   el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
+}
+
+/** Traffic-light for a higher-is-better metric on 0-100. */
+function trafficLight(v) {
+  if (v >= 60) return 'green';
+  if (v >= 30) return 'yellow';
+  return 'red';
+}
+function labelOf(light) {
+  return light === 'green' ? 'Green' : light === 'yellow' ? 'Yellow' : 'Red';
 }
 
 function renderTimer() {

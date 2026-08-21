@@ -273,6 +273,11 @@ export class DMSession {
     // to nudge the next D20 roll. Persisted so it survives a restore.
     this.rollModifier = 0;
 
+    // Budget spend tracking: lastBudgetSpend = spend this turn, budgetSpend =
+    // cumulative spend since opening. Derived from negative budget deltas.
+    this.lastBudgetSpend = 0;
+    this.budgetSpend = 0;
+
     // Consecutive-turn streaks for stat end conditions that require a stat to
     // stay at/below (or at/above) a threshold for N turns before failing.
     // Keyed by end-condition index; reset when the stat leaves the zone.
@@ -374,6 +379,14 @@ export class DMSession {
     merge(delta);
     this.state = this._applyDelta(this.state, combined);
 
+    // Track budget spend: a negative budget delta = money the group spent on
+    // this turn's actions. Positive budget deltas are inflows/recovery (not
+    // spend). lastBudgetSpend = this turn's outlay; budgetSpend = running total
+    // since opening (never goes below 0).
+    const budgetDelta = typeof combined.budget === 'number' ? combined.budget : 0;
+    this.lastBudgetSpend = budgetDelta < 0 ? -budgetDelta : 0;
+    this.budgetSpend = (this.budgetSpend || 0) + this.lastBudgetSpend;
+
     this.turn += 1;
 
     // A roll modifier is consumed by the roll it was granted for.
@@ -391,6 +404,8 @@ export class DMSession {
       breach_state: this.breachState,
       beat: this.beats.length ? this.beats[this.currentBeatIndex].id : null,
       beat_quality: this.lastBeatQuality,
+      budget_spend: this.lastBudgetSpend,
+      total_budget_spend: this.budgetSpend,
       ts: Date.now(),
     };
     this.history.push(event);
@@ -840,6 +855,8 @@ export class DMSession {
       statStreaks: clone(this.statStreaks),
       currentBeatIndex: this.currentBeatIndex,
       lastBeatQuality: this.lastBeatQuality,
+      lastBudgetSpend: this.lastBudgetSpend,
+      budgetSpend: this.budgetSpend,
     };
   }
 
@@ -864,6 +881,8 @@ export class DMSession {
     session.statStreaks = clone(snapshot.statStreaks || {});
     session.currentBeatIndex = snapshot.currentBeatIndex || 0;
     session.lastBeatQuality = snapshot.lastBeatQuality || '';
+    session.lastBudgetSpend = snapshot.lastBudgetSpend || 0;
+    session.budgetSpend = snapshot.budgetSpend || 0;
     return session;
   }
 }

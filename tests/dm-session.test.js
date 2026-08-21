@@ -518,5 +518,35 @@ check('system prompt bans menus but requires world advancement', beatProv9.lastS
 check('prompt advances with events, not directives', beatProv9.lastSystem.includes('ADVANCE WITH EVENTS, NEVER DIRECTIVES'));
 check('prompt bans leading phrasings', ['the team needs to', 'consider', 'the next step is to', 'it may be wise to'].every((p) => beatProv9.lastSystem.includes(p)) && beatProv9.lastSystem.includes('Those lead the group'));
 
+// ===== NEW: budget spend tracking (v4 state panel) =====
+// A provider that reports a negative budget delta (money spent this turn).
+class SpendProvider {
+  constructor(delta) { this.delta = delta || { budget: -12 }; }
+  async chat() { return JSON.stringify({ narrative: 'The team spent budget on response actions.', state_delta: this.delta }); }
+}
+
+// 41. A negative budget delta is recorded as this-turn spend + cumulative total.
+const sSpend1 = new DMSession(new SpendProvider(), scenario);
+await sSpend1.takeTurn('Deploy extra monitoring', 10);
+check('lastBudgetSpend records the budget outlay', sSpend1.lastBudgetSpend === 12);
+check('budgetSpend accumulates the total', sSpend1.budgetSpend === 12);
+await sSpend1.takeTurn('Hire external comms firm', 10);
+check('budgetSpend accumulates across turns', sSpend1.budgetSpend === 24);
+
+// 42. A POSITIVE budget delta (inflow/recovery) is NOT counted as spend.
+const sSpend2 = new DMSession(new SpendProvider({ budget: 5 }), scenario);
+await sSpend2.takeTurn('Secure a relief allocation', 10);
+check('positive budget delta is not counted as spend', sSpend2.lastBudgetSpend === 0 && sSpend2.budgetSpend === 0);
+
+// 43. Spend is recorded on the history event and persists across serialize/restore.
+const sSpend3 = new DMSession(new SpendProvider(), scenario);
+await sSpend3.takeTurn('Spend', 10);
+check('event carries budget_spend', sSpend3.history[0].budget_spend === 12);
+check('event carries total_budget_spend', sSpend3.history[0].total_budget_spend === 12);
+const snapSpend = sSpend3.serialize();
+check('serialize includes budgetSpend', snapSpend.budgetSpend === 12);
+const restoredSpend = DMSession.restore(new SpendProvider(), scenario, snapSpend);
+check('restore preserves budgetSpend', restoredSpend.budgetSpend === 12);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
