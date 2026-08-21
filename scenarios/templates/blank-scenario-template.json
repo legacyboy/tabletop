@@ -4,8 +4,7 @@
   "version": 4,
   "intro": {
     "video": "",
-    "narrative": "One paragraph read to / displayed for the group that sets the opening scene. This is the PRIMARY thing shown to players.",
-    "facilitator_notes": "Guidance for the moderator only (players should not see this).",
+    "narrative": "One paragraph shown to the group that introduces the case. This is the PRIMARY thing all participants read to set the scene.",
     "company_url": "",
     "company_info": "Optional static background about the organization."
   },

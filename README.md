@@ -126,9 +126,10 @@ reference. Start from `scenarios/templates/blank-scenario-template.json`.
 
 ### The key parts
 
-**Intro** — `intro.narrative` is shown/read to the group to set the scene.
+**Intro** — `intro.narrative` is the case introduction shown to the group
+(all participants; there is no human facilitator — the DM is the LLM).
 `intro.video` (optional) is a file path under `assets/` or a scenario
-`media/` dir. `intro.facilitator_notes` is moderator-only. `intro.company_url`
+`media/` dir. `intro.company_url`
 (optional) lets the app fetch public company info to enrich the DM context.
 
 **Opening state** — tracked metrics, all 0-100. The DM updates these each

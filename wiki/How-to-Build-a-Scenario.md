@@ -23,10 +23,10 @@ reference. Start from `scenarios/templates/blank-scenario-template.json`.
 
 ## The key parts
 
-### Intro (text-first opening scene)
-`intro.narrative` is the group's **opening scene** — the PRIMARY thing shown
-to players. `intro.video` (optional) is a file path under `assets/` or a
-scenario `media/` dir. `intro.facilitator_notes` is moderator-only.
+### Intro (text-first case introduction)
+`intro.narrative` is the case introduction — the PRIMARY thing shown to all
+participants (there is no human facilitator; the DM is the LLM). `intro.video`
+(optional) is a file path under `assets/` or a scenario `media/` dir.
 `intro.company_url` (optional) lets the app fetch public company info to enrich
 the DM context.
 
@@ -169,7 +169,7 @@ produces at session end or timeout — useful for tabletop debrief and audit.
 | Time | Activity |
 |---:|---|
 | 0-5 | Rules and roles |
-| 5-10 | Select scenario, opening scene (narrative + optional video) |
+| 5-10 | Select scenario, case introduction (narrative + optional video) |
 | 10-15 | Group discusses the opening, first action |
 | 15-55 | Free-form play: act, roll, DM adjudicates (timer running) |
 | 55-60 | Hotwash + close (report generated) |
