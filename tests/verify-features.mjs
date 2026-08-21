@@ -40,6 +40,13 @@ const introHeading = await page.evaluate(() => {
 });
 check('intro heading reads "The case"', /The case/i.test(introHeading));
 check('intro heading no longer says "Opening scene"', !/Opening scene/i.test(introHeading));
+// The case brief (intro.narrative) must actually be populated on the intro
+// screen — the group reads the plot/story here before starting.
+const caseBrief = await page.evaluate(() => {
+  const t = document.getElementById('moderatorRead')?.textContent || '';
+  return t.trim().length;
+});
+check('case brief text is populated on the intro screen (non-empty)', caseBrief > 0);
 const facilitatorLabel = await page.evaluate(() => {
   const h3s = Array.from(document.querySelectorAll('#phase-intro h3')).map((h) => h.textContent.trim());
   return h3s.join(' | ');
