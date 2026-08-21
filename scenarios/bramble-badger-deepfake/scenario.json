@@ -138,6 +138,25 @@
     "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team not only neutralizes the joke but turns it into a trusted-safety talking point that gets repeated by community voices for weeks. Public trust soars and the attack is pushed back.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
   },
 
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Get ahead of the story",
+      "narrative": "The clip is spreading and members are calling. Step 1 is to get ahead of the story: a clear public statement, message discipline, and reassuring members. Until the team does this, the rumour will keep compounding."
+    },
+    {
+      "id": "b2-fraud",
+      "name": "Step 2 — The regulator and the fraud wave",
+      "narrative": "Public messaging is being handled. Now the harder work: the regulator wants a factual summary and a timeline, and fraudsters are using the clip to harvest member credentials. Step 2 is to contain the fraud and satisfy the regulator. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Eradicate and recover",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: confirm the fraud hook is fully neutralized, shore up defenses, and restore member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
+    }
+  ],
+
+
   "end_conditions": [
     { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Public trust collapse: executive confidence is lost before the facts are controlled." },
     { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Attack overload: the fraud wave becomes a full enterprise incident and members are harmed." },

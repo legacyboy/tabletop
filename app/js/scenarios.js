@@ -40,6 +40,20 @@ export function validateScenario(scenario) {
       });
     }
   }
+  // beats (v4): optional, but if present must be a non-empty array of beats
+  // with id + name (+ narrative).
+  if (scenario.beats !== undefined) {
+    if (!Array.isArray(scenario.beats) || scenario.beats.length === 0) errors.push('beats must be a non-empty array');
+    else {
+      scenario.beats.forEach((b, i) => {
+        if (!b || typeof b !== 'object') errors.push(`beats[${i}] must be an object`);
+        else {
+          if (!b.id) errors.push(`beats[${i}].id is required`);
+          if (!b.name) errors.push(`beats[${i}].name is required`);
+        }
+      });
+    }
+  }
   return { valid: errors.length === 0, errors };
 }
 

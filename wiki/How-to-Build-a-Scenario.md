@@ -15,7 +15,7 @@ reference. Start from `scenarios/templates/blank-scenario-template.json`.
 1. Copy `scenarios/templates/blank-scenario-template.json` to
    `scenarios/<name>/scenario.json`.
 2. Fill in the intro, opening state, DM brief, conditional events, fate table,
-   and end conditions.
+   story beats (an ordered arc so the story keeps moving), and end conditions.
 3. Add one line to `scenarios/registry.json`:
    `{ "id": "...", "title": "...", "path": "scenarios/<name>/scenario.json" }`
 4. Run `npm start`, open the app, and play-test.
@@ -94,6 +94,16 @@ of the free-form action:
 
 Numbers not listed are adjudicated purely by the DM. Use the fate table for
 flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
+
+### Story beats (optional ordered arc)
+
+Add a `beats` array to give the scenario a **sequence of steps** so the story
+keeps moving instead of stalling into "act → react → dead end". Each beat has
+an `id`, a `name`, and a `narrative` (what the group faces and must resolve
+this step). The DM advances to the next beat when the group resolves the
+current one; a group that handled a beat **well** finds the next step **softer**,
+one that handled it **poorly** finds it **worse**, and a decisive action can
+**skip** forward. See Scenario-Schema-v3.md for the full spec.
 
 ### Goal (win condition) — OPTIONAL
 

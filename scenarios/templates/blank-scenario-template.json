@@ -112,6 +112,19 @@
       }
     }
   },
+
+  "beats": [
+    {
+      "id": "b1-step1",
+      "name": "Step 1 — <name the first stage of the story>",
+      "narrative": "<What the group faces in this step and what it takes to resolve it. The DM advances to the next beat when the group closes this one out.>"
+    },
+    {
+      "id": "b2-step2",
+      "name": "Step 2 — <next stage>",
+      "narrative": "<What the group faces now. If Step 1 went well this is softer; if it went poorly this is worse.>"
+    }
+  ],
   "goal": {
     "description": "OPTIONAL goal (win condition). Use it for IT/kill-chain exercises where there is a concrete objective to achieve (hit all win_conditions, or contain all attack-chain stages). OMIT goal for executive/fallout exercises (e.g. a data leak) where there is no \"win\" \u2014 the session then runs to a lose condition or timeout and the report is the debrief. When ALL win_conditions are met simultaneously, the scenario ends in success.",
     "win_conditions": [
