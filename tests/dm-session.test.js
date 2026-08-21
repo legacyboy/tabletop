@@ -410,5 +410,107 @@ check('no-goal scenario does NOT end on a stat lose condition', !r24b.endConditi
 // 29. A no-goal scenario with a timeout ends cleanly on timeout.
 check('no-goal scenario keeps its timeout end condition', noGoalScenario.end_conditions.some((c) => c.type === 'timeout'));
 
+// ===== NEW: story beats (v4) =====
+// A provider that can advance the beat and report quality.
+class BeatProvider {
+  constructor(opts = {}) {
+    this.beat = opts.beat || null;        // next beat id, or null to stay
+    this.quality = opts.quality || null;   // good/mixed/poor
+    this.lastSystem = '';
+    this.lastUser = '';
+  }
+  async chat(messages) {
+    this.lastSystem = messages[0].content;
+    this.lastUser = messages[messages.length - 1].content;
+    const reply = { narrative: 'The team acted and the story moved forward.', state_delta: { public_trust: 1 } };
+    if (this.beat) reply.beat = this.beat;
+    if (this.quality) reply.beat_quality = this.quality;
+    return JSON.stringify(reply);
+  }
+}
+
+// 30. Beat is initialized to the first beat in the arc.
+const beatsScenario = {
+  ...scenario,
+  beats: [
+    { id: 'b1', name: 'Step 1', narrative: 'First step.' },
+    { id: 'b2', name: 'Step 2', narrative: 'Second step.' },
+    { id: 'b3', name: 'Step 3', narrative: 'Third step.' },
+  ],
+};
+const sBeats0 = new DMSession(new BeatProvider(), beatsScenario);
+check('beats initialized from scenario', sBeats0.beats.length === 3);
+check('current beat starts at 0 (b1)', sBeats0.currentBeatIndex === 0 && sBeats0.beats[0].id === 'b1');
+check('current beat id exposed on event', sBeats0.beats[0].id === 'b1');
+
+// 31. DM advances the beat by returning the next id.
+const sBeats1 = new DMSession(new BeatProvider({ beat: 'b2', quality: 'good' }), beatsScenario);
+await sBeats1.takeTurn('Public statement issued', 15);
+check('beat advances to b2 when DM returns next id', sBeats1.currentBeatIndex === 1);
+check('beat_quality recorded (good)', sBeats1.lastBeatQuality === 'good');
+check('beat id on history event reflects the new beat', sBeats1.history[0].beat === 'b2');
+
+// 32. DM can skip forward to a later beat (decisive action collapses steps).
+const sBeats2 = new DMSession(new BeatProvider({ beat: 'b3', quality: 'good' }), beatsScenario);
+await sBeats2.takeTurn('Resolve everything at once', 20);
+check('decisive action skips forward to b3', sBeats2.currentBeatIndex === 2);
+
+// 33. Beat does NOT go backwards (returning an earlier id is ignored).
+const sBeats3 = new DMSession(new BeatProvider({ beat: 'b1' }), beatsScenario);
+// Advance once to b2 first.
+sBeats3.provider = new BeatProvider({ beat: 'b2' });
+await sBeats3.takeTurn('Action', 10);
+// Now try to go back to b1.
+sBeats3.provider = new BeatProvider({ beat: 'b1' });
+await sBeats3.takeTurn('Action', 10);
+check('beat does not move backwards', sBeats3.currentBeatIndex === 1);
+
+// 34. An unknown beat id is ignored (stays in current beat).
+const sBeats4 = new DMSession(new BeatProvider({ beat: 'does-not-exist' }), beatsScenario);
+await sBeats4.takeTurn('Action', 10);
+check('unknown beat id is ignored', sBeats4.currentBeatIndex === 0);
+
+// 35. A scenario with NO beats leaves the mechanic inert (no beat line in user turn).
+const noBeatsScenario = { ...scenario, beats: undefined };
+const noBeatsProv = new BeatProvider();
+const sBeats5 = new DMSession(noBeatsProv, noBeatsScenario);
+await sBeats5.takeTurn('Action', 10);
+check('no beats -> lastBeatQuality stays empty', sBeats5.lastBeatQuality === '');
+check('no beats -> no STORY BEAT line in user turn', !noBeatsProv.lastUser.includes('STORY BEAT'));
+
+// 36. With beats, the user turn carries the STORY BEAT context.
+const beatProv6 = new BeatProvider();
+const sBeats6 = new DMSession(beatProv6, beatsScenario);
+await sBeats6.takeTurn('Action', 10);
+check('beats -> STORY BEAT line present in user turn', beatProv6.lastUser.includes('STORY BEAT 1 of 3'));
+check('beats -> beat name shown in user turn', beatProv6.lastUser.includes('Step 1'));
+
+// 37. A prior beat_quality is carried into the next user turn (soften/escalate).
+const beatProv7 = new BeatProvider();
+const sBeats7 = new DMSession(new BeatProvider({ beat: 'b2', quality: 'poor' }), beatsScenario);
+await sBeats7.takeTurn('Action', 10); // advances to b2, quality=poor
+sBeats7.provider = beatProv7;
+await sBeats7.takeTurn('Action', 10); // now in b2; last quality carried
+check('prior beat_quality carried into next user turn', beatProv7.lastUser.includes('previous beat: poor'));
+
+// 38. serialize/restore persist the beat arc state.
+const sBeats8 = new DMSession(new BeatProvider({ beat: 'b2', quality: 'mixed' }), beatsScenario);
+await sBeats8.takeTurn('Action', 10);
+const snapB = sBeats8.serialize();
+check('serialize includes currentBeatIndex', snapB.currentBeatIndex === 1);
+check('serialize includes lastBeatQuality', snapB.lastBeatQuality === 'mixed');
+const restoredB = DMSession.restore(new BeatProvider(), beatsScenario, snapB);
+check('restored currentBeatIndex preserved', restoredB.currentBeatIndex === 1);
+check('restored lastBeatQuality preserved', restoredB.lastBeatQuality === 'mixed');
+
+// 39. The system prompt carries the STORY BEATS section and the momentum rule
+//     (no flat dead ends; advance the world each turn).
+const beatProv9 = new BeatProvider();
+const sBeats9 = new DMSession(beatProv9, beatsScenario);
+await sBeats9.takeTurn('Action', 10);
+check('system prompt has STORY BEATS section', beatProv9.lastSystem.includes('THE STORY BEATS'));
+check('system prompt has the forward-momentum rule', beatProv9.lastSystem.includes('KEEP THE MOMENTUM'));
+check('system prompt bans menus but requires world advancement', beatProv9.lastSystem.includes('advance the world') && beatProv9.lastSystem.includes('NEVER present a menu'));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

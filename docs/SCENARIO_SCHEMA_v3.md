@@ -158,6 +158,21 @@ Scenarios are listed in `scenarios/registry.json`.
     "20": { "kind": "crit_success","twist": "Roll 20: perfect execution, role-model win.", "state_delta": { "reputation": 8, "morale": 5 } }
   },
 
+  // --- the story beats (optional ordered arc) ---
+  // An ordered arc the DM walks the group through, so the story doesn't stall
+  // into a flat "act -> react -> dead end". Each beat has an id, an executive-
+  // friendly name, and a narrative describing the step and what it takes to
+  // resolve it. The DM advances to the next beat when the group resolves the
+  // current one, narrating the transition. A group that handled a beat WELL
+  // finds the next step softer; one that handled it POORLY finds it worse. A
+  // single decisive action can skip forward to a later beat. OMIT beats for
+  // simple one-shot scenarios (the DM then just keeps the story advancing
+  // turn to turn).
+  "beats": [
+    { "id": "b1", "name": "Step 1 — Get ahead of the story", "narrative": "<what the group faces and must resolve this step>" },
+    { "id": "b2", "name": "Step 2 — The regulator and the fraud wave", "narrative": "<the next stage; note it is softer if Step 1 went well, harsher if not>" }
+  ],
+
   // --- the goal: what the group is trying to achieve ---
   // HIDDEN from players. Lives only in the engine and the DM's private brief.
   // When ALL win_conditions are met simultaneously, the scenario ends in
@@ -193,6 +208,37 @@ Scenarios are listed in `scenarios/registry.json`.
   }
 }
 ```
+
+## Story beats (optional ordered arc) — v4
+
+An optional `beats` array gives a scenario an **ordered arc of steps** so the
+story doesn't stall into a flat "act → react → dead end". Each beat has:
+
+- `id` — a stable slug (e.g. `b1-public`).
+- `name` — an executive-friendly label (e.g. "Step 1 — Get ahead of the story").
+- `narrative` — what the group faces in this step and what it takes to resolve it.
+
+**How it plays:** the group starts in beat 0. Each turn the DM is told which
+beat the group is in and the arc. When the group's actions genuinely resolve
+the current beat, the DM returns the **next beat id** in the `beat` field and
+narrates the transition. A group that handled the beat **well** finds the next
+step **softer**; one that handled it **poorly** finds it **worse**. A single
+decisive action can **skip forward** to a later beat when the story warrants it.
+
+The DM also reports `beat_quality` (`good`/`mixed`/`poor`) for the beat just
+completed; the engine carries it into the next turn so the DM can calibrate the
+incoming beat's tone.
+
+The engine **tracks and persists** `currentBeatIndex` and `lastBeatQuality`
+across a restore. A returned `beat` id only ever advances **forward** (never
+backwards); an unknown or non-forward id is ignored. If a scenario has no
+`beats`, this whole mechanic is inert and the DM simply keeps the story
+advancing turn to turn (see Roll semantics).
+
+> Pair `beats` with the momentum rule in the DM prompt: the DM is forbidden from
+> presenting menus/options but is **required** to end each turn by advancing the
+> world into its next natural development, so there is always something concrete
+> for the group to respond to.
 
 ## Roll semantics (v3)
 

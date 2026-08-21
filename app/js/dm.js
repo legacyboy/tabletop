@@ -139,11 +139,13 @@ function buildSystemPrompt(scenario, opts = {}) {
     '## HOW TO PLAY (critical)',
     '- The group types a free-form action. Do NOT present them with a menu of options.',
     '- A single turn can contain MULTIPLE coordinated actions across different departments (e.g. comms issues a statement AND the fraud team freezes accounts AND legal contacts the regulator). Realistic turns are 2-3 coordinated actions, not one narrow action.',
-    '- You must NEVER lead the group, propose actions, or steer them toward a choice. React only to what they actually did.',
+    '- NEVER present a menu or list of choices, and do not prescribe a specific next action. But DO advance the world: every turn should move the situation forward into its next natural beat.',
+    '- KEEP THE MOMENTUM. A turn must NOT end as a flat dead end. The group acted; the world reacts AND moves on. End each response by advancing to the next development: a new escalation, an opened question, a deadline, a complication, a reaction from an actor/regulator/media that demands a follow-up. Leave the group with something concrete to respond to.',
+    '- Distinguish leading from world-driving: proposing options or telling them what to do is FORBIDDEN; having the situation actively develop and push back is REQUIRED.',
     '- Judge the group\u2019s actions fairly and realistically for this organization. Address each of the coordinated actions in your response.',
     '- The D20 roll you receive reflects the overall outcome quality of the turn. Use it to decide if the actions land, partially succeed, or backfire. 20 = outstanding success, 1 = severe failure, middle numbers = partial/ordinary.',
     '- Make the world respond concretely: consequences, reactions from actors/regulators/media, resource changes, new complications. Keep it tense and believable.',
-    '- Keep narrative responses vivid but concise (roughly 3-6 sentences).',
+    '- Narrative responses should be vivid and forward-driving, roughly 4-7 sentences: what happened, the consequences, AND what now presses on the group as the story moves to its next step.',
     '',
     '## STATE',
     `Track these metrics between 0 and 100. Start from: ${JSON.stringify(scenario.opening_state)}.`,
@@ -170,10 +172,20 @@ function buildSystemPrompt(scenario, opts = {}) {
     '## DETECTION AS A RESOURCE',
     'Investigation and response are limited. The group cannot do everything at once \u2014 enforce a realistic limit on how many distinct investigation/response actions they can take in a single turn, and make activating monitoring cost budget.',
     '',
+    '## THE STORY BEATS (arc progression)',
+    'The scenario is an ordered arc of beats (steps). You are told which beat the group is in and the arc you are running.',
+    'A beat is a stage of the story (e.g. Step 1 public response, Step 2 regulator + fraud, Step 3 eradicate + recover). The group works through beats in order.',
+    'Each turn, decide whether the group has RESOLVED the current beat. A beat is resolved when the group\u2019s actions genuinely close out that stage of the story (not just talk \u2014 the situation at that beat is handled and the story must move on).',
+    'When the current beat is resolved, return the NEXT beat\u2019s id in the `beat` field and narrate the transition: how the group\u2019s handling shaped the incoming step. A group that handled the beat WELL should find the next step softer; one that handled it POORLY should find it worse. A single decisive action can skip forward to a later beat when the story warrants it.',
+    'Report how the group handled the beat they just completed in `beat_quality`: "good" (strong, on-target), "mixed" (partial, messy), or "poor" (failed, backfired). The engine carries this into the next turn so you can adjust the tone of the incoming beat accordingly.',
+    'If the scenario has no beats, ignore this section and simply keep the story advancing turn to turn as described in HOW TO PLAY.',
+    '',
     'Your reply must be STRICT JSON with exactly these fields:',
-    '{"narrative": "<what happened, 2-5 sentences>", "state_delta": {"<metric>": <integer change>, ...}, "progress": true|false, "reveal_stage": "<stage id>|null", "contain_stage": "<stage id>|null"}',
+    '{"narrative": "<what happened, 2-7 sentences, ending on the next development that presses the group>", "state_delta": {"<metric>": <integer change>, ...}, "progress": true|false, "reveal_stage": "<stage id>|null", "contain_stage": "<stage id>|null", "beat": "<next beat id>|null", "beat_quality": "good|mixed|poor|\"\""}',
     '"progress": true if the group\u2019s action meaningfully advanced the situation, false if they stalled, went in circles, or made no real progress. Blank/short actions are NOT automatically stalls \u2014 judge the substance of what they did.',
     '"reveal_stage": the id of an attack-chain stage the group just uncovered (or null). "contain_stage": the id of a stage the group just neutralized (or null).',
+    '"beat": when the current beat is resolved, the id of the beat the story now moves to (next in the arc, or a later id if the group skipped ahead). null to stay in the current beat.',
+    '"beat_quality": how the group handled the beat they just completed ("good", "mixed", "poor"). Only meaningful when a beat just ended; otherwise omit or null.',
     'Only include metrics you actually changed. Return valid JSON and nothing else.',
   ].join('\n') + company;
 }
@@ -193,9 +205,23 @@ function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
     ? `\nCurrent attack chain:\n${chainBrief(run.attackChain)}\nCurrent breach state: ${run.breachState}`
     : '';
 
+  // Story beats: where the group is in the arc and how the last beat went.
+  const beats = run.beats;
+  let beatLine = '';
+  if (beats && beats.length) {
+    const cur = beats[run.currentBeatIndex];
+    if (cur) {
+      beatLine = `\nSTORY BEAT ${run.currentBeatIndex + 1} of ${beats.length} (${cur.name}): ${cur.narrative}`;
+      if (run.lastBeatQuality) {
+        beatLine += `\nHow the group handled the previous beat: ${run.lastBeatQuality}. Adjust the tone of this beat accordingly (good -> softer, poor -> harsher, mixed -> uneven).`;
+      }
+    }
+  }
+
   return [
     `Turn ${run.turn + 1}. Current state: ${JSON.stringify(run.state)}`,
     chainLine ? chainLine : '',
+    beatLine ? beatLine : '',
     '',
     `The group has decided to do this: "${action}"`,
     `They rolled a D20 and got: ${roll}`,
@@ -235,6 +261,12 @@ export class DMSession {
     // is to contain all of them.
     this.attackChain = initAttackChain(scenario);
     this.breachState = deriveBreachState(this.attackChain);
+
+    // Story beats (optional arc). Each beat: {id, name, narrative}. The DM
+    // advances the current beat when the group resolves it (see takeTurn).
+    this.beats = Array.isArray(scenario.beats) ? scenario.beats : [];
+    this.currentBeatIndex = 0;       // index into beats the group is in
+    this.lastBeatQuality = '';       // 'good' | 'mixed' | 'poor' | '' (persisted)
 
     // Roll modifier: a defender capability the group "played" (spent budget)
     // to nudge the next D20 roll. Persisted so it survives a restore.
@@ -319,6 +351,9 @@ export class DMSession {
     // The DM may reveal or contain an attack-chain stage this turn.
     this._applyChainJudgment(parsed);
 
+    // Story beats: advance the arc if the DM says the current beat is resolved.
+    this._applyBeatJudgment(parsed);
+
     // Evaluate all pre-compiled events now that the stall counter reflects the
     // DM's judgment for this turn. Stat/turn events already fired above are
     // skipped (dedup); stall events fire here when the counter reaches N.
@@ -353,6 +388,8 @@ export class DMSession {
       state: clone(this.state),
       attack_chain: clone(this.attackChain),
       breach_state: this.breachState,
+      beat: this.beats.length ? this.beats[this.currentBeatIndex].id : null,
+      beat_quality: this.lastBeatQuality,
       ts: Date.now(),
     };
     this.history.push(event);
@@ -367,6 +404,34 @@ export class DMSession {
       breach_state: this.breachState,
       endCondition,
     };
+  }
+
+  /**
+   * Apply the DM's story-beat judgment: if the DM says the current beat is
+   * resolved (returns the next beat id in `beat`), advance the arc. Records
+   * how the group handled the just-completed beat (`beat_quality`) so the next
+   * beat's tone can be softened or escalated. The DM may also skip forward to
+   * a later beat id (a decisive action that collapses multiple steps).
+   */
+  _applyBeatJudgment(parsed) {
+    if (!this.beats.length) {
+      this.lastBeatQuality = '';
+      return;
+    }
+    if (parsed.beat_quality === 'good' || parsed.beat_quality === 'mixed' || parsed.beat_quality === 'poor') {
+      this.lastBeatQuality = parsed.beat_quality;
+    } else if (parsed.beat) {
+      // A beat transition without an explicit quality: infer from progress.
+      this.lastBeatQuality = parsed.progress === false ? 'poor' : 'mixed';
+    }
+    if (!parsed.beat) return;
+    const next = this.beats.findIndex((b) => b.id === parsed.beat);
+    // Only advance forward (or stay); never go backwards. A beat id that is
+    // not in the arc is ignored. If the target index is <= current, treat as
+    // "stay in the current beat" (no valid forward move).
+    if (next > this.currentBeatIndex) {
+      this.currentBeatIndex = next;
+    }
   }
 
   /**
@@ -772,6 +837,8 @@ export class DMSession {
       breachState: this.breachState,
       rollModifier: this.rollModifier,
       statStreaks: clone(this.statStreaks),
+      currentBeatIndex: this.currentBeatIndex,
+      lastBeatQuality: this.lastBeatQuality,
     };
   }
 
@@ -794,6 +861,8 @@ export class DMSession {
     session.breachState = snapshot.breachState || deriveBreachState(session.attackChain);
     session.rollModifier = snapshot.rollModifier || 0;
     session.statStreaks = clone(snapshot.statStreaks || {});
+    session.currentBeatIndex = snapshot.currentBeatIndex || 0;
+    session.lastBeatQuality = snapshot.lastBeatQuality || '';
     return session;
   }
 }
