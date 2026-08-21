@@ -5,7 +5,7 @@
  * session into the playable flow:
  *
  *   1. Scenario select
- *   2. Intro video (optional) + moderator narrative (intro phase)
+ *   2. Intro video (optional) + case introduction (intro phase)
  *   3. Free-text action box + D20 roll
  *   4. DM (LLM) adjudicates -> narrative + state update
  *   5. Timer running; end on condition or timeout -> closing report
@@ -51,7 +51,7 @@ async function init() {
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'die', 'roll', 'manual', 'useManual', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
-   'progress', 'moderatorRead', 'moderatorNotes', 'companyNote', 'settingsButton',
+   'progress', 'moderatorRead', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'playCapability', 'breachState', 'attackChain', 'rollModifier',
    'endExercise',
   ].forEach((id) => { el[id] = $(id); });
@@ -215,9 +215,10 @@ async function beginSession() {
     // Random mode: tell the DM to generate the scenario.
     if (state.isRandom) state.session.random = true;
 
-    // Show the group's opening scene (intro.narrative) + moderator-only notes.
+    // Show the group's case introduction (intro.narrative). There is no
+    // human facilitator — the DM is the LLM — so everyone reads the same case
+    // brief and there are no moderator-only notes.
     el.moderatorRead.textContent = scenario.intro.narrative || '';
-    el.moderatorNotes.textContent = scenario.intro.facilitator_notes || '(no facilitator notes)';
 
     state.session.start();
 
