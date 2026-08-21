@@ -15,7 +15,7 @@ export class OpenAICompatibleProvider {
    * @param {object} config
    * @param {string} config.baseUrl   e.g. https://api.openai.com/v1
    * @param {string} config.apiKey    API key (may be empty for local Ollama)
-   * @param {string} config.model     e.g. gpt-4o-mini, deepseek-chat, gemma3:4b
+   * @param {string} config.model     e.g. gpt-4o-mini, deepseek-chat, deepseek-v4-flash:cloud
    */
   constructor(config) {
     this.baseUrl = (config.baseUrl || '').replace(/\/+$/, '');

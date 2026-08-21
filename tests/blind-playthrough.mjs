@@ -22,7 +22,7 @@ import { randomScenarioShell } from '../app/js/scenarios.js';
 import { readFileSync } from 'node:fs';
 
 const OLLAMA = 'http://localhost:11434/v1';
-const DM_MODEL = 'gemma3:4b';
+const DM_MODEL = process.env.DM_MODEL || 'deepseek-v4-flash:cloud';
 const PLAYER_MODEL = process.argv[2] || 'gemma4:31b-cloud';
 const TURNS = Number(process.argv[3]) || 20;
 const RANDOM = process.argv.includes('--random') || process.argv.includes('random');

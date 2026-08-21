@@ -19,7 +19,7 @@ export class ServerProxyProvider {
    *   then falls back to its own OLLAMA_URL default, so the client never needs
    *   to know where Ollama lives (used by the "Ollama (remote)" preset).
    * @param {string} config.apiKey    upstream API key (may be empty for local Ollama)
-   * @param {string} config.model     upstream model (e.g. gemma3:4b)
+   * @param {string} config.model     upstream model (e.g. deepseek-v4-flash:cloud)
    * @param {string} config.endpoint  server proxy path (default '/api/dm')
    */
   constructor(config) {

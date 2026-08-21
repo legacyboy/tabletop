@@ -105,7 +105,7 @@ const remoteState = await page.evaluate(() => ({
 }));
 check('remote ollama HIDES the Base URL field', remoteState.baseUrlDisplay === 'none');
 check('remote ollama HIDES the Base URL label/wrap', remoteState.baseUrlWrapDisplay === 'none');
-check('remote ollama pre-fills model gemma3:4b', remoteState.model === 'gemma3:4b');
+check('remote ollama pre-fills model deepseek-v4-flash:cloud', remoteState.model === 'deepseek-v4-flash:cloud');
 
 // Server (local) preset keeps its localhost base URL AND shows the field.
 await page.select('#preset', 'server-local');
@@ -132,13 +132,13 @@ const dropdownState = await page.evaluate(() => ({
 }));
 check('remote ollama SHOWS the model dropdown', dropdownState.selectDisplay !== 'none');
 check('remote ollama HIDES the free-text model input', dropdownState.modelDisplay === 'none');
-check('dropdown includes gemma3:4b', dropdownState.options.includes('gemma3:4b'));
+check('dropdown does NOT include gemma3:4b', !dropdownState.options.includes('gemma3:4b'));
 check('dropdown includes glm-5.2:cloud', dropdownState.options.includes('glm-5.2:cloud'));
 check('dropdown includes deepseek-v4-flash:cloud', dropdownState.options.includes('deepseek-v4-flash:cloud'));
-check('dropdown includes a qwen model', dropdownState.options.some((v) => /qwen/i.test(v)));
+check('dropdown includes qwen3.5:397b-cloud', dropdownState.options.includes('qwen3.5:397b-cloud'));
 check('dropdown includes a Custom… option (value "")', dropdownState.options.includes(''));
-check('dropdown pre-selects the current model gemma3:4b', dropdownState.selected === 'gemma3:4b');
-check('free-text model input stays in sync with dropdown (gemma3:4b)', dropdownState.modelValue === 'gemma3:4b');
+check('dropdown pre-selects the current model deepseek-v4-flash:cloud', dropdownState.selected === 'deepseek-v4-flash:cloud');
+check('free-text model input stays in sync with dropdown (deepseek-v4-flash:cloud)', dropdownState.modelValue === 'deepseek-v4-flash:cloud');
 
 // Picking a real model updates the hidden free-text input value.
 await page.select('#modelSelect', 'glm-5.2:cloud');
