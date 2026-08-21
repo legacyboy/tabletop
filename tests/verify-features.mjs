@@ -304,6 +304,7 @@ const playUI = await page.evaluate(() => ({
   stateList: !!document.getElementById('stateList'),
   log: !!document.getElementById('log'),
   endBtn: !!document.getElementById('endExercise'),
+  manualRoll: !!document.getElementById('manualRoll'),
   breachGone: !document.getElementById('breachState'),
   chainGone: !document.getElementById('attackChain'),
   capGone: !document.getElementById('playCapability'),
@@ -317,6 +318,7 @@ check('play phase has a response (narrative) box', playUI.narrative);
 check('play phase keeps the state box', playUI.stateList);
 check('play phase keeps the run log', playUI.log);
 check('play phase has an end-exercise (manual conclude) button', playUI.endBtn);
+check('play phase has a manual roll input beside Submit', playUI.manualRoll);
 check('Breach Status section is removed', playUI.breachGone && playUI.chainGone && playUI.capGone && playUI.modGone);
 check('D20 roll/useManual buttons removed (merged into Submit)', playUI.d20CardGone);
 

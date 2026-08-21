@@ -49,7 +49,7 @@ function setPhase(phase) {
 async function init() {
   // Cache DOM refs.
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
-   'startButton', 'actionText', 'submitBtn', 'outcome',
+   'startButton', 'actionText', 'manualRoll', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
@@ -253,7 +253,19 @@ function bindRollFlow(scenario) {
       el.outcome.textContent = 'Type what the group wants to do, then submit.';
       return;
     }
-    const roll = Math.floor(Math.random() * 20) + 1;
+    // Use a manual roll if one was entered (1–20); otherwise auto-roll the D20.
+    let roll = 0;
+    const manual = el.manualRoll.value.trim();
+    if (manual) {
+      const n = Number(manual);
+      if (!Number.isInteger(n) || n < 1 || n > 20) {
+        el.outcome.textContent = 'Manual roll must be a whole number from 1 to 20 (or leave blank to auto-roll).';
+        return;
+      }
+      roll = n;
+    } else {
+      roll = Math.floor(Math.random() * 20) + 1;
+    }
     await resolveTurn(action, roll);
   };
 
@@ -286,6 +298,7 @@ async function resolveTurn(action, roll) {
   outcomeButton.textContent = 'The DM is considering...';
   const keepValue = el.actionText.value;
   el.actionText.disabled = true;
+  el.manualRoll.disabled = true;
   el.submitBtn.disabled = true;
 
   try {
@@ -310,14 +323,17 @@ async function resolveTurn(action, roll) {
       return;
     }
 
-    // Prepare next turn: clear the box, re-enable.
+    // Prepare next turn: clear the box(es), re-enable.
     el.actionText.disabled = false;
     el.actionText.value = '';
+    el.manualRoll.disabled = false;
+    el.manualRoll.value = '';
     el.actionText.focus();
     el.submitBtn.disabled = false;
   } catch (err) {
     el.actionText.disabled = false;
     el.actionText.value = keepValue;
+    el.manualRoll.disabled = false;
     el.submitBtn.disabled = false;
     el.outcome.textContent = 'DM error: ' + err.message;
   }

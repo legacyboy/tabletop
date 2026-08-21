@@ -58,6 +58,20 @@ check('log has entry', afterRoll.logCount >= 1);
 console.log('  NARRATIVE:', afterRoll.narrative.slice(0, 90));
 console.log('  STATE ITEMS:', afterRoll.stateCount, '| LOG:', afterRoll.logCount);
 
+// Manual roll: enter a specific d20 value and verify it's honored in the log.
+await page.type('#actionText', 'Signal the manual roll is used.');
+await page.type('#manualRoll', '13');
+await page.click('#submitBtn');
+await new Promise((r) => setTimeout(r, 2500)); // wait for mock round trip
+const manualCheck = await page.evaluate(() => {
+  const logText = document.getElementById('log').textContent;
+  const manualCleared = document.getElementById('manualRoll').value === '';
+  return { logText, manualCleared, manualPresent: logText.includes('d20=13') };
+});
+check('manual roll value (13) is used in the run log', manualCheck.manualPresent);
+check('manual roll input is cleared after submit', manualCheck.manualCleared);
+console.log('  MANUAL ROLL in log:', manualCheck.manualPresent ? 'yes (d20=13)' : 'no');
+
 // Force an end by driving risk past threshold via many fate-11 turns.
 // Faster: call report through the UI by directly invoking finish via a crafted state.
 // Simpler & robust: click new session path is not needed; instead verify report phase via
