@@ -156,6 +156,21 @@ video {
 .small { font-size: 13px; }
 .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
+/* Inline "manual roll" input beside the submit button. */
+label.manual-roll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  white-space: nowrap;
+}
+label.manual-roll input {
+  width: 72px;
+  margin: 0;
+  padding: 10px;
+  text-align: center;
+}
+
 #outcome { min-height: 48px; margin-top: 10px; }
 
 .option { cursor: pointer; }

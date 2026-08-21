@@ -61,6 +61,10 @@
         <textarea id="actionText" rows="4"
           placeholder="Describe what your group wants to do... The DM reacts to your actions, it won't lead you."></textarea>
         <div class="row">
+          <label class="manual-roll" for="manualRoll">Manual roll
+            <input id="manualRoll" type="number" min="1" max="20" step="1"
+              placeholder="1–20" title="Optional: enter a specific d20 result. Leave blank to auto-roll." />
+          </label>
           <button id="submitBtn" class="primary">Submit action (roll D20)</button>
         </div>
         <div id="outcome" class="small muted">Type an action, then submit.</div>
