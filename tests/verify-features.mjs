@@ -31,19 +31,20 @@ const introVisible = await page.evaluate(() => document.getElementById('phase-in
 check('initial load shows intro (auto-selected scenario)', introVisible);
 
 // --- Feature 0 (v3): text-first intro + hidden goal ---
-// The intro narrative is the group's OPENING SCENE (not "Intro for the
-// moderator"), and the goal is never shown to players.
+// The intro shows the group's case brief. There is no human facilitator (the
+// DM is the LLM), so there are no moderator-only notes on the player screen,
+// and the goal is never shown to players.
 const introHeading = await page.evaluate(() => {
   const h2s = Array.from(document.querySelectorAll('#phase-intro h2')).map((h) => h.textContent.trim());
   return h2s.join(' | ');
 });
-check('intro heading reads "Opening scene"', /Opening scene/i.test(introHeading));
-check('intro heading no longer says "Intro for the moderator"', !/Intro for the moderator/i.test(introHeading));
+check('intro heading reads "The case"', /The case/i.test(introHeading));
+check('intro heading no longer says "Opening scene"', !/Opening scene/i.test(introHeading));
 const facilitatorLabel = await page.evaluate(() => {
   const h3s = Array.from(document.querySelectorAll('#phase-intro h3')).map((h) => h.textContent.trim());
   return h3s.join(' | ');
 });
-check('facilitator notes still labeled moderator-only', /players should not see this/i.test(facilitatorLabel));
+check('NO facilitator-notes section (DM is the LLM, no hidden moderator brief)', !/players should not see this/i.test(facilitatorLabel));
 // The goal must NOT appear anywhere in the DOM (players never see it).
 const goalLeak = await page.evaluate(() => {
   const body = document.body.innerText;

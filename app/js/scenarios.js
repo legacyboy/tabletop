@@ -75,7 +75,6 @@ export function randomScenarioShell() {
     intro: {
       video: '',
       narrative: 'The DM will generate the opening scene for this session.',
-      facilitator_notes: 'Random mode: the DM invents an appropriate executive scenario, opening state, goal, and events on the fly. Keep it executive-focused.',
       company_url: '',
       company_info: '',
     },
