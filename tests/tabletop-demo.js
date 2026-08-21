@@ -11,7 +11,7 @@ const scenario = JSON.parse(readFileSync('scenarios/bramble-badger-deepfake/scen
 const provider = new OpenAICompatibleProvider({
   baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434/v1',
   apiKey: '',
-  model: process.env.MODEL || 'gemma3:4b',
+  model: process.env.MODEL || 'deepseek-v4-flash:cloud',
 });
 
 const session = new DMSession(provider, scenario);

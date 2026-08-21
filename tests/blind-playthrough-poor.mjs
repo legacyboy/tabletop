@@ -16,7 +16,7 @@ import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.
 import { readFileSync } from 'node:fs';
 
 const OLLAMA = 'http://localhost:11434/v1';
-const DM_MODEL = 'gemma3:4b';
+const DM_MODEL = process.env.DM_MODEL || 'deepseek-v4-flash:cloud';
 const PLAYER_MODEL = process.argv[2] || 'glm-5.2:cloud';
 const TURNS = Number(process.argv[3]) || 20;
 

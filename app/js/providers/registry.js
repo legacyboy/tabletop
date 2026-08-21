@@ -27,14 +27,13 @@ let sessionApiKey = '';
 /**
  * Common Ollama models offered in the settings dropdown for the
  * "Ollama (remote)" preset. Each entry is { value, label } where value is the
- * model id sent to the server and label is what the user sees. gemma3:4b is
- * first and is the preset default.
+ * model id sent to the server and label is what the user sees. deepseek-v4-flash:cloud
+ * is first and is the preset default DM (1M context, latest cloud build).
  */
 export const OLLAMA_MODELS = [
-  { value: 'gemma3:4b', label: 'Gemma 3 4B' },
-  { value: 'glm-5.2:cloud', label: 'GLM 5.2' },
   { value: 'deepseek-v4-flash:cloud', label: 'DeepSeek Flash' },
-  { value: 'qwen3-coder-next:cloud', label: 'Qwen' },
+  { value: 'glm-5.2:cloud', label: 'GLM 5.2' },
+  { value: 'qwen3.5:397b-cloud', label: 'Qwen 3.5' },
 ];
 
 /** Built-in presets for the "plug a key" section. */
@@ -61,7 +60,7 @@ export const PRESETS = [
     id: 'server-local',
     label: 'Server (local Ollama)',
     baseUrl: 'http://localhost:11434/v1',
-    model: 'gemma3:4b',
+    model: 'deepseek-v4-flash:cloud',
     viaServer: true,
   },
   {
@@ -75,7 +74,7 @@ export const PRESETS = [
     // from the server's perspective. The settings UI hides the Base URL field
     // for this preset.
     viaServer: true,
-    model: 'gemma3:4b',
+    model: 'deepseek-v4-flash:cloud',
   },
 ];
 
