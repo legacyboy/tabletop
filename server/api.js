@@ -23,7 +23,7 @@
  * Provider config (per-request, with env defaults):
  *   base_url  (default OLLAMA_URL or http://localhost:11434/v1)
  *   api_key   (default OLLAMA_API_KEY or '')
- *   model     (default MODEL or gemma3:4b)
+ *   model     (default MODEL or deepseek-v4-flash:cloud)
  *
  * Sessions are held in memory (Map). Restarting the server clears them.
  */
@@ -50,7 +50,7 @@ const providerConfigs = new Map();
 const ENV = {
   baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434/v1',
   apiKey: process.env.OLLAMA_API_KEY || '',
-  model: process.env.MODEL || 'gemma3:4b',
+  model: process.env.MODEL || 'deepseek-v4-flash:cloud',
 };
 
 /** Load the scenario registry. */
