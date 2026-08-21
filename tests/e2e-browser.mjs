@@ -41,19 +41,16 @@ await new Promise((r) => setTimeout(r, 400));
 const playVisible = await page.evaluate(() => document.getElementById('phase-play').style.display);
 check('play phase visible', playVisible === 'block');
 
-// Type an action and use manual roll.
+// Type an action and submit (the D20 is rolled internally now).
 await page.type('#actionText', 'Issue a calm public statement and brief the board.');
-await page.evaluate(() => { document.getElementById('manual').value = 15; });
-await page.click('#useManual');
+await page.click('#submitBtn');
 await new Promise((r) => setTimeout(r, 2500)); // wait for mock round trip
 
 const afterRoll = await page.evaluate(() => ({
-  die: document.getElementById('die').textContent,
   narrative: document.getElementById('narrative').textContent,
   stateCount: document.querySelectorAll('#stateList .stateItem').length,
   logCount: document.querySelectorAll('#log .logItem').length,
 }));
-check('die shows 15', afterRoll.die === '15');
 check('narrative populated', afterRoll.narrative.length > 20);
 check('state dashboard populated', afterRoll.stateCount === 8);
 check('log has entry', afterRoll.logCount >= 1);
@@ -74,11 +71,10 @@ await page.evaluate(() => {
   return null;
 });
 
-// Drive risk up with 3 fate-11 rolls to try to hit an end condition.
+// Drive risk up with repeated submits to try to hit an end condition.
 for (let i = 0; i < 4; i++) {
   await page.type('#actionText', 'Take increasingly drastic action');
-  await page.evaluate(() => { document.getElementById('manual').value = 11; });
-  await page.click('#useManual');
+  await page.click('#submitBtn');
   await new Promise((r) => setTimeout(r, 900));
 }
 const afterFate = await page.evaluate(() => ({
