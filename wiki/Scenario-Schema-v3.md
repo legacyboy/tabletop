@@ -2,9 +2,10 @@
 
 v3 builds on v2's open-ended, LLM-run model with three changes:
 
-1. **Text-first intro.** The intro narrative is the group's **opening scene** —
-   the primary thing shown to players. The video is optional. Facilitator notes
-   stay moderator-only.
+1. **Text-first intro.** The intro shows the group's **case brief** — the
+   primary thing all participants read to set the scene. The video is
+   optional. There is no human facilitator (the DM is the LLM), so there are
+   no moderator-only notes on the player screen.
 2. **Conditional events.** The loose `dm_brief.pressure_points` (a list of
    strings the DM *may* inject) is replaced by a structured top-level `events`
    array. Each event has a **conditional trigger** (stall, stat threshold, or
@@ -57,13 +58,13 @@ Scenarios are listed in `scenarios/registry.json`.
   "title": "Bramble Badger Deepfake Crisis",
   "version": 4,
 
-  // --- opening / intro (the "select scenario -> opening scene" flow) ---
-  // The narrative is the group's OPENING SCENE — the primary thing shown to
-  // players. The video is optional. facilitator_notes is moderator-only.
+  // --- opening / intro (the "select scenario -> case introduction" flow) ---
+  // The narrative is the CASE INTRODUCTION — the primary thing shown to all
+  // participants. The video is optional. There is no human facilitator (the
+  // DM is the LLM), so there are no moderator-only notes displayed.
   "intro": {
     "video": "media/bramble_badger_fake_exec_video.mp4",  // optional
-    "narrative": "Text read aloud / displayed to the group to set the scene.",
-    "facilitator_notes": "For the moderator only, not the players.",
+    "narrative": "Text displayed to the group to introduce the case.",
     "company_url": "https://example.com",     // optional: DM may fetch public info
     "company_info": "Optional static background about the organization."
   },
