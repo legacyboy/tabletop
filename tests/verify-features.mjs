@@ -291,21 +291,34 @@ const chainLeak = await page.evaluate(() => {
 });
 check('hidden attack chain does NOT leak to players in the intro', !chainLeak);
 
-// --- Feature 7 (PR8): play-phase UI elements exist ---
-// The play phase has a breach-state display, an attack-chain panel, and a
-// "play a defender capability" (roll modifier) button.
+// --- Feature 7 (PR8/UI rework): play-phase UI elements ---
+// The play phase has the merged action flow: a timer, a text box to enter
+// actions, a single submit button, a response text box, the state box, the
+// run log, and the end-exercise button. The old separate D20 card and the
+// Breach Status section are removed.
 const playUI = await page.evaluate(() => ({
-  breach: !!document.getElementById('breachState'),
-  chain: !!document.getElementById('attackChain'),
-  capBtn: !!document.getElementById('playCapability'),
-  mod: !!document.getElementById('rollModifier'),
+  timer: !!document.getElementById('timer'),
+  actionText: !!document.getElementById('actionText'),
+  submitBtn: !!document.getElementById('submitBtn'),
+  narrative: !!document.getElementById('narrative'),
+  stateList: !!document.getElementById('stateList'),
+  log: !!document.getElementById('log'),
   endBtn: !!document.getElementById('endExercise'),
+  breachGone: !document.getElementById('breachState'),
+  chainGone: !document.getElementById('attackChain'),
+  capGone: !document.getElementById('playCapability'),
+  modGone: !document.getElementById('rollModifier'),
+  d20CardGone: !document.getElementById('roll') && !document.getElementById('useManual'),
 }));
-check('play phase has a breach-state element', playUI.breach);
-check('play phase has an attack-chain panel', playUI.chain);
-check('play phase has a defender-capability (roll modifier) button', playUI.capBtn);
-check('play phase has a roll-modifier indicator', playUI.mod);
+check('play phase has a timer', playUI.timer);
+check('play phase has an action textarea', playUI.actionText);
+check('play phase has a submit button', playUI.submitBtn);
+check('play phase has a response (narrative) box', playUI.narrative);
+check('play phase keeps the state box', playUI.stateList);
+check('play phase keeps the run log', playUI.log);
 check('play phase has an end-exercise (manual conclude) button', playUI.endBtn);
+check('Breach Status section is removed', playUI.breachGone && playUI.chainGone && playUI.capGone && playUI.modGone);
+check('D20 roll/useManual buttons removed (merged into Submit)', playUI.d20CardGone);
 
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);

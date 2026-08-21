@@ -49,11 +49,10 @@ function setPhase(phase) {
 async function init() {
   // Cache DOM refs.
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
-   'startButton', 'actionText', 'die', 'roll', 'manual', 'useManual', 'outcome',
+   'startButton', 'actionText', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'companyNote', 'settingsButton',
-   'loadScenarioBtn', 'selectBack', 'playCapability', 'breachState', 'attackChain', 'rollModifier',
-   'endExercise',
+   'loadScenarioBtn', 'selectBack', 'endExercise',
   ].forEach((id) => { el[id] = $(id); });
 
   // Settings navigation.
@@ -245,49 +244,26 @@ async function beginSession() {
 }
 
 function bindRollFlow(scenario) {
-  // Digital roll.
-  el.roll.onclick = async () => {
+  // Single Submit action: take the group's action text, roll the D20
+  // internally, and let the DM adjudicate. This merges the old separate
+  // 'D20' card + 'What does the group do?' card into one flow.
+  el.submitBtn.onclick = async () => {
     const action = el.actionText.value;
     if (!action.trim()) {
-      el.outcome.textContent = 'Type what the group wants to do, then roll.';
+      el.outcome.textContent = 'Type what the group wants to do, then submit.';
       return;
     }
     const roll = Math.floor(Math.random() * 20) + 1;
     await resolveTurn(action, roll);
   };
 
-  // Physical roll (manual entry).
-  el.useManual.onclick = async () => {
-    const action = el.actionText.value;
-    const v = parseInt(el.manual.value, 10);
-    if (!action.trim()) {
-      el.outcome.textContent = 'Type what the group wants to do, then roll.';
-      return;
+  // Ctrl/Cmd+Enter in the textarea also submits the action.
+  el.actionText.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      el.submitBtn.click();
     }
-    if (!(v >= 1 && v <= 20)) {
-      el.outcome.textContent = 'Manual roll must be 1-20.';
-      return;
-    }
-    await resolveTurn(action, v);
-  };
-
-  // Play a defender capability: spend budget to grant a +2/+3 on the next
-  // roll. The DM brief explains this mechanic; the modifier nudges the roll.
-  if (el.playCapability) {
-    el.playCapability.onclick = () => {
-      const session = state.session;
-      if (!session) return;
-      const budget = session.state.budget;
-      if (typeof budget !== 'number' || budget < 10) {
-        el.outcome.textContent = 'Not enough budget to play a defender capability (needs 10).';
-        return;
-      }
-      session.state.budget = Math.max(0, budget - 10);
-      session.grantRollModifier(3);
-      el.outcome.textContent = 'Defender capability played: +3 on the next roll (budget -10).';
-      renderState();
-    };
-  }
+  });
 
   // End the exercise manually: the team decides it's done. This is the
   // intended way a session concludes (Dan: no instant loss on a stat hitting
@@ -310,13 +286,11 @@ async function resolveTurn(action, roll) {
   outcomeButton.textContent = 'The DM is considering...';
   const keepValue = el.actionText.value;
   el.actionText.disabled = true;
-  el.roll.disabled = true;
-  el.useManual.disabled = true;
+  el.submitBtn.disabled = true;
 
   try {
     const result = await session.takeTurn(action, roll);
 
-    el.die.textContent = String(roll);
     el.narrative.textContent = result.narrative;
     if (result.event.fate) {
       el.outcome.textContent = `Roll ${roll} — FATE EVENT: ${result.event.fate}`;
@@ -340,13 +314,11 @@ async function resolveTurn(action, roll) {
     el.actionText.disabled = false;
     el.actionText.value = '';
     el.actionText.focus();
-    el.roll.disabled = false;
-    el.useManual.disabled = false;
+    el.submitBtn.disabled = false;
   } catch (err) {
     el.actionText.disabled = false;
     el.actionText.value = keepValue;
-    el.roll.disabled = false;
-    el.useManual.disabled = false;
+    el.submitBtn.disabled = false;
     el.outcome.textContent = 'DM error: ' + err.message;
   }
 }
@@ -374,37 +346,6 @@ function renderState() {
       return `<div class="stateItem${danger}"><b>${humanize(k)}</b>: ${v}${note}</div>`;
     })
     .join('');
-
-  // Breach state + attack chain (revealed stages only — hidden stages stay
-  // hidden so the kill chain is a discoverable mystery, not a spoiler).
-  const breachEl = $('breachState');
-  if (breachEl) {
-    breachEl.textContent = session.breachState || '—';
-    breachEl.className = 'breach' + (session.breachState ? ' ' + session.breachState : '');
-  }
-  const chainEl = $('attackChain');
-  if (chainEl) {
-    const revealed = (session.attackChain || []).filter((s) => s.revealed);
-    if (revealed.length === 0) {
-      chainEl.textContent = 'Nothing confirmed yet. Keep investigating.';
-    } else {
-      chainEl.innerHTML = revealed
-        .map((s) => `<div class="stateItem">${s.contained ? '✅' : '🔍'} <b>${escapeHtml(s.name)}</b>${s.contained ? ' — contained' : ''}</div>`)
-        .join('');
-    }
-  }
-
-  // Roll modifier indicator.
-  const modEl = $('rollModifier');
-  if (modEl) {
-    if (session.rollModifier > 0) {
-      modEl.textContent = `+${session.rollModifier} on next roll (defender capability active)`;
-      modEl.style.display = 'block';
-    } else {
-      modEl.textContent = '';
-      modEl.style.display = 'none';
-    }
-  }
 
   const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
   el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
