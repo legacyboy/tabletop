@@ -166,6 +166,11 @@ async function selectScenario(index) {
 
   el.scenarioTitle.textContent = scenario.title;
 
+  // Show the case brief (intro.narrative) on the intro screen so participants
+  // read the plot/story before starting. The DM is the LLM and everyone is a
+  // participant, so this is the one text brief shown to the group.
+  el.moderatorRead.textContent = scenario.intro.narrative || '';
+
   // Intro video (optional).
   const videoSrc = scenario.intro.video;
   if (videoSrc) {
