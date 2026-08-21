@@ -53,6 +53,7 @@ async function init() {
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'moderatorNotes', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'playCapability', 'breachState', 'attackChain', 'rollModifier',
+   'endExercise',
   ].forEach((id) => { el[id] = $(id); });
 
   // Settings navigation.
@@ -281,6 +282,18 @@ function bindRollFlow(scenario) {
       renderState();
     };
   }
+
+  // End the exercise manually: the team decides it's done. This is the
+  // intended way a session concludes (Dan: no instant loss on a stat hitting
+  // 100 — the game runs until the group decides it's over).
+  if (el.endExercise) {
+    el.endExercise.onclick = () => {
+      const session = state.session;
+      if (!session) return;
+      if (!confirm('End the exercise now and generate the closing report?')) return;
+      finish({ type: 'manual', result: 'ended', ending: 'The group decided to conclude the exercise.' });
+    };
+  }
 }
 
 async function resolveTurn(action, roll) {
@@ -335,8 +348,25 @@ async function resolveTurn(action, roll) {
 function renderState() {
   const session = state.session;
   if (!session) return;
+  // Danger zone: a stat that crosses a threshold in the scenario's
+  // end_conditions is flagged visually (red) even though it does NOT end the
+  // game — the team sees they're in trouble and must keep managing it.
+  const dangerStats = {};
+  for (const c of (session.scenario.end_conditions || [])) {
+    if (c.type !== 'stat') continue;
+    const v = session.state[c.stat];
+    if (typeof v !== 'number') continue;
+    const inZone = (c.operator === 'lte' && v <= c.value) || (c.operator === 'gte' && v >= c.value);
+    if (inZone) dangerStats[c.stat] = c;
+  }
   el.stateList.innerHTML = Object.entries(session.state)
-    .map(([k, v]) => `<div class="stateItem"><b>${humanize(k)}</b>: ${v}</div>`)
+    .map(([k, v]) => {
+      const danger = dangerStats[k] ? ' danger' : '';
+      const note = dangerStats[k]
+        ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>`
+        : '';
+      return `<div class="stateItem${danger}"><b>${humanize(k)}</b>: ${v}${note}</div>`;
+    })
     .join('');
 
   // Breach state + attack chain (revealed stages only — hidden stages stay

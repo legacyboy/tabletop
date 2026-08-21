@@ -87,14 +87,16 @@
     ],
     "rules_of_play": [
       "Never propose actions or present a menu of choices. Only react to what the group decides.",
+      "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
-      "Show consequences of the roll, but let the group's stated action drive the logic.",
+      "Show consequences of the roll, but let the group's stated actions drive the logic.",
       "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
       "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
       "If the group stalls with no clear action for a while, inject a pressure point to move things.",
-      "Enforce detection as a resource: the group cannot do everything at once, and activating monitoring costs budget.",
+      "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
       "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
-      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll."
+      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
     ]
   },
 
