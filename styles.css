@@ -152,7 +152,6 @@ video {
 /* ---- Budget card ---- */
 .budgetCard { display: flex; flex-direction: column; gap: 6px; }
 .budgetLine { display: flex; justify-content: space-between; align-items: center; }
-.budgetBal { font-size: 22px; font-weight: 800; color: #4bd5ff; }
 .budgetSpend { font-size: 12px; color: #8a95ab; }
 .budgetSpend b { color: #dfe9ff; }
 
@@ -162,19 +161,11 @@ video {
 .lightDot.green { background: #34d17b; box-shadow: 0 0 8px #34d17b88; }
 .lightDot.yellow { background: #f5c542; box-shadow: 0 0 8px #f5c54288; }
 .lightDot.red { background: #ff6b6b; box-shadow: 0 0 8px #ff6b6b88; }
-.lightWord { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
-.lightWord.green { color: #34d17b; }
-.lightWord.yellow { color: #f5c542; }
-.lightWord.red { color: #ff6b6b; }
-.lightVal { margin-left: auto; font-variant-numeric: tabular-nums; color: #8a95ab; }
 
 /* ---- Attacker progress bar ---- */
 .apRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .apBar { height: 12px; border-radius: 8px; background: #0a0f1c; border: 1px solid #ffffff22; overflow: hidden; }
-.apFill { height: 100%; transition: width .3s ease; }
-.apFill.green { background: linear-gradient(90deg, #2f9e5f, #34d17b); }
-.apFill.yellow { background: linear-gradient(90deg, #d9a92f, #f5c542); }
-.apFill.red { background: linear-gradient(90deg, #d94b4b, #ff6b6b); }
+.apFill { height: 100%; background: #4bd5ff; transition: width .3s ease; }
 #log { max-height: 240px; overflow-y: auto; }
 .logItem { font-size: 13px; padding: 8px 10px; margin: 5px 0; }
 

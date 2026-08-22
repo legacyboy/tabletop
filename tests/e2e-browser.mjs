@@ -54,6 +54,8 @@ const afterRoll = await page.evaluate(() => ({
   apBar: !!document.querySelector('#stateList .apBar'),
   budgetCard: !!document.querySelector('#stateList .budgetCard'),
   postureGone: !/Security Posture/.test(document.getElementById('stateList').textContent),
+  // Dan: no color words, no numeric scores on the lights, no color label on the bar.
+  stateText: document.getElementById('stateList').textContent,
 }));
 check('narrative populated', afterRoll.narrative.length > 20);
 check('state dashboard populated (7 widgets: budget + 5 lights + attacker bar)', afterRoll.stateCount === 7);
@@ -62,6 +64,8 @@ check('5 traffic-light metrics rendered', afterRoll.trafficLights === 5);
 check('attacker_progress rendered as a progress bar', afterRoll.apBar);
 check('budget rendered as a spend card', afterRoll.budgetCard);
 check('security_posture dropped from the state panel', afterRoll.postureGone);
+check('traffic lights show NO color word (Green/Yellow/Red)', !/\bGreen\b|\bYellow\b|\bRed\b/.test(afterRoll.stateText.replace(/Public Trust|Attacker progress|Budget/g, '')));
+check('attacker bar has no color label', !/[0-9]+\s*%/.test(afterRoll.stateText));
 
 console.log('  NARRATIVE:', afterRoll.narrative.slice(0, 90));
 console.log('  STATE ITEMS:', afterRoll.stateCount, '| LOG:', afterRoll.logCount);

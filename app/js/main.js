@@ -357,49 +357,44 @@ function renderState() {
   const s = session.state;
   const parts = [];
 
-  // ---- Budget: a live balance + spend log (a raw number alone is not
-  // informational). ----
-  const budget = typeof s.budget === 'number' ? s.budget : null;
+  // ---- Budget: money spent (a 0-100 balance is meaningless on its own).
+  // Show the DM's spend estimate in dollars: this turn + running total. ----
   const spent = session.budgetSpend || 0;
   const lastSpent = session.lastBudgetSpend || 0;
   parts.push(
     `<div class="stateItem budgetCard">` +
-      `<div class="budgetLine"><b>Budget</b><span class="budgetBal">${budget === null ? '—' : budget}</span></div>` +
+      `<div class="budgetLine"><b>Budget spent</b></div>` +
       `<div class="budgetSpend">` +
-        (lastSpent > 0 ? `This turn: spent <b>${lastSpent}</b> · ` : `This turn: no spend · `) +
-        `Total spent: <b>${spent}</b>` +
+        (lastSpent > 0 ? `This turn: <b>$${lastSpent}</b> · ` : `This turn: <b>$0</b> · `) +
+        `Total: <b>$${spent}</b>` +
       `</div>` +
     `</div>`
   );
 
-  // ---- Traffic-light metrics (higher = better): green / yellow / red. ----
+  // ---- Traffic-light metrics (higher = better): a colored dot + label only.
+  // No numeric score and no 'Green/Yellow/Red' word — the light speaks. ----
   const lightStats = ['public_trust', 'regulator_confidence', 'containment', 'eradication', 'recovery'];
   for (const k of lightStats) {
     const v = s[k];
     if (typeof v !== 'number') continue;
     const light = dangerStats[k] ? 'red' : trafficLight(v);
-    const note = dangerStats[k]
-      ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>`
-      : '';
     parts.push(
       `<div class="stateItem stateLight">` +
         `<span class="lightDot ${light}"></span>` +
         `<b>${humanize(k)}</b>` +
-        `<span class="lightWord ${light}">${labelOf(light)}</span>` +
-        `<span class="lightVal">${v}</span>${note}` +
       `</div>`
     );
   }
 
-  // ---- attacker_progress: a green->yellow->red progress bar (higher = worse). ----
+  // ---- attacker_progress: a plain progress bar (no traffic light, no color
+  // zones). Higher = the attacker is further along. ----
   const ap = s.attacker_progress;
   if (typeof ap === 'number') {
     const pct = Math.max(0, Math.min(100, ap));
-    const zone = ap <= 20 ? 'green' : ap <= 59 ? 'yellow' : 'red';
     parts.push(
       `<div class="stateItem">` +
-        `<div class="apRow"><b>Attacker progress</b><span class="lightWord ${zone}">${labelOf(zone)}</span></div>` +
-        `<div class="apBar"><div class="apFill ${zone}" style="width:${pct}%"></div></div>` +
+        `<div class="apRow"><b>Attacker progress</b></div>` +
+        `<div class="apBar"><div class="apFill" style="width:${pct}%"></div></div>` +
       `</div>`
     );
   }
@@ -427,9 +422,6 @@ function trafficLight(v) {
   if (v >= 60) return 'green';
   if (v >= 30) return 'yellow';
   return 'red';
-}
-function labelOf(light) {
-  return light === 'green' ? 'Green' : light === 'yellow' ? 'Yellow' : 'Red';
 }
 
 function renderTimer() {
