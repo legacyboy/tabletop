@@ -548,5 +548,17 @@ check('serialize includes budgetSpend', snapSpend.budgetSpend === 12);
 const restoredSpend = DMSession.restore(new SpendProvider(), scenario, snapSpend);
 check('restore preserves budgetSpend', restoredSpend.budgetSpend === 12);
 
+// 44. openScene() narrates the opening before the group acts (esp. Random).
+const sOpen = new DMSession(new MockProvider(), scenario);
+const opening = await sOpen.openScene();
+check('openScene returns a narration string', typeof opening === 'string' && opening.length > 0);
+check('openScene seeds history turn 0', sOpen.history.length === 1 && sOpen.history[0].turn === 0 && sOpen.history[0].action === '(opening scene)');
+check('openScene does not advance turn count', sOpen.turn === 0);
+check('openScene does not mutate state', JSON.stringify(sOpen.state) === JSON.stringify(scenario.opening_state || {}));
+// Random-mode shell also works (no pre-authored narrative to rely on).
+const randSession = new DMSession(new MockProvider(), randomScenarioShell());
+const randOpening = await randSession.openScene();
+check('openScene works in random mode', typeof randOpening === 'string' && randOpening.length > 0);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

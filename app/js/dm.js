@@ -305,6 +305,42 @@ export class DMSession {
     }
   }
 
+  /**
+   * Ask the DM to narrate the OPENING SCENE before the group has acted, so the
+   * session starts with the DM describing what is actually happening (not a
+   * blank "the game has started" state). Especially important in RANDOM mode,
+   * where there is no pre-authored intro narrative. This is a pure narration
+   * turn: no player action, no roll, no state change. Returns the DM's opening
+   * narrative string.
+   * @returns {Promise<string>}
+   */
+  async openScene() {
+    const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
+    const user =
+      'The session is about to begin. NO group action has been taken yet (this is the opening scene, turn 0).\n' +
+      'Narrate the opening scene in vivid, forward-driving prose (4-7 sentences): what has just happened, what the group\n' +
+      'is observing right now, and the concrete pressure/decision that is immediately in front of them.\n' +
+      'Do NOT describe any group actions or outcomes (none have occurred). Do NOT present a menu of choices.\n' +
+      'End by leaving the group facing a concrete in-world development they must react to.\n' +
+      'Reply with STRICT JSON: {"narrative": "<the opening scene prose>"} and nothing else.';
+    const dmResult = await this.provider.chat(
+      [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      { temperature: 0.8, maxTokens: 1200 }
+    );
+    const parsed = this._extractJson(dmResult);
+    let narrative = parsed.narrative || dmResult;
+    if (!parsed.narrative) {
+      const looksLikeJson = /^[{\[]/.test(String(dmResult).trim()) || /^"[\s\S]*"$/.test(String(dmResult).trim());
+      if (looksLikeJson) narrative = 'The opening scene unfolds. (The DM narrative could not be parsed cleanly.)';
+    }
+    // Seed the transcript so the opening scene shows in the closing report.
+    this.history.push({ turn: 0, action: '(opening scene)', narrative, roll: null });
+    return narrative;
+  }
+
   secondsLeft() {
     if (!this.startedAt || !this.durationSeconds) return null;
     return Math.max(0, this.durationSeconds - Math.floor((Date.now() - this.startedAt) / 1000));

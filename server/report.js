@@ -137,7 +137,7 @@ export function renderReportHtml(report) {
       <tr>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top;white-space:nowrap">${t.turn}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.action)}</td>
-        <td style="padding:8px;border:1px solid #ddd;text-align:center">${t.roll}${t.fate ? ' ⚡' : ''}</td>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center">${t.roll === null || t.roll === undefined ? '—' : t.roll}${t.fate ? ' ⚡' : ''}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.dm_decision)}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top;font-size:12px">${esc(JSON.stringify(t.state_after))}</td>
       </tr>`
