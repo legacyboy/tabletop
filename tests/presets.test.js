@@ -114,36 +114,35 @@ check('OLLAMA_MODELS default (first) is deepseek-v4-flash:cloud', OLLAMA_MODELS[
 // 9. DEEPSEEK_MODELS dropdown list is exported and well-formed.
 check('DEEPSEEK_MODELS is exported as an array', Array.isArray(DEEPSEEK_MODELS));
 const dsValues = DEEPSEEK_MODELS.map((m) => m.value);
-check('DEEPSEEK_MODELS includes deepseek-v4-flash:cloud', dsValues.includes('deepseek-v4-flash:cloud'));
-check('DEEPSEEK_MODELS includes deepseek-v4-pro:cloud', dsValues.includes('deepseek-v4-pro:cloud'));
+check('DEEPSEEK_MODELS includes deepseek-v4-flash', dsValues.includes('deepseek-v4-flash'));
+check('DEEPSEEK_MODELS includes deepseek-v4-pro', dsValues.includes('deepseek-v4-pro'));
 check('DEEPSEEK_MODELS ids are unique', new Set(dsValues).size === dsValues.length);
 check('DEEPSEEK_MODELS entries have value + label', DEEPSEEK_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
-check('DEEPSEEK_MODELS default (first) is deepseek-v4-flash:cloud', DEEPSEEK_MODELS[0] && DEEPSEEK_MODELS[0].value === 'deepseek-v4-flash:cloud');
+check('DEEPSEEK_MODELS default (first) is deepseek-v4-flash', DEEPSEEK_MODELS[0] && DEEPSEEK_MODELS[0].value === 'deepseek-v4-flash');
 
-// 10. DeepSeek preset routes via server proxy to Ollama cloud (NOT paid API).
+// 10. DeepSeek preset is a DIRECT api.deepseek.com API call (no server),
+// defaulting to the cheap deepseek-v4-flash model. Dan explicitly wants the
+// pure DeepSeek API (#17484).
 const dsPreset = PRESETS.find((p) => p.id === 'deepseek');
 check('DeepSeek preset exists', !!dsPreset);
-check('DeepSeek preset is server-routed (viaServer)', dsPreset && dsPreset.viaServer === true);
-check('DeepSeek preset default model is deepseek-v4-flash:cloud', dsPreset && dsPreset.model === 'deepseek-v4-flash:cloud');
-check('DeepSeek preset does NOT hit paid api.deepseek.com', dsPreset && !(dsPreset.baseUrl || '').includes('api.deepseek.com'));
+check('DeepSeek preset is a direct API call (NOT viaServer)', dsPreset && dsPreset.viaServer !== true);
+check('DeepSeek preset base URL is api.deepseek.com/v1', dsPreset && dsPreset.baseUrl === 'https://api.deepseek.com/v1');
+check('DeepSeek preset default model is deepseek-v4-flash', dsPreset && dsPreset.model === 'deepseek-v4-flash');
 
-// 11. loadSettings migration: stale paid-API deepseek settings get forced
-// back onto the free Ollama-cloud server-proxy path (PR #23 regression guard).
+// 11. loadSettings: deepseek preset settings are left as-is (direct API).
 function seed(overrides) {
   store.clear();
   store.set('tabletop.dm.settings.v1', JSON.stringify({ ...defaultSettings(), ...overrides }));
 }
-seed({ preset: 'deepseek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash', viaServer: false, apiKey: 'paid-key' });
-const migratedPaid = loadSettings();
-check('migration: clears paid api.deepseek.com baseUrl', migratedPaid.baseUrl === '');
-check('migration: forces viaServer true', migratedPaid.viaServer === true);
-check('migration: remaps bare model to deepseek-v4-flash:cloud', migratedPaid.model === 'deepseek-v4-flash:cloud');
+seed({ preset: 'deepseek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash', viaServer: false, apiKey: 'ds-key' });
+const dsConfig = loadSettings();
+check('loadSettings: deepseek direct API config preserved', dsConfig.baseUrl === 'https://api.deepseek.com/v1' && dsConfig.viaServer === false && dsConfig.model === 'deepseek-v4-flash');
 seed({ preset: 'deepseek', baseUrl: '', model: 'deepseek-v4-flash:cloud', viaServer: true, apiKey: 'ollama-key' });
 const okDeepseek = loadSettings();
-check('migration: healthy deepseek config left unchanged', okDeepseek.baseUrl === '' && okDeepseek.viaServer === true && okDeepseek.model === 'deepseek-v4-flash:cloud');
+check('loadSettings: server-routed deepseek config preserved', okDeepseek.baseUrl === '' && okDeepseek.viaServer === true && okDeepseek.model === 'deepseek-v4-flash:cloud');
 seed({ preset: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', viaServer: false });
 const okOpenai = loadSettings();
-check('migration: non-deepseek preset untouched', okOpenai.baseUrl === 'https://api.openai.com/v1' && okOpenai.model === 'gpt-4o-mini' && okOpenai.viaServer === false);
+check('loadSettings: non-deepseek preset untouched', okOpenai.baseUrl === 'https://api.openai.com/v1' && okOpenai.model === 'gpt-4o-mini' && okOpenai.viaServer === false);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
