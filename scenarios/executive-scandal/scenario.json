@@ -1,0 +1,172 @@
+{
+  "scenario_id": "executive_scandal",
+  "title": "The Executive Scandal",
+  "version": 4,
+
+  "goal": {
+    "description": "Handle a public controversy around a senior leader with fairness and process: fill the information vacuum with a credible posture, build a governance response that protects both the organization and the presumption of innocence, answer the board and the regulator honestly, deal with the conflict-of-interest questions on the merits, and bring public trust and regulator confidence back above healthy thresholds.",
+    "win_conditions": [
+      { "stat": "public_trust", "operator": "gte", "value": 60 },
+      { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
+      { "stat": "containment", "operator": "gte", "value": 80 },
+      { "stat": "eradication", "operator": "gte", "value": 70 },
+      { "stat": "recovery", "operator": "gte", "value": 60 },
+      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+    ],
+    "ending": "Crisis resolved: the leader's situation is handled with a fair, defensible process, any real conflict issues are cleaned up, the conduct framework is credible, and members, the board, and the regulator trust the organization's judgment again. The exercise concludes."
+  },
+
+  "intro": {
+    "video": "",
+    "narrative": "Saturday night, SCU's Chief Lending Officer - Martin Wells, a fourteen-year veteran and one of the most familiar faces in the organization - was arrested at a downtown hotel following an incident no one can describe precisely. By Sunday evening he was released without charges; police say only that an investigation continues. Monday morning, a local crime blog posted the arrest, and by 10 a.m. his name, SCU's name, and the word 'arrested' were moving together through regional feeds. Nobody has been charged with anything. Wells isn't talking - his lawyer has advised silence - and the organization knows almost nothing. Meanwhile, members are asking branch staff about it, lenders' meetings are being quietly rescheduled, and the board is split between 'presumption of innocence' and 'the optics are eating us alive.' You are the executive team, holding a vacuum: the facts may exonerate him, but the vacuum is filling with everything else.",
+    "company_url": "",
+    "company_info": "SCU is a mid-sized, member-owned credit union whose brand is trust in its people. Senior leaders are public faces in the community - members know them by name. The regulator cares whether officers are fit for their roles and whether governance handles conduct matters with a process rather than improvisation. No criminal charge exists here; the crisis is entirely about judgment: how the organization treats a leader it cannot yet clear, and what its members believe that treatment says about the institution."
+  },
+
+  "opening_state": {
+    "budget": 70,
+    "public_trust": 65,
+    "regulator_confidence": 60,
+    "security_posture": 60,
+    "containment": 20,
+    "eradication": 10,
+    "recovery": 10,
+    "attacker_progress": 30
+  },
+
+  "meta": {
+    "suggested_minutes": 60,
+    "difficulty": "medium",
+    "tags": ["governance", "reputation", "media", "board", "conduct", "crisis-communications"],
+    "learning_objectives": [
+      "Practice crisis response in an information vacuum: respond to posture, not facts you don't have",
+      "Balance fairness to a person with protection of the institution - and make the balance defensible",
+      "Build a conduct process in real time that a board, a regulator, and a newsroom can all respect",
+      "Handle conflict-of-interest questions on the merits without pre-judging anyone",
+      "Manage board factions and keep a consistent public line under pressure"
+    ]
+  },
+
+  "attack_chain": [
+    {
+      "id": "hook",
+      "name": "How it started",
+      "symptom": "The story began outside SCU's control: an arrest nobody at the organization witnessed, a release without charges, and a crime-blotter post that moved faster than any facts. The vacuum is the vulnerability - police won't elaborate, Wells can't talk on legal advice, and leadership knows almost nothing. What the organization controls is not the facts but its posture, and every hour of silence is being filled by others: search engines, screenshots, and speculation from the branch floor to the board table.",
+      "revealed": false
+    },
+    {
+      "id": "spread",
+      "name": "How it spread",
+      "symptom": "The escalation engine is association: the story jumped from a crime blog to local news to trade press, with SCU's name and logo carried along in every headline and thumbnail. Old Facebook photos resurface - Wells with a commercial borrower whose loan expansion he approved - and a 'conflict of interest' thread begins. Staff start asking whether the standard would be the same for a teller, members ask pointed questions at the counter, and the board splits into camps, leaking its own friction.",
+      "revealed": false
+    },
+    {
+      "id": "take",
+      "name": "What it's costing",
+      "symptom": "The bill is measured in trust, not charges: 'SCU exec arrested' is hardening into a permanent search result; lending teams are distracted and commercial partners are quietly rescheduling; the regulator has called with pointed fit-and-proper questions about whether this officer can remain in role pending an outcome; the board's own credibility is becoming part of the story - 'no process, no framework, improvising' - and members are openly wondering whether lending decisions were clean, all before anyone knows whether the original incident was anything at all.",
+      "revealed": false
+    }
+  ],
+
+  "dm_brief": {
+    "situation": "SCU's Chief Lending Officer was arrested Saturday night and released without charges; the police investigation continues and says nothing. His name and the credit union's are now fused in regional feeds, local news, and trade press. The organization is in a vacuum: it cannot confirm facts, cannot clear him, and cannot say nothing. Meanwhile a conflict-of-interest thread is growing around his friendship with a commercial borrower whose loans he touched, staff and members are watching for a double standard, the board is split between loyalty and optics, and the regulator wants to know whether governance has a process for officer conduct or is making it up as it goes. The team must set a fair, defensible posture; handle the leader with dignity while protecting the institution; run the conflict questions down on the merits; and keep board, members, staff, and regulator aligned while the story outruns the facts.",
+    "stakes": "If handled poorly: the organization either discards a possibly innocent leader and earns a reputation for cowardice, or defends him blindly while conflict-of-interest questions harden into scandal - either way 'SCU exec arrested' becomes the brand's first search result, the regulator concludes governance has no process, and every future conduct matter gets improvised under worse conditions. If handled well: the situation resolves with fairness intact, the conflicts are examined cleanly, the conduct framework becomes something the board and regulator point to with pride, and members conclude the institution's judgment can be trusted even in a vacuum.",
+    "key_actors": [
+      { "name": "Martin Wells", "role": "Chief Lending Officer", "interests": "To be treated fairly and presumed innocent; to keep the career he built over fourteen years.", "knowledge": "Knows the incident will probably resolve without charges - his lawyer says weeks - but cannot discuss it. Feels humiliated; wants the organization behind him but understands the need for process. Sitting at home watching his name travel." },
+      { "name": "Wells' lawyer", "role": "Counsel for the individual", "interests": "Client protection above institutional optics.", "knowledge": "Advises silence on the incident; open to negotiated arrangements like stepped-back lending authority; watching carefully for any move that pre-judges or defames his client." },
+      { "name": "CEO Elena Marsh", "role": "Chief Executive", "interests": "Fairness to Wells, protection of the institution, and a single consistent line before the board fragments.", "knowledge": "Hired Wells and knows his character; also knows the conflict-of-interest thread is not nothing - she remembers the borrower friendship being disclosed informally last spring. Being pulled between loyalty and governance." },
+      { "name": "The Board chair", "role": "Governance (split)", "interests": "A defensible process, board unity, and a story that doesn't name directors.", "knowledge": "Directors are split: one camp wants Wells sidelined immediately for optics; the other insists on presumption of innocence; a third quietly asks whether the board's own informal handling of the borrower disclosure last spring will surface. The chair wants options the board can defend." },
+      { "name": "The regulator's supervision lead", "role": "Regulator", "interests": "Whether governance is functioning and whether the officer can remain fit for role pending an outcome.", "knowledge": "Has read the coverage and will call rather than write. Distinguishes between institutions with conduct frameworks and institutions improvising. The phrase 'what is your process?' is the whole conversation." },
+      { "name": "A local reporter", "role": "Press", "interests": "What actually happened Saturday night, and what SCU's governance will do about it.", "knowledge": "Has the police blotter, is requesting the police file, is chasing the conflict-of-interest thread, and has seen organizations both overreact and stonewall. Will publish the vacuum if it stays one." }
+    ],
+    "pressure_points": [
+      "The police issue a terse statement: 'The investigation continues. No charges have been laid.' It answers nothing and feeds the vacuum.",
+      "The Facebook photos go wide: Wells at a charity gala with the developer whose company's loan expansion he approved - and the thread finds the disclosure footnote.",
+      "A trade outlet runs 'Credit union chief lending officer arrested; released without charges' nationally, with SCU's logo as the thumbnail.",
+      "An internal post asks the question out loud: 'A teller would already be suspended and escorted out. Why is this different?' It is screenshot and spreading internally.",
+      "A resurfaced conference video shows Wells making an off-color joke about borrowers at an industry panel - mild, but it stitches neatly into 'a pattern.'"
+    ],
+    "rules_of_play": [
+      "Never propose actions, present a menu of choices, or suggest what the group should do. Only react to what the group decides.",
+      "Keep the story advancing by injecting NEW DEVELOPMENTS (a reporter pushes harder, new information surfaces, a deadline lands, a complication emerges), not by telling the team what to decide or do. Never write 'the team needs to...', 'consider...', or 'the next step is to...'.",
+      "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
+      "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
+      "Show consequences of the roll, but let the group's stated actions drive the logic.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
+      "If the group stalls with no clear action for a while, inject a pressure point to move things.",
+      "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
+      "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
+      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+    ]
+  },
+
+  "events": [
+    {
+      "id": "e1",
+      "trigger": { "type": "stall", "turns": 2 },
+      "text": "With no word from SCU, the vacuum fills on its own: the local story jumps to the top of regional feeds, 'SCU' and 'arrested' are now associated in search, and members are asking branch staff what they're supposed to tell their families.",
+      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+    },
+    {
+      "id": "e2",
+      "trigger": { "type": "stall", "turns": 3 },
+      "text": "The Facebook photos go wide: Wells at a charity gala with a commercial borrower whose loan expansion he approved last spring. A conflict-of-interest thread takes off, and the phrase 'he approved the loan' starts appearing in member comments.",
+      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+    },
+    {
+      "id": "e3",
+      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "text": "The trade press runs the story nationally with SCU's logo as the thumbnail, and the internal 'double standard' post - 'a teller would already be escorted out' - is screenshot and spreading through staff channels.",
+      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+    },
+    {
+      "id": "e4",
+      "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
+      "text": "The regulator's supervision lead calls: they want to know whether Wells remains fit for his role pending the outcome - and whether SCU's governance has a conduct process at all, or is improvising this as it goes.",
+      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+    },
+    {
+      "id": "e5",
+      "trigger": { "type": "turn", "turn": 6 },
+      "text": "A resurfaced conference video shows Wells making an off-color joke about borrowers at an industry panel two years ago. On its own it is mild; stitched into the arrest narrative it becomes the 'a pattern?' story, and the local reporter asks SCU to comment on 'the culture around lending.'",
+      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+    }
+  ],
+
+  "fate_table": {
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board leaks its own split to a reporter within a day, and then the conflict-of-interest file surfaces showing the borrower friendship was disclosed informally and never recorded. The story stops being about a hotel arrest and becomes about an organization that answers questions before it asks them.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos: the police issue a statement that answers nothing - 'the investigation continues, no charges have been laid' - and a national aggregator runs the arrest with SCU's logo as the thumbnail while a former employee posts a secondhand rumor thread that fills the vacuum with worse. The team is now fighting a story with no facts in it at all.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the organization announces a clear, humane process - presumption of innocence, stepped-back lending authority pending outcome, an independent conflict-of-interest review, and a published conduct framework that applies to anyone from teller to executive. Wells accepts with dignity, staff see a single standard, the board unifies behind the process, and the reporter writes that 'for once, an organization has a process.'", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+  },
+
+  "beats": [
+    {
+      "id": "b1-vacuum",
+      "name": "Step 1 — Fill the vacuum with posture, not facts",
+      "narrative": "The facts are unavailable and the vacuum is filling fast. Step 1 is to set the posture: a public line that takes the situation seriously without pre-judging a man who has not been charged, interim arrangements for his lending authority, briefings for branch and contact-centre staff, and one consistent message to a board that is splitting. Until the organization has a posture, everything else is improvisation."
+    },
+    {
+      "id": "b2-governance",
+      "name": "Step 2 — Build the process while running it",
+      "narrative": "The posture is set. Now the harder work: run a genuine governance response - an independent conflict-of-interest review of the borrower loans and the informal disclosure that was never recorded, a conduct framework the board can adopt rather than improvise, an honest answer to the regulator's 'what is your process,' and care for Wells and his team through all of it. If Step 1 went well, the process gets judged on its merits; if not, every move reads as either cowardice or cover-up."
+    },
+    {
+      "id": "b3-resolve",
+      "name": "Step 3 — Resolve, clean up, and rebuild",
+      "narrative": "The process is running and the outcome is taking shape - whatever the investigation clears or confirms. Step 3 is to resolve the leader's situation on the evidence with fairness intact, close out the conflict-of-interest questions with findings members can believe, leave a permanent, credible conduct framework in place, and rebuild the association between the brand and its people. If Steps 1-2 went well, the ending restores trust with members, the board, and the regulator; if they went poorly, the search result outlives the story."
+    }
+  ],
+
+  "end_conditions": [
+    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the vacuum wins, and the organization's judgment becomes the story." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: media, board division, and regulatory doubt compound into a full governance crisis." },
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+  ],
+
+  "report": {
+    "title_note": "The Executive Scandal — Tabletop Report",
+    "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
+  }
+}
