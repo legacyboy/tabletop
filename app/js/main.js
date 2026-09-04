@@ -126,8 +126,11 @@ function updateSelectSummary() {
 async function populateScenarios() {
   state.registry = await loadRegistry();
   renderScenarioOptions();
-  // On first load, jump straight to the (first) scenario's intro.
-  await selectScenario(0);
+  // Do NOT auto-load a scenario (or its intro video) on page load — Dan wants
+  // the scenario-select screen shown first, with nothing loaded until the
+  // user explicitly picks a scenario and presses "Load / Start".
+  state.selectReturn = null;
+  setPhase('select');
 }
 
 /**
