@@ -49,19 +49,37 @@ export class ServerProxyProvider {
     // server otherwise uses its own OLLAMA_URL default.
     if (this.baseUrl) body.base_url = this.baseUrl;
 
-    const res = await fetch(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: opts.signal,
-    });
+    let res;
+    try {
+      res = await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: opts.signal,
+      });
+    } catch (err) {
+      if (err && (err.name === 'AbortError' || opts.signal?.aborted)) throw err;
+      // fetch() to the server failed at network level (offline, server not
+      // running, or the app is on a static host with no backend).
+      throw new Error(
+        `Could not reach the tabletop server at ${this.endpoint} (${err?.message || 'network error'}). ` +
+        'If the app is hosted statically (e.g. GitHub Pages) there is no server ' +
+        'to proxy through — choose a direct API preset (e.g. DeepSeek) instead.'
+      );
+    }
 
     if (!res.ok) {
       let detail = '';
       try {
-        detail = (await res.json()).error || (await res.text());
+        const text = await res.text();
+        try {
+          const j = JSON.parse(text);
+          detail = j?.error || j?.message || text.slice(0, 200);
+        } catch {
+          detail = text.slice(0, 200);
+        }
       } catch {
-        detail = await res.text().catch(() => '');
+        detail = '';
       }
       throw new Error(`Server proxy failed (${res.status}): ${detail}`);
     }

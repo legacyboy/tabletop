@@ -119,8 +119,18 @@ export function loadSettings() {
     if (!raw) return defaultSettings();
     const s = { ...defaultSettings(), ...JSON.parse(raw) };
     // DeepSeek preset uses the pure DeepSeek API (api.deepseek.com) with the
-    // flash model as default. No migration needed — Dan explicitly wants the
+    // flash model as default. Dan explicitly wants the
     // direct DeepSeek API on this preset (per #17484).
+    //
+    // STALE-SETTINGS MIGRATION: preset definitions are the source of truth for
+    // routing. An older preset revision (the short-lived "DeepSeek (via
+    // Ollama)" preset, PR #23) saved viaServer:true with a blank baseUrl and an
+    // Ollama cloud model id into users' localStorage. Without re-syncing, a
+    // returning browser keeps routing the DeepSeek preset through the
+    // server's /api/dm proxy forever (GitHub Pages answers POST with 405,
+    // and re-picking the already-selected dropdown option fires no change
+    // event, so the stale state never heals on its own).
+    syncPresetFields(s);
     // Session-only key: pull it from memory (if set this session) so the
     // current session still works even though the key isn't persisted.
     if (!s.rememberKey) s.apiKey = sessionApiKey;
@@ -131,6 +141,9 @@ export function loadSettings() {
 }
 
 export function saveSettings(settings) {
+  // Keep preset-matched settings consistent with the current preset
+  // definitions before persisting (see syncPresetFields).
+  syncPresetFields(settings);
   if (settings.rememberKey) {
     // Persist the key normally.
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -160,6 +173,37 @@ function findPreset(settings) {
     return PRESETS.find((p) => p.baseUrl === settings.baseUrl);
   }
   return undefined;
+}
+
+/**
+ * Re-sync preset-matched settings with the CURRENT preset definition.
+ *
+ * Presets own their routing: when a saved settings blob contradicts its own
+ * preset, the blob is stale state left behind by an older preset revision
+ * (e.g. the old "DeepSeek (via Ollama)" preset saved viaServer:true, a blank
+ * base URL, and an Ollama cloud model id). Without this re-sync a returning
+ * browser keeps routing the DeepSeek preset through the dead server proxy:
+ * re-selecting the already-highlighted dropdown option fires no change
+ * event, so clicking Save just re-persists the stale flags. Runs on load and
+ * on save so the state always converges to the preset definition.
+ */
+export function syncPresetFields(s) {
+  if (!s || !s.preset) return s;
+  const p = PRESETS.find((x) => x.id === s.preset);
+  if (!p) return s;
+  const presetViaServer = p.viaServer === true;
+  if (s.viaServer !== presetViaServer) {
+    s.viaServer = presetViaServer;
+    // A preset that is direct now must not stay on the server-proxy provider
+    // (the provider field alone would keep routing it through /api/dm).
+    if (!presetViaServer && s.provider === 'server-proxy') s.provider = 'openai-compatible';
+  }
+  // Fill a blank base URL from the preset (stale saves may have it empty).
+  if (!s.baseUrl && p.baseUrl) s.baseUrl = p.baseUrl;
+  // The old Ollama-routed DeepSeek preset saved cloud model ids
+  // (deepseek-v4-flash:cloud); the pure-DeepSeek preset uses plain ids.
+  if (p.id === 'deepseek' && /:cloud$/.test(s.model || '') && p.model) s.model = p.model;
+  return s;
 }
 
 function describeSelection(settings) {

@@ -20,7 +20,9 @@ import {
   loadSettings,
   saveSettings,
   describeProvider,
+  syncPresetFields,
 } from './providers/registry.js';
+import { sanitizeApiKey } from './providers/openai-compatible.js';
 
 const $ = (id) => document.getElementById(id);
 const el = {};
@@ -89,12 +91,22 @@ export function initSettings() {
   };
 
   el.saveSettings.onclick = () => {
-    current.apiKey = el.apiKey.value.trim();
+    // sanitizeApiKey strips paste artifacts (embedded line wraps, zero-width
+    // characters) that would make the direct fetch() throw before ever
+    // reaching the provider.
+    current.apiKey = sanitizeApiKey(el.apiKey.value);
     current.baseUrl = el.baseUrl.value.trim();
     current.model = el.model.value.trim();
     current.allowCompanyFetch = el.allowCompanyFetch.checked;
     current.companyUrl = el.companyUrl.value.trim();
     current.rememberKey = el.rememberKey.checked;
+
+    // The selected preset is the source of truth for routing (the DeepSeek
+    // preset is a direct API call). Re-sync BEFORE saving/validating so a
+    // stale saved flag (e.g. viaServer:true from an old preset revision)
+    // can never survive a Save, even when re-selecting the already-selected
+    // dropdown option fired no change event.
+    syncPresetFields(current);
 
     const check = buildProvider(current);
     if (current.provider !== 'none' && !check) {

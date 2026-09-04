@@ -6,7 +6,7 @@
  * and proxy (browser -> server -> local Ollama) paths to the right provider
  * classes. No network or DOM required.
  */
-import { PRESETS, OLLAMA_MODELS, DEEPSEEK_MODELS, buildProvider, describeProvider, defaultSettings, loadSettings } from '../app/js/providers/registry.js';
+import { PRESETS, OLLAMA_MODELS, DEEPSEEK_MODELS, buildProvider, describeProvider, defaultSettings, loadSettings, syncPresetFields } from '../app/js/providers/registry.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { ServerProxyProvider } from '../app/js/providers/server-proxy.js';
 
@@ -129,20 +129,56 @@ check('DeepSeek preset is a direct API call (NOT viaServer)', dsPreset && dsPres
 check('DeepSeek preset base URL is api.deepseek.com/v1', dsPreset && dsPreset.baseUrl === 'https://api.deepseek.com/v1');
 check('DeepSeek preset default model is deepseek-v4-flash', dsPreset && dsPreset.model === 'deepseek-v4-flash');
 
-// 11. loadSettings: deepseek preset settings are left as-is (direct API).
+// 11. loadSettings: MIGRATES stale preset settings to the CURRENT preset
+// definition. The short-lived "DeepSeek (via Ollama)" preset (PR #23) saved
+// viaServer:true + blank baseUrl + an Ollama cloud model into localStorage.
+// The DeepSeek preset is a direct api.deepseek.com call now, so those stale
+// blobs MUST re-sync on load — otherwise a returning browser keeps routing
+// the preset through the dead /api/dm server proxy forever (and because
+// re-selecting the already-selected dropdown option fires no change event,
+// clicking Save just re-persists the stale flags).
 function seed(overrides) {
   store.clear();
   store.set('tabletop.dm.settings.v1', JSON.stringify({ ...defaultSettings(), ...overrides }));
 }
 seed({ preset: 'deepseek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash', viaServer: false, apiKey: 'ds-key' });
 const dsConfig = loadSettings();
-check('loadSettings: deepseek direct API config preserved', dsConfig.baseUrl === 'https://api.deepseek.com/v1' && dsConfig.viaServer === false && dsConfig.model === 'deepseek-v4-flash');
-seed({ preset: 'deepseek', baseUrl: '', model: 'deepseek-v4-flash:cloud', viaServer: true, apiKey: 'ollama-key' });
-const okDeepseek = loadSettings();
-check('loadSettings: server-routed deepseek config preserved', okDeepseek.baseUrl === '' && okDeepseek.viaServer === true && okDeepseek.model === 'deepseek-v4-flash:cloud');
+check('loadSettings: clean deepseek direct config preserved', dsConfig.baseUrl === 'https://api.deepseek.com/v1' && dsConfig.viaServer === false && dsConfig.model === 'deepseek-v4-flash');
+
+// THE STALE STATE (what PR #23-era code saved into Dan's browser):
+seed({ provider: 'openai-compatible', preset: 'deepseek', baseUrl: '', model: 'deepseek-v4-flash:cloud', viaServer: true, apiKey: 'ollama-key' });
+const migrated = loadSettings();
+check('loadSettings MIGRATES stale server-routed deepseek to direct (viaServer=false)', migrated.viaServer === false);
+check('loadSettings fills blank deepseek baseUrl from the preset', migrated.baseUrl === 'https://api.deepseek.com/v1');
+check('loadSettings replaces stale Ollama cloud model id with the API model', migrated.model === 'deepseek-v4-flash');
+const migratedProvider = buildProvider(migrated);
+check('migrated stale deepseek builds a DIRECT OpenAICompatibleProvider', migratedProvider instanceof OpenAICompatibleProvider);
+check('migrated provider keeps the API key', migratedProvider && migratedProvider.apiKey === 'ollama-key');
+
+// Same stale state but with the provider field stuck on server-proxy: the
+// provider field alone would keep routing through /api/dm, so it must flip.
+seed({ provider: 'server-proxy', preset: 'deepseek', baseUrl: '', model: 'deepseek-v4-flash:cloud', viaServer: true, apiKey: 'k' });
+const migratedProviderField = buildProvider(loadSettings());
+check('stale server-proxy PROVIDER also migrates to the direct provider', migratedProviderField instanceof OpenAICompatibleProvider);
+
+// Non-deepseek presets are untouched by the migration.
 seed({ preset: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', viaServer: false });
 const okOpenai = loadSettings();
 check('loadSettings: non-deepseek preset untouched', okOpenai.baseUrl === 'https://api.openai.com/v1' && okOpenai.model === 'gpt-4o-mini' && okOpenai.viaServer === false);
+
+// 11b. syncPresetFields edge cases.
+// Server-routed presets stay server-routed (viaServer stays true).
+const remoteSync = syncPresetFields({ provider: 'server-proxy', preset: 'ollama-remote', viaServer: false, baseUrl: '', model: 'deepseek-v4-flash:cloud' });
+check('syncPresetFields keeps ollama-remote routed via the server', remoteSync.viaServer === true);
+check('syncPresetFields does not invent a base URL for ollama-remote', remoteSync.baseUrl === '');
+// A direct preset intentionally run via the server-proxy PROVIDER (e.g. the
+// OpenAI preset with keys held server-side) is a valid user choice: viaServer
+// matches the preset (false) and the provider field is left alone.
+const intentional = syncPresetFields({ provider: 'server-proxy', preset: 'openai', viaServer: false, baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' });
+check('syncPresetFields leaves an intentional server-proxy provider on a direct preset', intentional.provider === 'server-proxy' && intentional.viaServer === false);
+// Custom settings (no preset) and unknown preset ids pass through untouched.
+check('syncPresetFields ignores preset-less settings', syncPresetFields({ provider: 'openai-compatible', viaServer: true, baseUrl: 'https://x.example/v1' }).viaServer === true);
+check('syncPresetFields ignores unknown preset ids', syncPresetFields({ preset: 'nope', viaServer: true }).viaServer === true);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
