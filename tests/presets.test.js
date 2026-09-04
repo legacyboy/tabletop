@@ -105,17 +105,18 @@ check('OLLAMA_MODELS default (first) is deepseek-v4-flash:cloud', OLLAMA_MODELS[
 // 9. DEEPSEEK_MODELS dropdown list is exported and well-formed.
 check('DEEPSEEK_MODELS is exported as an array', Array.isArray(DEEPSEEK_MODELS));
 const dsValues = DEEPSEEK_MODELS.map((m) => m.value);
-check('DEEPSEEK_MODELS includes deepseek-v4-flash', dsValues.includes('deepseek-v4-flash'));
-check('DEEPSEEK_MODELS includes deepseek-v4-pro', dsValues.includes('deepseek-v4-pro'));
+check('DEEPSEEK_MODELS includes deepseek-v4-flash:cloud', dsValues.includes('deepseek-v4-flash:cloud'));
+check('DEEPSEEK_MODELS includes deepseek-v4-pro:cloud', dsValues.includes('deepseek-v4-pro:cloud'));
 check('DEEPSEEK_MODELS ids are unique', new Set(dsValues).size === dsValues.length);
 check('DEEPSEEK_MODELS entries have value + label', DEEPSEEK_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
-check('DEEPSEEK_MODELS default (first) is deepseek-v4-flash', DEEPSEEK_MODELS[0] && DEEPSEEK_MODELS[0].value === 'deepseek-v4-flash');
+check('DEEPSEEK_MODELS default (first) is deepseek-v4-flash:cloud', DEEPSEEK_MODELS[0] && DEEPSEEK_MODELS[0].value === 'deepseek-v4-flash:cloud');
 
-// 10. DeepSeek preset defaults to deepseek-v4-flash.
+// 10. DeepSeek preset routes via server proxy to Ollama cloud (NOT paid API).
 const dsPreset = PRESETS.find((p) => p.id === 'deepseek');
 check('DeepSeek preset exists', !!dsPreset);
-check('DeepSeek preset default model is deepseek-v4-flash', dsPreset && dsPreset.model === 'deepseek-v4-flash');
-check('DeepSeek preset base URL is api.deepseek.com/v1', dsPreset && dsPreset.baseUrl === 'https://api.deepseek.com/v1');
+check('DeepSeek preset is server-routed (viaServer)', dsPreset && dsPreset.viaServer === true);
+check('DeepSeek preset default model is deepseek-v4-flash:cloud', dsPreset && dsPreset.model === 'deepseek-v4-flash:cloud');
+check('DeepSeek preset does NOT hit paid api.deepseek.com', dsPreset && !(dsPreset.baseUrl || '').includes('api.deepseek.com'));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
