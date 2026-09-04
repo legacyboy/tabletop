@@ -36,6 +36,20 @@ export const OLLAMA_MODELS = [
   { value: 'qwen3.5:397b-cloud', label: 'Qwen 3.5' },
 ];
 
+/**
+ * DeepSeek API models offered in the settings dropdown for the "DeepSeek"
+ * preset. deepseek-v4-flash is first and is the preset default DM (V4
+ * generation, public beta). deepseek-chat / deepseek-reasoner are the legacy
+ * V3 names, kept for compatibility.
+ */
+export const DEEPSEEK_MODELS = [
+  { value: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash' },
+  { value: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' },
+  { value: 'deepseek-v4-flash-vision-exp', label: 'DeepSeek V4 Flash Vision (exp)' },
+  { value: 'deepseek-chat', label: 'DeepSeek Chat (V3, legacy)' },
+  { value: 'deepseek-reasoner', label: 'DeepSeek Reasoner (V3, legacy)' },
+];
+
 /** Built-in presets for the "plug a key" section. */
 export const PRESETS = [
   {
@@ -48,7 +62,7 @@ export const PRESETS = [
     id: 'deepseek',
     label: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com/v1',
-    model: 'deepseek-chat',
+    model: 'deepseek-v4-flash',
   },
   {
     id: 'anthropic',

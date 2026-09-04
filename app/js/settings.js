@@ -14,6 +14,7 @@
 import {
   PRESETS,
   OLLAMA_MODELS,
+  DEEPSEEK_MODELS,
   buildProvider,
   defaultSettings,
   loadSettings,
@@ -158,13 +159,17 @@ function renderDynamic() {
   // Reflect the saved preset selection into the dropdown ('' = Custom).
   el.preset.value = current.preset || '';
 
-  // For the "Ollama (remote)" preset, offer a dropdown of common models
-  // instead of the free-text field. "Custom…" (value "") reveals the
-  // free-text input so any model can still be typed.
-  const isOllamaRemote = isApi && current.preset === 'ollama-remote';
-  if (isOllamaRemote) {
-    populateModelSelect();
-    const known = OLLAMA_MODELS.some((m) => m.value === current.model);
+  // For presets with a curated model list ("Ollama (remote)" and "DeepSeek"),
+  // offer a dropdown of common models instead of the free-text field.
+  // "Custom…" (value "") reveals the free-text input so any model can still
+  // be typed.
+  const modelList =
+    current.preset === 'ollama-remote' ? OLLAMA_MODELS :
+    current.preset === 'deepseek' ? DEEPSEEK_MODELS : null;
+  const hasModelList = isApi && !!modelList;
+  if (hasModelList) {
+    populateModelSelect(modelList);
+    const known = modelList.some((m) => m.value === current.model);
     el.modelSelect.value = known ? current.model : '';
     show('modelSelect', true);
     show('model', !known);
@@ -202,14 +207,14 @@ function renderDynamic() {
 }
 
 /**
- * Build the model dropdown options from OLLAMA_MODELS plus a "Custom…"
+ * Build the model dropdown options from a model list plus a "Custom…"
  * entry (value "") that reveals the free-text input. Rebuilt on each render
  * so the list always reflects the registry constant.
  */
-function populateModelSelect() {
+function populateModelSelect(modelList) {
   if (!el.modelSelect) return;
   el.modelSelect.innerHTML = '';
-  for (const m of OLLAMA_MODELS) {
+  for (const m of modelList) {
     const opt = document.createElement('option');
     opt.value = m.value;
     opt.textContent = m.label;
