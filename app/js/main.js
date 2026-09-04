@@ -241,6 +241,19 @@ async function beginSession() {
 
     // Wire the roll flow (idempotent).
     bindRollFlow(scenario);
+
+    // Open with the DM narrating the opening scene (what's happening) before
+    // the group acts. Dan: loading a scenario (esp. Random) must start the
+    // story off — it must say what is happening, not a blank start.
+    el.narrative.textContent = 'The DM is setting the opening scene...';
+    session.openScene()
+      .then((opening) => {
+        el.narrative.textContent = opening;
+        el.outcome.textContent = 'Opening scene set. What does the group do?';
+      })
+      .catch((err) => {
+        el.narrative.textContent = 'The DM could not set the opening scene: ' + err.message;
+      });
   } catch (err) {
     el.outcome.textContent = 'Could not start: ' + err.message;
   }
