@@ -6,7 +6,7 @@
  * and proxy (browser -> server -> local Ollama) paths to the right provider
  * classes. No network or DOM required.
  */
-import { PRESETS, OLLAMA_MODELS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
+import { PRESETS, OLLAMA_MODELS, DEEPSEEK_MODELS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { ServerProxyProvider } from '../app/js/providers/server-proxy.js';
 
@@ -101,6 +101,21 @@ check('OLLAMA_MODELS includes qwen3.5:397b-cloud', modelValues.includes('qwen3.5
 check('OLLAMA_MODELS ids are unique', new Set(modelValues).size === modelValues.length);
 check('OLLAMA_MODELS entries have value + label', OLLAMA_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
 check('OLLAMA_MODELS default (first) is deepseek-v4-flash:cloud', OLLAMA_MODELS[0] && OLLAMA_MODELS[0].value === 'deepseek-v4-flash:cloud');
+
+// 9. DEEPSEEK_MODELS dropdown list is exported and well-formed.
+check('DEEPSEEK_MODELS is exported as an array', Array.isArray(DEEPSEEK_MODELS));
+const dsValues = DEEPSEEK_MODELS.map((m) => m.value);
+check('DEEPSEEK_MODELS includes deepseek-v4-flash', dsValues.includes('deepseek-v4-flash'));
+check('DEEPSEEK_MODELS includes deepseek-v4-pro', dsValues.includes('deepseek-v4-pro'));
+check('DEEPSEEK_MODELS ids are unique', new Set(dsValues).size === dsValues.length);
+check('DEEPSEEK_MODELS entries have value + label', DEEPSEEK_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
+check('DEEPSEEK_MODELS default (first) is deepseek-v4-flash', DEEPSEEK_MODELS[0] && DEEPSEEK_MODELS[0].value === 'deepseek-v4-flash');
+
+// 10. DeepSeek preset defaults to deepseek-v4-flash.
+const dsPreset = PRESETS.find((p) => p.id === 'deepseek');
+check('DeepSeek preset exists', !!dsPreset);
+check('DeepSeek preset default model is deepseek-v4-flash', dsPreset && dsPreset.model === 'deepseek-v4-flash');
+check('DeepSeek preset base URL is api.deepseek.com/v1', dsPreset && dsPreset.baseUrl === 'https://api.deepseek.com/v1');
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
