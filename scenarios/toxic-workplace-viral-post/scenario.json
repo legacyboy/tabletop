@@ -1,0 +1,172 @@
+{
+  "scenario_id": "toxic_workplace_viral_post",
+  "title": "The Toxic Workplace Viral Post",
+  "version": 4,
+
+  "goal": {
+    "description": "Defuse the viral story and repair the culture behind it: get ahead of the public narrative with a credible, non-defensive response, run a genuine investigation that separates fact from fabrication, stop the escalation (the story's spread and its internal fallout), and bring member trust and regulator confidence back above healthy thresholds.",
+    "win_conditions": [
+      { "stat": "public_trust", "operator": "gte", "value": 60 },
+      { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
+      { "stat": "containment", "operator": "gte", "value": 80 },
+      { "stat": "eradication", "operator": "gte", "value": 70 },
+      { "stat": "recovery", "operator": "gte", "value": 60 },
+      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+    ],
+    "ending": "Crisis resolved: the story is defused, the credible concerns are owned and being fixed, members and staff feel heard, and the board and regulator are confident in the response. The exercise concludes."
+  },
+
+  "intro": {
+    "video": "",
+    "narrative": "At 5:40 yesterday evening, a former SCU employee - let go in last year's restructuring - published a long, detailed account of their time at the credit union. It names a senior manager. It alleges favoritism, bullying that HR 'logged but never acted on,' leadership dysfunction, and a culture where people are told to be resilient instead of safe. The post includes screenshots of internal chats and emails. Some of it is already being confirmed by people still inside the building: current employees are liking, sharing, and quietly adding their own stories - some publicly, some from anonymous accounts - and the post is rocketing through local feeds and member community groups. Members are tagging SCU asking whether this is how their credit union treats its people. The board's phones are lighting up. You are the executive team, and everyone is waiting to see what you do about a story your own people are vouching for.",
+    "company_url": "",
+    "company_info": "SCU is a mid-sized, member-owned credit union. Its brand is people-first: member service and staff culture are the same story told twice, and members notice how an institution treats its employees. As a cooperative, SCU answers to its members - and the regulator increasingly treats workplace culture as conduct risk, not just an HR matter. A viral culture story cuts at the identity, not just the reputation."
+  },
+
+  "opening_state": {
+    "budget": 70,
+    "public_trust": 65,
+    "regulator_confidence": 60,
+    "security_posture": 55,
+    "containment": 20,
+    "eradication": 10,
+    "recovery": 10,
+    "attacker_progress": 30
+  },
+
+  "meta": {
+    "suggested_minutes": 60,
+    "difficulty": "medium",
+    "tags": ["reputation", "culture", "hr", "social-media", "governance", "internal-comms"],
+    "learning_objectives": [
+      "Practice responding to a public allegation without litigation reflexes or attacking the author",
+      "Exercise internal communications under public pressure - staff are an audience AND a risk",
+      "Sort real evidence from doctored or out-of-context material under time pressure",
+      "Manage retention and morale while the story is live",
+      "Work the board and regulator angle on conduct and culture risk"
+    ]
+  },
+
+  "attack_chain": [
+    {
+      "id": "hook",
+      "name": "How it started",
+      "symptom": "The post is credible because it contains real internal material. HR and Legal are triaging the screenshots: at least a few are authentic internal chats, some appear doctored or stripped of context, and one 'email' matches nothing anyone can find. Until the team knows which parts are true, every public response is a guess - and the author has more screenshots where those came from.",
+      "revealed": false
+    },
+    {
+      "id": "spread",
+      "name": "How it spread",
+      "symptom": "The story's escalation engine is internal: current employees are engaging with it publicly, anonymous accounts are adding corroborating stories, and Glassdoor-style reviews are spiking. Members are sharing it with 'is this true?' captions, a local reporter is asking for comment, and the narrative has migrated from one person's experience to 'this is what SCU is like.' The more the organization stays silent or defensive, the faster the story compounds.",
+      "revealed": false
+    },
+    {
+      "id": "take",
+      "name": "What it's costing",
+      "symptom": "The damage is now measurable: two in-demand staff have already resigned citing 'the environment,' the recruitment pipeline is stalling as candidates pull out, members are asking branch staff to their faces why the credit union tolerates this, and a handful of members have closed accounts over it. The board wants an independent review and the regulator has started asking about culture and conduct risk. The story is taking the organization's people - its whole value proposition.",
+      "revealed": false
+    }
+  ],
+
+  "dm_brief": {
+    "situation": "A former employee's detailed account of favoritism, bullying, and a dismissive culture at SCU has gone viral, complete with screenshots - some authentic, some likely doctored. Current employees are amplifying and corroborating it, which transforms one person's grievance into an indictment the public believes. A senior manager is named. The board wants answers, members are asking questions at the counter, the regulator treats culture as conduct risk, and the team must respond publicly without attacking the author, investigate the substance honestly, support the staff who are both victims and amplifiers of the story, and stop the bleeding - all while new details keep surfacing.",
+    "stakes": "If handled poorly: the legal-first playbook ('we do not comment on personnel matters') reads as an admission, more staff speak out or walk, member trust erodes, the regulator opens a culture file, and the named manager becomes the face of the brand. If handled well: the organization is seen to take the substance seriously without endorsing the fabrications, staff feel heard, the story loses its oxygen, and the response itself rebuilds credibility.",
+    "key_actors": [
+      { "name": "The former employee", "role": "Author of the post", "interests": "To be believed; to see acknowledgment and consequences - not money.", "knowledge": "Real internal chats, real HR complaint receipts (theirs and others'), and possibly a few embellishments. They have more screenshots and are prepared to keep posting." },
+      { "name": "The named senior manager", "role": "Subject of the allegations", "interests": "To defend themselves publicly, right now, and to be backed.", "knowledge": "Denies the bullying characterization; says the complainants were underperformers and that HR cleared them. Their team is watching how leadership handles this." },
+      { "name": "The Chief People Officer", "role": "HR lead", "interests": "Wants the complaint history reviewed honestly - quietly.", "knowledge": "There are logged complaints that were 'addressed' with coaching sessions; the file is thinner than the story claims but not empty. Knows exactly which screenshots are genuine." },
+      { "name": "Current employees (a loose collective)", "role": "The amplifiers", "interests": "Want to be heard and protected, not managed.", "knowledge": "Real day-to-day culture. They are sharing the post because it matches their experience. They can escalate - or stand down - depending on how leadership responds. Some fear retaliation for speaking up." },
+      { "name": "A local reporter", "role": "Press", "interests": "Verifying the screenshots and finding more sources inside SCU.", "knowledge": "Has the post, is contacting current staff, and is weighing whether this is a 'viral grievance' story or a 'culture investigation' story." },
+      { "name": "The Board chair", "role": "Governance", "interests": "Member-owned institution optics; terrified of a whitewash or a cover-up.", "knowledge": "Has been forwarded the post by other directors and by members; wants an independent review and a defensible process, not a press release." }
+    ],
+    "pressure_points": [
+      "An all-hands meeting gets screenshotted and leaked, and the internal-only talking points end up in the story's comments.",
+      "A second former employee publishes a corroborating account with its own screenshots - this one naming a different manager.",
+      "The named senior manager posts a defensive reply from their personal account, and screenshots of it spread faster than the original post.",
+      "A member confronts branch staff on camera about the post and the clip is making the rounds locally.",
+      "The board's governance committee calls: they want an independent culture review announced before the news cycle moves on."
+    ],
+    "rules_of_play": [
+      "Never propose actions, present a menu of choices, or suggest what the group should do. Only react to what the group decides.",
+      "Keep the story advancing by injecting NEW DEVELOPMENTS (a reporter pushes harder, new information surfaces, a deadline lands, a complication emerges), not by telling the team what to decide or do. Never write 'the team needs to...', 'consider...', or 'the next step is to...'.",
+      "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
+      "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
+      "Show consequences of the roll, but let the group's stated actions drive the logic.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
+      "If the group stalls with no clear action for a while, inject a pressure point to move things.",
+      "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
+      "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
+      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+    ]
+  },
+
+  "events": [
+    {
+      "id": "e1",
+      "trigger": { "type": "stall", "turns": 2 },
+      "text": "With no word from SCU, the story fills the vacuum on its own: an all-hands summary gets screenshotted and leaked, and its 'let's not feed this' line becomes the top comment under the post.",
+      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+    },
+    {
+      "id": "e2",
+      "trigger": { "type": "stall", "turns": 3 },
+      "text": "A second former employee publishes a corroborating account with its own screenshots - this one naming a different manager. Current staff comments pile on, and the story becomes 'a pattern,' not a grievance.",
+      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+    },
+    {
+      "id": "e3",
+      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "text": "The escalation peaks: three staff resign citing 'the environment,' candidates pull out of final interviews, and members are closing accounts over the phone while citing the post by name.",
+      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+    },
+    {
+      "id": "e4",
+      "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
+      "text": "The regulator calls: they are treating the public allegations as potential conduct risk and want to know what governance response SCU will commit to - in writing, this week.",
+      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+    },
+    {
+      "id": "e5",
+      "trigger": { "type": "turn", "turn": 6 },
+      "text": "A local outlet runs a follow-up: 'SCU staff corroborate viral culture post.' It quotes two current employees on condition of anonymity, and the reporter asks the executive team for a sit-down interview.",
+      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+    }
+  ],
+
+  "fate_table": {
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on SCU.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #SCUculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to an independent review with published findings, thanks the people who spoke up, and asks members for patience. Even critics call it the right response, staff internally exhale, and the story's momentum visibly stalls.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+  },
+
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Get ahead of the story",
+      "narrative": "The post is spreading and the organization's silence is being read as guilt. Step 1 is to get ahead of the story: a fast, human, non-defensive public response that takes the substance seriously without endorsing the fabrications, briefings so every staff answer matches, and care for the people named - including the author. Until the team does this, the vacuum keeps filling."
+    },
+    {
+      "id": "b2-investigate",
+      "name": "Step 2 — Find out what's actually true",
+      "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Fix what's real and rebuild",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: act on what the investigation found - real fixes for the real problems, consequences and safeguards, a published summary members can verify - and rebuild retention, morale, member trust, and the board's confidence over time. If Steps 1-2 went well, recovery is quicker and even the story's author acknowledges it; if they went poorly, trust is brittle and every future departure reopens the narrative."
+    }
+  ],
+
+  "end_conditions": [
+    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the organization's people-first identity is lost while the story is still moving." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: resignations, member attrition, and regulatory scrutiny compound into a full organizational crisis." },
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+  ],
+
+  "report": {
+    "title_note": "The Toxic Workplace Viral Post — Tabletop Report",
+    "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
+  }
+}

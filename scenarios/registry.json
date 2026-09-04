@@ -1,8 +1,28 @@
 [
   {
     "id": "bramble_badger_deepfake",
-    "title": "Bramble Badger Deepfake Crisis",
+    "title": "Deepfake CEO Crisis",
     "path": "scenarios/bramble-badger-deepfake/scenario.json"
+  },
+  {
+    "id": "toxic_workplace_viral_post",
+    "title": "The Toxic Workplace Viral Post",
+    "path": "scenarios/toxic-workplace-viral-post/scenario.json"
+  },
+  {
+    "id": "rogue_ai",
+    "title": "The Rogue AI",
+    "path": "scenarios/rogue-ai/scenario.json"
+  },
+  {
+    "id": "whistleblower",
+    "title": "The Whistleblower",
+    "path": "scenarios/whistleblower/scenario.json"
+  },
+  {
+    "id": "executive_scandal",
+    "title": "The Executive Scandal",
+    "path": "scenarios/executive-scandal/scenario.json"
   },
   {
     "id": "random",

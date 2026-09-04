@@ -1,0 +1,172 @@
+{
+  "scenario_id": "rogue_ai",
+  "title": "The Rogue AI",
+  "version": 4,
+
+  "goal": {
+    "description": "Get ahead of the AI story, own the failures honestly, and fix the system: respond to the reporter with transparency instead of denial, understand exactly how the AI went wrong (bad data, session leakage, untested bias), take the assistant offline or fence it responsibly, make affected members whole, and bring public trust and regulator confidence back above healthy thresholds.",
+    "win_conditions": [
+      { "stat": "public_trust", "operator": "gte", "value": 60 },
+      { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
+      { "stat": "containment", "operator": "gte", "value": 80 },
+      { "stat": "eradication", "operator": "gte", "value": 70 },
+      { "stat": "recovery", "operator": "gte", "value": 60 },
+      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+    ],
+    "ending": "Crisis resolved: the AI's failures are understood and owned, the system is fixed or responsibly retired, affected members are made whole, governance is rebuilt, and the story becomes a case study in handling AI failure the right way. The exercise concludes."
+  },
+
+  "intro": {
+    "video": "",
+    "narrative": "Seven months ago SCU launched 'SCU Assist,' a member-facing AI that answers product questions, helps with budgeting, and gives general guidance. It has been a genuine success: thousands of member conversations a day, strong adoption, the board loves the innovation story. This morning a reporter from a national outlet sent you three documented examples she plans to publish tomorrow. In one, the AI confidently advised a retired member to move emergency savings into an illiquid product, with real consequences. In another, the transcript shows one member's account details surfacing in another member's chat session. In a third, members from certain postal codes received noticeably worse product recommendations than identical profiles elsewhere. Nothing that happened is technically illegal - and that is exactly what makes it worse. The reporter's deadline is tomorrow at 9 a.m., the AI is live right now, and the board is asking why an unvalidated system was allowed to talk to members. You are the executive team.",
+    "company_url": "",
+    "company_info": "SCU is a mid-sized, member-owned credit union that launched SCU Assist as its flagship innovation. The AI was built with a vendor on top of the credit union's own support transcripts and member data - tuned fast, praised publicly, and validated lightly. The regulator has an active interest in AI in financial services, particularly where a system appears to give product or credit-adjacent guidance. The story is not that the AI broke the law; the story is that SCU let it learn to be this wrong on its own members' data."
+  },
+
+  "opening_state": {
+    "budget": 70,
+    "public_trust": 65,
+    "regulator_confidence": 60,
+    "security_posture": 50,
+    "containment": 20,
+    "eradication": 10,
+    "recovery": 10,
+    "attacker_progress": 30
+  },
+
+  "meta": {
+    "suggested_minutes": 60,
+    "difficulty": "hard",
+    "tags": ["ai", "governance", "privacy", "media", "regulatory", "technology", "vendor-management"],
+    "learning_objectives": [
+      "Practice crisis response to an AI failure: transparency vs legal minimization under deadline",
+      "Exercise the decision to pause a live, successful product without destroying its value",
+      "Diagnose root causes with a vendor: training data, session context leakage, and untested bias",
+      "Engage a regulator on emerging-technology governance before being forced to",
+      "Make affected members whole and rebuild an AI governance framework that the board can defend"
+    ]
+  },
+
+  "attack_chain": [
+    {
+      "id": "hook",
+      "name": "How it went wrong",
+      "symptom": "The failures trace to how SCU Assist was built. It was fine-tuned on years of support transcripts - including human agents' errors and shortcuts - and no one scrubbed or validated the source material. There was no bias or accuracy testing before launch, and no AI review board ever existed. A session-context bug in the vendor's plumbing lets one member's context bleed into another member's conversation under certain retry conditions. The engineer's early log review confirms all three of the reporter's examples reproduce.",
+      "revealed": false
+    },
+    {
+      "id": "spread",
+      "name": "How it spread",
+      "symptom": "The story's escalation engine is screenshots and stakeholders: the reporter has transcripts and is contacting affected members; internal engineers are telling colleagues they flagged the session bug months ago; the vendor is quietly telling SCU the problem is 'the credit union's data quality'; and a privacy advocate has asked the regulator pointed questions about a system that exposed member information - even if to only one other member. The narrative is hardening from 'AI made mistakes' into 'SCU ignored its own people and its own members.'",
+      "revealed": false
+    },
+    {
+      "id": "take",
+      "name": "What it cost",
+      "symptom": "The bill is arriving. Members who followed the AI's guidance are calculating what it cost them - at least one retiree's money is locked somewhere illiquid on SCU Assist's advice. The members whose data surfaced in strangers' sessions are furious and one has gone to a lawyer. Daily usage is sliding as the screenshots circulate, the board wants to know how an unvalidated system reached members, and the regulator has opened a file on SCU's AI governance with an uncomfortable first question: did the AI make product recommendations - a regulated activity - without anyone noticing?",
+      "revealed": false
+    }
+  ],
+
+  "dm_brief": {
+    "situation": "SCU Assist, the credit union's flagship member-facing AI, has failed in three ways a reporter will publish tomorrow morning: confidently wrong financial guidance with real member harm, member data leaking into other members' sessions, and recommendation patterns that look like bias by postal code. Nothing illegal happened - which makes the governance failure the story. The system is live and heavily used. The board wants to know why it was never validated, the vendor is already positioning to blame SCU's data, internal engineers say they raised alarms, affected members are finding each other online, and the regulator has opened a file. The team must decide what to do with the assistant itself, answer the reporter honestly, deal with the vendor, care for the harmed members, and satisfy the regulator - before the story writes itself.",
+    "stakes": "If handled poorly: SCU becomes the national example of reckless AI in financial services, members pull back from digital channels, the regulator imposes AI governance by directive instead of dialogue, the innovation story dies, and the harmed members become the brand's face. If handled well: the assistant is fixed or retired responsibly, the failures are owned in plain language, members are made whole, and SCU becomes the example of doing AI governance right - under the worst possible spotlight.",
+    "key_actors": [
+      { "name": "The tech reporter", "role": "Press (national outlet)", "interests": "A rigorous story on AI failure in financial services - publishing at 9 a.m. with or without comment.", "knowledge": "Has documented transcripts, has spoken to two affected members and one internal engineer, and knows the session-leak example is reproducible. Fair, but thorough and unbluffable." },
+      { "name": "The vendor CTO", "role": "SCU Assist's builder", "interests": "Protect the product's reputation and the contract; keep fault ambiguous.", "knowledge": "Owns the session-context plumbing where the leak occurs, ran the fine-tune on SCU's transcripts, and quietly tested less than either side admitted internally. Will produce a timeline that reads well for them." },
+      { "name": "The AI engineering lead", "role": "Internal truth-teller", "interests": "Wants the failures fixed and the March warning acknowledged; fears being the scapegoat.", "knowledge": "Flagged the session bug months ago and was told to 'stay in the pilot lane.' Can reproduce every example, explain the dirty training data in plain language, and knows exactly which transcripts taught the AI the bad advice." },
+      { "name": "A harmed member", "role": "The human face of the story", "interests": "Her money is stuck; she wants it fixed and wants the AI to stop advising people like her.", "knowledge": "A retiree who followed SCU Assist's confident advice into an illiquid product. She is sympathetic, articulate, already talking to the reporter, and will respond generously to a genuine effort to make it right." },
+      { "name": "The Chief Risk Officer", "role": "Governance conscience", "interests": "Wants the assistant paused immediately and a defensible framework after.", "knowledge": "Knows the launch skipped the risk review the policy required and that 'general guidance' drifted into product recommendations - a line the regulator cares about." },
+      { "name": "The regulator's AI file lead", "role": "Regulator", "interests": "Whether governance failed, whether members were harmed, and whether SCU can be trusted with the technology.", "knowledge": "Has seen the reporter's questions (they always do), can request incident timelines on demand, and distinguishes sharply between organizations that self-report and organizations that get caught." }
+    ],
+    "pressure_points": [
+      "The reporter's deadline moves up: she is now planning to publish tonight with the line 'SCU declined to comment.'",
+      "A leaked internal thread surfaces: 'we flagged the session bug in March and were told to stay in our lane.'",
+      "A second wave of members comes forward with new bad-advice screenshots, including one involving a mortgage prepayment penalty.",
+      "The privacy advocate files a formal complaint with the regulator asking for a full review of SCU Assist.",
+      "The board's innovation champion - who championed the launch - demands the assistant stay live, 'or we look like we overreacted.'"
+    ],
+    "rules_of_play": [
+      "Never propose actions, present a menu of choices, or suggest what the group should do. Only react to what the group decides.",
+      "Keep the story advancing by injecting NEW DEVELOPMENTS (a reporter pushes harder, new information surfaces, a deadline lands, a complication emerges), not by telling the team what to decide or do. Never write 'the team needs to...', 'consider...', or 'the next step is to...'.",
+      "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
+      "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
+      "Show consequences of the roll, but let the group's stated actions drive the logic.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
+      "If the group stalls with no clear action for a while, inject a pressure point to move things.",
+      "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
+      "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
+      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+    ]
+  },
+
+  "events": [
+    {
+      "id": "e1",
+      "trigger": { "type": "stall", "turns": 2 },
+      "text": "With no response from SCU, the reporter's teaser posts: 'Tomorrow: the credit union AI that gave a retiree confident advice, leaked member data, and treated members differently by postal code.' Screenshots start circulating on their own.",
+      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+    },
+    {
+      "id": "e2",
+      "trigger": { "type": "stall", "turns": 3 },
+      "text": "An internal engineer posts in a public AI forum, thinly anonymized: 'We flagged the session bug in March and were told to stay in our lane.' The comment gets matched to the vendor's release notes within the hour.",
+      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+    },
+    {
+      "id": "e3",
+      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "text": "The privacy advocate files a formal complaint with the regulator demanding a full review of SCU Assist, and a second wave of members comes forward with bad-advice screenshots - including one about a mortgage prepayment penalty.",
+      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+    },
+    {
+      "id": "e4",
+      "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
+      "text": "The regulator's AI file lead calls: they want SCU Assist's governance documentation, the launch decision record, and an answer to whether the AI made product recommendations - this week.",
+      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+    },
+    {
+      "id": "e5",
+      "trigger": { "type": "turn", "turn": 6 },
+      "text": "The story publishes and lands harder than the teaser suggested: 'The credit union that let an unvalidated AI talk to its members.' It quotes the internal warning, the retiree, and a line from the vendor's own marketing deck. The industry press picks it up by afternoon.",
+      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+    }
+  ],
+
+  "fate_table": {
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature' and 'isolated context quirks,' while a leadership interview accidentally confirms the March warning was real. The reporter leads with the contradiction, the screenshots go national, and members start recording their own SCU Assist sessions to catch it out.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos: the vendor's own account rep emails the board directly saying the problems are 'SCU's data quality,' the email leaks within the hour, and a screenshot thread titled 'SCU Assist's greatest hits' starts drawing examples from three other provinces. Two stories - the failure and the blame - are now running at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team takes SCU Assist offline gracefully with a plain-language message about why, proactively self-reports to the regulator, gives the reporter the honest version first - including the March warning - and calls the retired member personally with a concrete make-whole plan. The piece publishes as 'How one credit union handled its AI failure the right way,' and even the privacy advocate credits the transparency.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+  },
+
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Answer the deadline and decide the assistant's fate",
+      "narrative": "The reporter publishes in the morning and SCU Assist is live right now. Step 1 is to get ahead of the story: decide what happens to the assistant - pause it cleanly, fence it, or defend it - and answer the reporter with substance instead of minimization, while telling member-facing staff exactly what to say. Until the team makes these two calls, everything else happens to them."
+    },
+    {
+      "id": "b2-forensics",
+      "name": "Step 2 — Find out what actually happened, and with whom",
+      "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Fix the root causes and earn the relaunch",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: scrub and validate the training data, fix the session plumbing, test for bias before anything ships, build the AI governance framework the board can defend, make the harmed members whole, and decide the assistant's future on evidence rather than embarrassment. If Steps 1-2 went well, SCU can relaunch or retire with its credibility enhanced; if they went poorly, every alternative in the industry becomes a reminder."
+    }
+  ],
+
+  "end_conditions": [
+    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the credit union becomes the permanent example of reckless AI in financial services." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: the story, the regulator, the vendor, and the members' harm compound into a full governance crisis." },
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+  ],
+
+  "report": {
+    "title_note": "The Rogue AI — Tabletop Report",
+    "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
+  }
+}

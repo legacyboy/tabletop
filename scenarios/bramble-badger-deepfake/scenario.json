@@ -1,10 +1,10 @@
 {
   "scenario_id": "bramble_badger_deepfake",
-  "title": "Bramble Badger Deepfake Crisis",
+  "title": "Deepfake CEO Crisis",
   "version": 4,
 
   "goal": {
-    "description": "Contain the attack chain and restore trust: contain all stages of the fraud piggybacking on the deepfake, bring public trust and regulator confidence back above healthy thresholds, and keep attacker progress low.",
+    "description": "Contain the attack chain and restore confidence: get the deepfake suppressed and its spread contained, shut down the fraud campaign riding behind it, bring public trust and regulator confidence back above healthy thresholds, and keep the story's escalation low.",
     "win_conditions": [
       { "stat": "public_trust", "operator": "gte", "value": 60 },
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
@@ -13,21 +13,21 @@
       { "stat": "recovery", "operator": "gte", "value": 60 },
       { "stat": "attacker_progress", "operator": "lte", "value": 20 }
     ],
-    "ending": "Crisis resolved: the attack chain is fully contained, public trust is restored, the joke has deflated, and the board and regulator are confident in the response. The exercise concludes."
+    "ending": "Crisis resolved: the deepfake is discredited and suppressed, the fraud campaign is dismantled, members are protected, and the board and regulator are confident in the response. The exercise concludes."
   },
 
   "intro": {
-    "video": "assets/bramble_badger_fake_exec_video.mp4",
-    "narrative": "A cartoon badger executive video is spreading fast through community channels. In it, the CGI 'Bramble Badger' claims digital banking is powered by raccoons, that member withdrawals are switching to cheese wheels, and that a 'cheese reserve' backs every account. The clip is absurd, but the framing around it claims it was leaked from an internal executive message, and members are already calling. You are the executive team, on the clock.",
+    "video": "",
+    "narrative": "At 7:12 this morning, a video of SCU's President and CEO began circulating in local community groups and on social media. In it, she appears gravely serious, announcing 'unexpected losses in our commercial loan book,' a temporary pause on withdrawals over $500, and a possible forced merger. The video is a fake - a deepfake assembled from her real town-hall footage and cloned from her voice on the annual meeting webcast - but it is convincing. Members are calling, posting, and moving money. By 8:40 the clip has been shared thousands of times, branch phone lines are jammed, and the mobile app is showing a spike in outbound transfers. Someone is using the panic as cover: members are reporting calls and texts 'from the credit union' urging them to move their funds to a 'safe account.' You are the executive team. The clock is running.",
     "company_url": "",
-    "company_info": "Bramble Badger Credit Union is a mid-sized member-owned financial cooperative. Members trust the familiar badger mascot. It is not a bank, so 'cheese reserve' messaging lands hard with members and can tip into panic. Regulators and the deposit insurer watch public confidence closely."
+    "company_info": "SCU is a mid-sized, member-owned credit union. Trust is the product: deposits are insured and the balance sheet is sound, but a rumor about solvency spreads faster than any correction. Regulators and the deposit insurer watch public confidence closely, and a manufactured run - even a small one - is exactly the kind of event that gets a credit union into the news for the wrong reasons."
   },
 
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
     "regulator_confidence": 60,
-    "security_posture": 60,
+    "security_posture": 55,
     "containment": 20,
     "eradication": 10,
     "recovery": 10,
@@ -37,12 +37,13 @@
   "meta": {
     "suggested_minutes": 60,
     "difficulty": "medium",
-    "tags": ["misinformation", "fraud", "governance", "media"],
+    "tags": ["deepfake", "misinformation", "fraud", "social-engineering", "governance", "media"],
     "learning_objectives": [
-      "Practice coordinated misinformation response under time pressure",
-      "Exercise public-communications escalation and message discipline",
-      "Test detection of fraud piggybacking on a viral incident",
-      "Practice containing a staged attack chain (kill chain) as a team"
+      "Practice rapid-response communications against a deepfake targeting leadership",
+      "Exercise deposit-confidence management: reassure members without amplifying the rumor",
+      "Detect and contain the fraud campaign that piggybacks on a manufactured panic",
+      "Work the takedown-and-attribution path with platforms, the agency, and law enforcement",
+      "Keep the board and regulator informed while the story is still moving"
     ]
   },
 
@@ -50,39 +51,40 @@
     {
       "id": "hook",
       "name": "How they got in",
-      "symptom": "Fraud callers are referencing the Bramble Badger clip to convince members to reveal online banking credentials. The spoof video is being used as a social-engineering hook.",
+      "symptom": "The deepfake was built from real material: the CEO's voice cloned from the public annual-meeting webcast, her face swapped onto town-hall footage. It was planted through the marketing agency's compromised social account, so the first posts looked official before they were spotted and reported. Nobody has confirmed yet which channel let the attackers pose as SCU.",
       "revealed": false
     },
     {
       "id": "spread",
       "name": "How it spread",
-      "symptom": "The clip is being amplified across community channels and by local influencers, and a second spoof claims accounts are frozen for a 'cheese audit'. The story is spreading faster than the team can respond.",
+      "symptom": "The clip is being pushed by a coordinated amplifier network: bot accounts, seeded shares in member community groups, and a cut-down 30-second version optimized for phones with the caption 'CEO BREAKS DOWN admitting losses.' Local influencers are engaging with it and hashtags are trending regionally. The story is compounding faster than any statement can travel.",
       "revealed": false
     },
     {
       "id": "take",
       "name": "What they took",
-      "symptom": "Several members report credential requests referencing the clip, and a fraud spike report lands. Fraudsters are harvesting member credentials and moving funds.",
+      "symptom": "Behind the panic, a fraud wave is running: vishing and smishing campaigns referencing the video, urging members to 'verify their identity' or move funds to a safe account before the 'pause.' Fraud monitoring is flagging credential-stuffing and a spike in transfers to new payees. Several members have already been victimized. The attackers are harvesting money while the video does the scaring.",
       "revealed": false
     }
   ],
 
   "dm_brief": {
-    "situation": "A spoof CGI video of the credit union's badger mascot is circulating and being framed as a leaked internal executive message. Some members believe it and are calling, moving funds, and asking about a 'cheese reserve'. Fraudsters are referencing the clip to social-engineer members into revealing online banking credentials. The executive team must respond publicly, reassure members and staff, guard against fraud, and keep the board and regulator informed.",
-    "stakes": "If handled poorly: member confidence collapses, a real fraud wave rides in behind the joke, the regulator escalates, and reputation damage compounds. If handled well: the joke deflates fast, members are protected by clear guidance, and the team looks prepared.",
+    "situation": "A convincing deepfake of SCU's President and CEO announcing financial trouble is spreading fast across social media and community groups, seeded through the marketing agency's compromised account. Members believe it enough to panic: calls, posts, and outbound transfers are spiking. Riding behind the video, a fraud crew is vishing and texting members with 'move your money before the freeze' social engineering, and early victims have already lost funds. The executive team must respond publicly and fast, get the video suppressed on the platforms, protect members from the fraud campaign, harden the compromised channel, and keep the board, the regulator, and the deposit insurer informed - all while the story keeps moving.",
+    "stakes": "If handled poorly: deposit confidence cracks, a real run puts liquidity under pressure, members lose money to the fraud wave, the regulator escalates, and 'that deepfake day' becomes the credit union's defining story. If handled well: the fake is discredited within hours, members feel protected and informed, the fraud crew is shut out, and the response becomes a case study in doing it right.",
     "key_actors": [
-      { "name": "Bramble (CGI badger)", "role": "The viral fake executive", "interests": "None — a spoof. But its clip is being weaponized.", "knowledge": "Absurd claims: raccoon-powered banking, cheese-wheel withdrawals, a 'cheese reserve'." },
-      { "name": "A local reporter", "role": "Press", "interests": "Does the organization have a cyber incident it is hiding?", "knowledge": "Contacts the team for a quote about whether a breach happened." },
-      { "name": "Contact-centre staff", "role": "Frontline", "interests": "Members are asking whether to move funds.", "knowledge": "Need exact wording and routing for suspicious calls." },
-      { "name": "A Board member", "role": "Governance", "interests": "Incomplete facts; wants an update.", "knowledge": "Forwards the clip and asks what is happening." },
-      { "name": "Fraud callers", "role": "Adversary", "interests": "Exploit the clip to harvest credentials.", "knowledge": "Reference the Bramble Badger clip when asking members to verify login details." }
+      { "name": "Elena Marsh", "role": "President & CEO (deepfake target)", "interests": "Kill the fake, protect deposit confidence, be visible and believable.", "knowledge": "She never recorded that message; she was on a flight when it dropped. Her voice and face were cloned from public footage. She is willing to go on camera immediately - but a wrong move makes it worse." },
+      { "name": "The fraud crew", "role": "Adversary", "interests": "Harvest member credentials and move funds while the panic lasts.", "knowledge": "Built or obtained the deepfake, seeded it, and are running vishing/smishing referencing the 'withdrawal pause' with a fake 'secure your funds' script." },
+      { "name": "The agency account lead", "role": "Compromised channel", "interests": "Protect their contract; terrified of being blamed.", "knowledge": "Their social management console was compromised; the posting credentials were shared across a team. They can show login logs if asked." },
+      { "name": "A local reporter", "role": "Press", "interests": "Is SCU insolvent? Did leadership lose member money? First to report 'SCU denies' wins the morning.", "knowledge": "Has the video, is checking with the deposit insurer, and wants a comment and an interview before noon." },
+      { "name": "Contact-centre manager", "role": "Frontline", "interests": "Staff are drowning; members are asking whether to pull deposits.", "knowledge": "Needs exact holding language, escalation rules for fraud reports, and to know what can be promised publicly." },
+      { "name": "The Board chair", "role": "Governance", "interests": "Deposit insurer optics, member harm, and being blindsided.", "knowledge": "Has seen the clip, wants facts and a timeline, and is one call away from the regulator's board liaison." }
     ],
     "pressure_points": [
-      "A member waiting on hold posts a screenshot of a staff 'holding' answer that reads as confused.",
-      "A second spoof video drops, this time claiming accounts are being frozen for a 'cheese audit'.",
-      "A regulator's office calls asking for a factual summary and this morning's timeline.",
-      "A fraud spike report lands: several members report credential requests referencing the clip.",
-      "An influencer with a large local following shares the clip with a skeptical caption, amplifying it."
+      "A screenshot of an internal 'no comment yet, we're still validating' reply leaks, making the team look flat-footed.",
+      "A second deepfake clip drops, this one naming specific branches and claiming 'holiday withdrawal limits' start tomorrow.",
+      "The regulator's office calls asking for a factual summary, the video's provenance, and this morning's timeline - today.",
+      "A fraud spike report lands: multiple members have already transferred funds to 'safe accounts' after fake calls.",
+      "A deposit-run rumor crosses into a credit-union league chat, and other credit unions start asking if SCU is contagious."
     ],
     "rules_of_play": [
       "Never propose actions, present a menu of choices, or suggest what the group should do. Only react to what the group decides.",
@@ -104,68 +106,67 @@
     {
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
-      "text": "A member waiting on hold posts a screenshot of a staff 'holding' answer that reads as confused.",
+      "text": "A screenshot of a confused staff reply ('we're still validating the video's authenticity') leaks online, making the team look flat-footed while the clip keeps spreading.",
       "state_delta": { "public_trust": -4, "attacker_progress": 3 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
-      "text": "A second spoof video drops, this time claiming accounts are being frozen for a 'cheese audit'.",
+      "text": "A second deepfake clip drops, naming specific branches and claiming 'temporary withdrawal limits' start tomorrow. Lineups form at two branches and the transfer spike steepens.",
       "state_delta": { "public_trust": -6, "attacker_progress": 8 }
     },
     {
       "id": "e3",
       "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
-      "text": "A fraud spike report lands: several members report credential requests referencing the clip.",
+      "text": "A fraud spike report lands: multiple members have transferred funds to 'safe accounts' after calls referencing the video. Several cases involve six-figure sums.",
       "state_delta": { "attacker_progress": 6, "public_trust": -4 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
-      "text": "A regulator's office calls asking for a factual summary and this morning's timeline.",
+      "text": "The regulator's office calls demanding a factual summary, the video's provenance, and this morning's complete timeline - today.",
       "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
     },
     {
       "id": "e5",
       "trigger": { "type": "turn", "turn": 6 },
-      "text": "An influencer with a large local following shares the clip with a skeptical caption, amplifying it.",
+      "text": "A regional outlet runs 'Credit union at center of viral CEO video: what members should know' - framing it as a solvency question rather than a fraud question.",
       "state_delta": { "public_trust": -3, "attacker_progress": 4 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster — an internal chat log is screenshot and leaks, showing the team publicly contradicting itself. Public trust and containment take a heavy hit.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos strikes: the clip spawns a barrage of memes claiming a 'cheese audit' and a rumour that accounts are being frozen. A second wave of worried members calls at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team not only neutralizes the joke but turns it into a trusted-safety talking point that gets repeated by community voices for weeks. Public trust soars and the attack is pushed back.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster - a rushed holding statement goes out with a line that reads like an insolvency admission, and an internal chat screenshot showing visible panic contradicts it within minutes. The clip's spread rate doubles and members start pulling deposits in earnest.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
+    "11": { "kind": "twist", "twist": "Chaos: the deepfake spawns remixes and duets, a doctored 'internal memo' screenshot starts circulating, and a rumor claims withdrawals over $500 are already frozen. A second wave of frightened members calls at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO goes live from the branch floor with undeniable authenticity, platforms act on the takedown notices within minutes, and a side-by-side forensic breakdown of the fake goes viral for the right reasons. Community voices amplify the correction and member fear visibly drains out of the feeds.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
   },
 
   "beats": [
     {
       "id": "b1-public",
       "name": "Step 1 — Get ahead of the story",
-      "narrative": "The clip is spreading and members are calling. Step 1 is to get ahead of the story: a clear public statement, message discipline, and reassuring members. Until the team does this, the rumour will keep compounding."
+      "narrative": "The deepfake is spreading and members are panicking. Step 1 is to get ahead of the story: a fast, credible public response - confirm the video is fake, show the CEO is real and reachable, give members one clear instruction, and brief the frontline so every answer matches. Until the team does this, the rumor keeps compounding."
     },
     {
       "id": "b2-fraud",
-      "name": "Step 2 — The regulator and the fraud wave",
-      "narrative": "Public messaging is being handled. Now the harder work: the regulator wants a factual summary and a timeline, and fraudsters are using the clip to harvest member credentials. Step 2 is to contain the fraud and satisfy the regulator. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
+      "name": "Step 2 — The platforms, the fraud wave, and the regulator",
+      "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
     },
     {
       "id": "b3-recover",
       "name": "Step 3 — Eradicate and recover",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: confirm the fraud hook is fully neutralized, shore up defenses, and restore member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: close the compromised channel and harden it, confirm the fraud campaign is fully shut out and victims are being made right, support law enforcement's attribution work, and rebuild member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
     }
   ],
 
-
   "end_conditions": [
-    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Public trust collapse: executive confidence is lost before the facts are controlled." },
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Attack overload: the fraud wave becomes a full enterprise incident and members are harmed." },
+    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Confidence collapse: deposit panic wins before the facts can, and the run becomes the story." },
+    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Crisis overload: the fraud wave and the panic compound into a full enterprise incident and members are harmed." },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 
   "report": {
-    "title_note": "Bramble Badger Deepfake Crisis — Tabletop Report",
+    "title_note": "Deepfake CEO Crisis — Tabletop Report",
     "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
   }
 }
