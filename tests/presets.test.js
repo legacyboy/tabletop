@@ -6,9 +6,18 @@
  * and proxy (browser -> server -> local Ollama) paths to the right provider
  * classes. No network or DOM required.
  */
-import { PRESETS, OLLAMA_MODELS, DEEPSEEK_MODELS, buildProvider, describeProvider, defaultSettings } from '../app/js/providers/registry.js';
+import { PRESETS, OLLAMA_MODELS, DEEPSEEK_MODELS, buildProvider, describeProvider, defaultSettings, loadSettings } from '../app/js/providers/registry.js';
 import { OpenAICompatibleProvider } from '../app/js/providers/openai-compatible.js';
 import { ServerProxyProvider } from '../app/js/providers/server-proxy.js';
+
+// minimal localStorage mock so loadSettings migration tests can run in node
+const store = new Map();
+globalThis.localStorage = {
+  getItem: (k) => (store.has(k) ? store.get(k) : null),
+  setItem: (k, v) => store.set(k, String(v)),
+  removeItem: (k) => store.delete(k),
+  clear: () => store.clear(),
+};
 
 let passed = 0, failed = 0;
 const check = (name, cond) => {
@@ -117,6 +126,24 @@ check('DeepSeek preset exists', !!dsPreset);
 check('DeepSeek preset is server-routed (viaServer)', dsPreset && dsPreset.viaServer === true);
 check('DeepSeek preset default model is deepseek-v4-flash:cloud', dsPreset && dsPreset.model === 'deepseek-v4-flash:cloud');
 check('DeepSeek preset does NOT hit paid api.deepseek.com', dsPreset && !(dsPreset.baseUrl || '').includes('api.deepseek.com'));
+
+// 11. loadSettings migration: stale paid-API deepseek settings get forced
+// back onto the free Ollama-cloud server-proxy path (PR #23 regression guard).
+function seed(overrides) {
+  store.clear();
+  store.set('tabletop.dm.settings.v1', JSON.stringify({ ...defaultSettings(), ...overrides }));
+}
+seed({ preset: 'deepseek', baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash', viaServer: false, apiKey: 'paid-key' });
+const migratedPaid = loadSettings();
+check('migration: clears paid api.deepseek.com baseUrl', migratedPaid.baseUrl === '');
+check('migration: forces viaServer true', migratedPaid.viaServer === true);
+check('migration: remaps bare model to deepseek-v4-flash:cloud', migratedPaid.model === 'deepseek-v4-flash:cloud');
+seed({ preset: 'deepseek', baseUrl: '', model: 'deepseek-v4-flash:cloud', viaServer: true, apiKey: 'ollama-key' });
+const okDeepseek = loadSettings();
+check('migration: healthy deepseek config left unchanged', okDeepseek.baseUrl === '' && okDeepseek.viaServer === true && okDeepseek.model === 'deepseek-v4-flash:cloud');
+seed({ preset: 'openai', baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', viaServer: false });
+const okOpenai = loadSettings();
+check('migration: non-deepseek preset untouched', okOpenai.baseUrl === 'https://api.openai.com/v1' && okOpenai.model === 'gpt-4o-mini' && okOpenai.viaServer === false);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -118,6 +118,20 @@ export function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return defaultSettings();
     const s = { ...defaultSettings(), ...JSON.parse(raw) };
+    // Migration (PR #23): any preserved 'deepseek' preset that was saved as a
+    // DIRECT call to the paid api.deepseek.com API (PR #22-era config) gets
+    // forced back onto the free Ollama-cloud server proxy path. The paid
+    // DeepSeek API must never be used without explicit permission.
+    if (s.preset === 'deepseek') {
+      const base = s.baseUrl || '';
+      const oldPaid = base.includes('api.deepseek.com');
+      const oldBareModel = s.model && !String(s.model).includes(':');
+      if (s.viaServer !== true || oldPaid || oldBareModel) {
+        s.viaServer = true;      // route via server proxy -> Ollama cloud
+        s.baseUrl = '';          // never keep a paid API URL
+        s.model = 'deepseek-v4-flash:cloud'; // free Ollama cloud default
+      }
+    }
     // Session-only key: pull it from memory (if set this session) so the
     // current session still works even though the key isn't persisted.
     if (!s.rememberKey) s.apiKey = sessionApiKey;
