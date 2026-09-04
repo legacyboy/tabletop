@@ -27,8 +27,25 @@ await page.goto(BASE, { waitUntil: 'networkidle0' });
 await new Promise((r) => setTimeout(r, 700));
 
 // --- Feature 1: scenario select / change ---
+// Dan: scenario (and its intro video) must NOT load on page load. The app
+// now lands on the scenario-select screen with nothing loaded; the user
+// explicitly picks a scenario and presses "Load / Start" to load it.
+const selectVisibleOnLoad = await page.evaluate(() => document.getElementById('phase-select').style.display === 'block');
+check('initial load shows scenario-select screen (NOT loaded scenario)', selectVisibleOnLoad);
+const introHiddenOnLoad = await page.evaluate(() => document.getElementById('phase-intro').style.display !== 'block');
+check('intro is NOT shown on initial load', introHiddenOnLoad);
+const videoSrcOnLoad = await page.evaluate(() => document.getElementById('introVideo')?.getAttribute('src') || '');
+check('intro video is NOT loaded on initial load', videoSrcOnLoad === '');
+
+// Load the first scenario the way a user would: pick it and press Load/Start.
+await page.evaluate(() => { const s = document.getElementById('scenarioSelect'); if (s && s.options.length) s.selectedIndex = 0; });
+await page.evaluate(() => { const b = document.getElementById('loadScenarioBtn'); if (b) b.click(); });
+await new Promise((r) => setTimeout(r, 700));
+
 const introVisible = await page.evaluate(() => document.getElementById('phase-intro').style.display === 'block');
-check('initial load shows intro (auto-selected scenario)', introVisible);
+check('intro appears after explicit Load/Start', introVisible);
+const videoSrcAfterLoad = await page.evaluate(() => document.getElementById('introVideo')?.getAttribute('src') || '');
+check('intro video is loaded only after Load/Start', videoSrcAfterLoad !== '');
 
 // --- Feature 0 (v3): text-first intro + hidden goal ---
 // The intro shows the group's case brief. There is no human facilitator (the
