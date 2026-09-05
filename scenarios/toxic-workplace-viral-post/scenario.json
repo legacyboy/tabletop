@@ -17,9 +17,9 @@
 
   "intro": {
     "video": "",
-    "narrative": "At 5:40 yesterday evening, a former SCU employee - let go in last year's restructuring - published a long, detailed account of their time at the credit union. It names a senior manager. It alleges favoritism, bullying that HR 'logged but never acted on,' leadership dysfunction, and a culture where people are told to be resilient instead of safe. The post includes screenshots of internal chats and emails. HR and Legal have been triaging them since last night: at least a few are authentic internal chats, some appear doctored or stripped of context, and one 'email' matches nothing anyone can find. Some of it is already being confirmed by people still inside the building: current employees are liking, sharing, and quietly adding their own stories - some publicly, some from anonymous accounts - and the post is rocketing through local feeds and member community groups. Members are tagging SCU asking whether this is how their credit union treats its people. The board's phones are lighting up. You are the executive team, and everyone is waiting to see what you do about a story your own people are vouching for.",
+    "narrative": "At 5:40 yesterday evening, a former the credit union employee - let go in last year's restructuring - published a long, detailed account of their time at the credit union. It names a senior manager. It alleges favoritism, bullying that HR 'logged but never acted on,' leadership dysfunction, and a culture where people are told to be resilient instead of safe. The post includes screenshots of internal chats and emails. HR and Legal have been triaging them since last night: at least a few are authentic internal chats, some appear doctored or stripped of context, and one 'email' matches nothing anyone can find. Some of it is already being confirmed by people still inside the building: current employees are liking, sharing, and quietly adding their own stories - some publicly, some from anonymous accounts - and the post is rocketing through local feeds and member community groups. Members are tagging the credit union asking whether this is how their credit union treats its people. The board's phones are lighting up. You are the executive team, and everyone is waiting to see what you do about a story your own people are vouching for.",
     "company_url": "",
-    "company_info": "SCU is a mid-sized, member-owned credit union. Its brand is people-first: member service and staff culture are the same story told twice, and members notice how an institution treats its employees. As a cooperative, SCU answers to its members - and the regulator increasingly treats workplace culture as conduct risk, not just an HR matter. A viral culture story cuts at the identity, not just the reputation."
+    "company_info": "The credit union is a mid-sized, member-owned credit union. Its brand is people-first: member service and staff culture are the same story told twice, and members notice how an institution treats its employees. As a cooperative, the credit union answers to its members - and the regulator increasingly treats workplace culture as conduct risk, not just an HR matter. A viral culture story cuts at the identity, not just the reputation."
   },
 
   "opening_state": {
@@ -55,7 +55,7 @@
     {
       "id": "spread",
       "name": "How it spread",
-      "symptom": "The story's escalation engine is internal: current employees are engaging with it publicly, anonymous accounts are adding corroborating stories, and Glassdoor-style reviews are spiking. Members are sharing it with 'is this true?' captions, a local reporter is asking for comment, and the narrative has migrated from one person's experience to 'this is what SCU is like.' The more the organization stays silent or defensive, the faster the story compounds.",
+      "symptom": "The story's escalation engine is internal: current employees are engaging with it publicly, anonymous accounts are adding corroborating stories, and Glassdoor-style reviews are spiking. Members are sharing it with 'is this true?' captions, a local reporter is asking for comment, and the narrative has migrated from one person's experience to 'this is what the credit union is like.' The more the organization stays silent or defensive, the faster the story compounds.",
       "revealed": false
     },
     {
@@ -67,14 +67,14 @@
   ],
 
   "dm_brief": {
-    "situation": "A former employee's detailed account of favoritism, bullying, and a dismissive culture at SCU has gone viral, complete with screenshots - some authentic, some likely doctored. Current employees are amplifying and corroborating it, which transforms one person's grievance into an indictment the public believes. A senior manager is named. The board wants answers, members are asking questions at the counter, the regulator treats culture as conduct risk, and the team must respond publicly without attacking the author, investigate the substance honestly, support the staff who are both victims and amplifiers of the story, and stop the bleeding - all while new details keep surfacing.",
+    "situation": "A former employee's detailed account of favoritism, bullying, and a dismissive culture at the credit union has gone viral, complete with screenshots - some authentic, some likely doctored. Current employees are amplifying and corroborating it, which transforms one person's grievance into an indictment the public believes. A senior manager is named. The board wants answers, members are asking questions at the counter, the regulator treats culture as conduct risk, and the team must respond publicly without attacking the author, investigate the substance honestly, support the staff who are both victims and amplifiers of the story, and stop the bleeding - all while new details keep surfacing.",
     "stakes": "If handled poorly: the legal-first playbook ('we do not comment on personnel matters') reads as an admission, more staff speak out or walk, member trust erodes, the regulator opens a culture file, and the named manager becomes the face of the brand. If handled well: the organization is seen to take the substance seriously without endorsing the fabrications, staff feel heard, the story loses its oxygen, and the response itself rebuilds credibility.",
     "key_actors": [
       { "name": "The former employee", "role": "Author of the post", "interests": "To be believed; to see acknowledgment and consequences - not money.", "knowledge": "Real internal chats, real HR complaint receipts (theirs and others'), and possibly a few embellishments. They have more screenshots and are prepared to keep posting." },
       { "name": "The named senior manager", "role": "Subject of the allegations", "interests": "To defend themselves publicly, right now, and to be backed.", "knowledge": "Denies the bullying characterization; says the complainants were underperformers and that HR cleared them. Their team is watching how leadership handles this." },
       { "name": "The Chief People Officer", "role": "HR lead", "interests": "Wants the complaint history reviewed honestly - quietly.", "knowledge": "There are logged complaints that were 'addressed' with coaching sessions; the file is thinner than the story claims but not empty. Knows exactly which screenshots are genuine." },
       { "name": "Current employees (a loose collective)", "role": "The amplifiers", "interests": "Want to be heard and protected, not managed.", "knowledge": "Real day-to-day culture. They are sharing the post because it matches their experience. They can escalate - or stand down - depending on how leadership responds. Some fear retaliation for speaking up." },
-      { "name": "A local reporter", "role": "Press", "interests": "Verifying the screenshots and finding more sources inside SCU.", "knowledge": "Has the post, is contacting current staff, and is weighing whether this is a 'viral grievance' story or a 'culture investigation' story." },
+      { "name": "A local reporter", "role": "Press", "interests": "Verifying the screenshots and finding more sources inside the credit union.", "knowledge": "Has the post, is contacting current staff, and is weighing whether this is a 'viral grievance' story or a 'culture investigation' story." },
       { "name": "The Board chair", "role": "Governance", "interests": "Member-owned institution optics; terrified of a whitewash or a cover-up.", "knowledge": "Has been forwarded the post by other directors and by members; wants an independent review and a defensible process, not a press release." }
     ],
     "pressure_points": [
@@ -104,7 +104,7 @@
     {
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
-      "text": "With no word from SCU, the story fills the vacuum on its own: an all-hands summary gets screenshotted and leaked, and its 'let's not feed this' line becomes the top comment under the post.",
+      "text": "With no word from the credit union, the story fills the vacuum on its own: an all-hands summary gets screenshotted and leaked, and its 'let's not feed this' line becomes the top comment under the post.",
       "state_delta": { "public_trust": -4 }
     },
     {
@@ -122,20 +122,20 @@
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
-      "text": "The regulator calls: they are treating the public allegations as potential conduct risk and want to know what governance response SCU will commit to - in writing, this week.",
+      "text": "The regulator calls: they are treating the public allegations as potential conduct risk and want to know what governance response the credit union will commit to - in writing, this week.",
       "state_delta": { "regulator_confidence": -5 }
     },
     {
       "id": "e5",
       "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
-      "text": "A local outlet runs a follow-up: 'SCU staff corroborate viral culture post.' It quotes two current employees on condition of anonymity, and the reporter asks the executive team for a sit-down interview.",
+      "text": "A local outlet runs a follow-up: 'the credit union staff corroborate viral culture post.' It quotes two current employees on condition of anonymity, and the reporter asks the executive team for a sit-down interview.",
       "state_delta": { "public_trust": -3 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on SCU.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #SCUculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6 } },
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on the credit union.", "state_delta": { "public_trust": -12, "containment": -8 } },
+    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #creditunionculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6 } },
     "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to an independent review with published findings, thanks the people who spoke up, and asks members for patience. Even critics call it the right response, staff internally exhale, and the story's momentum visibly stalls.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 
@@ -166,7 +166,7 @@
         { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
       ],
       "consecutive": 2,
-      "ending": "The collapse: the story is everywhere and the response is nowhere. Resignations stack up, candidates walk away, and members who believed the people-first identity go quiet while the union and the press escalate past the organization to the regulator. A conduct review opens, the board loses faith in the leadership team, and SCU's culture story becomes a cautionary tale. The exercise concludes as a loss."
+      "ending": "The collapse: the story is everywhere and the response is nowhere. Resignations stack up, candidates walk away, and members who believed the people-first identity go quiet while the union and the press escalate past the organization to the regulator. A conduct review opens, the board loses faith in the leadership team, and the credit union's culture story becomes a cautionary tale. The exercise concludes as a loss."
     },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
