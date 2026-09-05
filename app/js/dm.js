@@ -353,6 +353,7 @@ export class DMSession {
       'The session is about to begin. NO group action has been taken yet (this is the opening scene, turn 0).\n' +
       'Narrate the opening scene in vivid, forward-driving prose (4-7 sentences): what has just happened, what the group\n' +
       'is observing right now, and the concrete pressure/decision that is immediately in front of them.\n' +
+      'HAND OVER THE KEY FACTS UP FRONT: include everything the team would realistically already know at this moment — who is involved, what happened, where/how it started (e.g. which channel or account the incident came through), and what is at stake. Do NOT withhold essential context that the group would have in a real situation; they should not have to ask basic questions to learn how the incident began. Reserve genuine unknowns (e.g. who is behind it, how deep it goes) for discovery through investigation.\n' +
       'Do NOT describe any group actions or outcomes (none have occurred). Do NOT present a menu of choices.\n' +
       'End by leaving the group facing a concrete in-world development they must react to.\n' +
       'Reply with STRICT JSON: {"narrative": "<the opening scene prose>"} and nothing else.';
