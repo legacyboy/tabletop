@@ -585,5 +585,16 @@ const randSession = new DMSession(new MockProvider(), randomScenarioShell());
 const randOpening = await randSession.openScene();
 check('openScene works in random mode', typeof randOpening === 'string' && randOpening.length > 0);
 
+// 45. Blank/empty narrative from the provider never reaches the player as a
+// blank story — a fallback line is shown instead (intermittent provider failure).
+class BlankProvider {
+  async chat() { return ''; } // empty reply -> extraction yields nothing
+}
+const sBlank = new DMSession(new BlankProvider(), scenario);
+const blankOpening = await sBlank.openScene();
+check('openScene falls back when provider returns empty', typeof blankOpening === 'string' && blankOpening.trim().length > 0);
+const blankTurn = await sBlank.takeTurn('We respond publicly.', 12);
+check('takeTurn falls back when provider returns empty', typeof blankTurn.narrative === 'string' && blankTurn.narrative.trim().length > 0);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

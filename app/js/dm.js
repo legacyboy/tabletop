@@ -370,6 +370,9 @@ export class DMSession {
       const looksLikeJson = /^[{\[]/.test(String(dmResult).trim()) || /^"[\s\S]*"$/.test(String(dmResult).trim());
       if (looksLikeJson) narrative = 'The opening scene unfolds. (The DM narrative could not be parsed cleanly.)';
     }
+    if (!String(narrative).trim()) {
+      narrative = 'The opening scene begins. (The moderator returned no narrative this turn — try again or continue.)';
+    }
     // Seed the transcript so the opening scene shows in the closing report.
     this.history.push({ turn: 0, action: '(opening scene)', narrative, roll: null });
     return narrative;
@@ -416,6 +419,12 @@ export class DMSession {
     if (!parsed.narrative) {
       const looksLikeJson = /^[{\[]/.test(String(dmResult).trim()) || /^"[\s\S]*"$/.test(String(dmResult).trim());
       if (looksLikeJson) narrative = 'The situation developed. (The moderator narrative could not be parsed cleanly.)';
+    }
+    // Final guard: never show a blank story. If the model returned an empty or
+    // whitespace-only reply (an intermittent provider failure), give the player
+    // a usable line instead of nothing so the turn never ends with no narrative.
+    if (!String(narrative).trim()) {
+      narrative = 'The situation continues to develop. (The moderator returned no narrative this turn — try again or continue.)';
     }
     const delta = parsed.state_delta || {};
 
