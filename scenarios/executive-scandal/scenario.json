@@ -55,7 +55,7 @@
     {
       "id": "spread",
       "name": "How it spread",
-      "symptom": "The escalation engine is association: the story jumped from a crime blog to local news to trade press, with SCU's name and logo carried along in every headline and thumbnail. Old social-media photos resurface - Wells with a commercial borrower whose loan expansion he approved - and a 'conflict of interest' thread begins. Staff start asking whether the standard would be the same for a teller, members ask pointed questions at the counter, and the board splits into camps, leaking its own friction.",
+      "symptom": "The escalation engine is association: the story jumped from a crime blog to local news to trade press, with SCU's name and logo carried along in every headline and thumbnail. Old Facebook photos resurface - Wells with a commercial borrower whose loan expansion he approved - and a 'conflict of interest' thread begins. Staff start asking whether the standard would be the same for a teller, members ask pointed questions at the counter, and the board splits into camps, leaking its own friction.",
       "revealed": false
     },
     {
@@ -79,7 +79,7 @@
     ],
     "pressure_points": [
       "The police issue a terse statement: 'The investigation continues. No charges have been laid.' It answers nothing and feeds the vacuum.",
-      "The social-media photos go wide: Wells at a charity gala with the developer whose company's loan expansion he approved - and the thread finds the disclosure footnote.",
+      "The Facebook photos go wide: Wells at a charity gala with the developer whose company's loan expansion he approved - and the thread finds the disclosure footnote.",
       "A trade outlet runs 'Credit union chief lending officer arrested; released without charges' nationally, with SCU's logo as the thumbnail.",
       "An internal post asks the question out loud: 'A teller would already be suspended and escorted out. Why is this different?' It is screenshot and spreading internally.",
       "A resurfaced conference video shows Wells making an off-color joke about borrowers at an industry panel - mild, but it stitches neatly into 'a pattern.'"
@@ -110,7 +110,7 @@
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
-      "text": "The social-media photos go wide: Wells at a charity gala with a commercial borrower whose loan expansion he approved last spring. A conflict-of-interest thread takes off, and the phrase 'he approved the loan' starts appearing in member comments.",
+      "text": "The Facebook photos go wide: Wells at a charity gala with a commercial borrower whose loan expansion he approved last spring. A conflict-of-interest thread takes off, and the phrase 'he approved the loan' starts appearing in member comments.",
       "state_delta": { "public_trust": -6 }
     },
     {
