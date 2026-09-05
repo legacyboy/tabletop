@@ -11,7 +11,7 @@ const session = {
   turn: 2,
   startedAt: Date.now() - 125000,
   ending: null,
-  state: { budget: 70, public_trust: 57, containment: 40, eradication: 20, recovery: 15, attacker_progress: 45, regulator_confidence: 50 },
+  state: { budget: 70, public_trust: 57, containment: 40, eradication: 20, recovery: 15, regulator_confidence: 50 },
   attackChain: [
     { id: 'hook', name: 'How they got in', symptom: 'Fraud callers reference the clip.', revealed: true, contained: true },
     { id: 'spread', name: 'How it spread', symptom: 'The clip is amplified.', revealed: true, contained: false },
@@ -24,14 +24,14 @@ const session = {
       roll: 13,
       fate: null,
       narrative: 'The call center staff began disconnecting callers, triggering negative sentiment.',
-      state: { budget: 70, public_trust: 57, containment: 40, eradication: 20, recovery: 15, attacker_progress: 45, regulator_confidence: 50 },
+      state: { budget: 70, public_trust: 57, containment: 40, eradication: 20, recovery: 15, regulator_confidence: 50 },
     },
     {
       action: 'Tell the regulator it is satire and refuse the briefing.',
       roll: 11,
       fate: 'cheese_audit',
-      narrative: 'The cheese audit meme wave hit. Attacker progress jumped.',
-      state: { budget: 70, public_trust: 52, containment: 30, eradication: 15, recovery: 10, attacker_progress: 73, regulator_confidence: 50 },
+      narrative: 'The cheese audit meme wave hit and trust kept sliding.',
+      state: { budget: 70, public_trust: 52, containment: 30, eradication: 15, recovery: 10, regulator_confidence: 50 },
     },
   ],
 };

@@ -19,9 +19,10 @@ v4 (the current version) adds the BDB-inspired features on top of v3:
    must discover and contain. The DM reveals a stage when the group's
    investigation uncovers it, and marks it contained when the group neutralizes
    it. The win condition becomes "contain all stages."
-5. **BDB-style metric set.** `risk` is replaced by `attacker_progress` (the
-   kill chain as a number), plus response-side metrics (`containment`,
-   `eradication`, `recovery`, `security_posture`) and `public_trust`.
+5. **BDB-style metric set.** Response-side metrics (`containment`,
+   `eradication`, `recovery`, `security_posture`) plus the confidence stats
+   (`public_trust`, `regulator_confidence`). The old `attacker_progress`
+   counter is GONE: failure is narrated, not counted (see `end_conditions`).
 6. **Roll modifiers.** The group can "play" a defender capability (spend
    budget) to get a +2/+3 on the next D20 roll.
 7. **Breach state.** A discrete ladder (`contained → active → escalated →
@@ -70,12 +71,12 @@ Scenarios are listed in `scenarios/registry.json`.
   },
 
   // --- starting state the DM must track and update each turn ---
-  // BDB-style metric set. `attacker_progress` replaces the old vague `risk`.
+  // BDB-style metric set: response-side metrics + confidence stats.
   // The engine tracks whatever metrics you define here (data-driven).
   "opening_state": {
     "budget": 70, "public_trust": 65, "regulator_confidence": 60,
     "security_posture": 60, "containment": 20, "eradication": 10,
-    "recovery": 10, "attacker_progress": 30
+    "recovery": 10
   },
 
   // --- the hidden attack chain (kill chain) ---
@@ -177,26 +178,37 @@ Scenarios are listed in `scenarios/registry.json`.
   // HIDDEN from players. Lives only in the engine and the DM's private brief.
   // When ALL win_conditions are met simultaneously, the scenario ends in
   // success. This is the objective the group works toward — not a timer.
-  // The win condition should reference attacker_progress + containment /
-  // eradication / recovery (the BDB-style "contain all stages" objective).
+  // The win condition should reference containment / eradication / recovery
+  // and the confidence stats (the BDB-style "contain all stages" objective).
   "goal": {
     "description": "Contain the attack chain and restore trust.",
     "win_conditions": [
       { "stat": "public_trust", "operator": "gte", "value": 60 },
       { "stat": "containment", "operator": "gte", "value": 80 },
       { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
     "ending": "Crisis resolved: the attack chain is contained and trust restored."
   },
 
   // --- what ends the session in failure ---
-  // stat-based lose conditions: fires when a stat crosses the threshold.
-  // timeout:     fires when the running session timer hits duration_seconds.
+  // NARRATIVE LOSS (stat-based): fires when the loss condition holds for
+  //   `consecutive` turns in a row. Single-stat ({stat, operator, value}) or
+  //   multi-stat collapse ({stats: [...]} - ALL stats must be in the zone).
+  //   Write a vivid collapse ending: the organization loses the confidence of
+  //   the people it serves, the regulator escalates, the board loses faith,
+  //   the story ends badly. If a scenario defines none, the engine falls back
+  //   to the built-in default (public_trust AND regulator_confidence both
+  //   <= 20 for 2 consecutive turns).
+  // timeout: fires when the running session timer hits duration_seconds.
   "end_conditions": [
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90,
-      "ending": "Attack overload: the event becomes a full enterprise incident." },
+    { "type": "stat", "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse is complete: the public stops believing the organization, the regulator escalates to extraordinary measures, and the board loses faith. The exercise concludes as a loss." },
     { "type": "timeout", "duration_seconds": 3600,
       "ending": "Time ran out on the scheduled exercise." }
   ],
@@ -303,8 +315,8 @@ The DM receives the current state each turn and returns an updated state with
 its judgment of the action's consequences. The engine clamps values to [0,100]
 and caps per-turn changes to ±10 so a session keeps a believable arc. Persisting
 state across turns is what makes a long session consequential and feeds
-`end_conditions` (e.g. "attacker_progress > 90 = the event becomes a full
-incident").
+`end_conditions` (e.g. the narrative collapse: both confidence stats
+critically low for consecutive turns ends the story as a loss).
 
 ## Attack chain (kill chain)
 

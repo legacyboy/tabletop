@@ -10,8 +10,7 @@
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
       { "stat": "containment", "operator": "gte", "value": 80 },
       { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
     "ending": "Crisis resolved: the leader's situation is handled with a fair, defensible process, any real conflict issues are cleaned up, the conduct framework is credible, and members, the board, and the regulator trust the organization's judgment again. The exercise concludes."
   },
@@ -30,8 +29,7 @@
     "security_posture": 60,
     "containment": 20,
     "eradication": 10,
-    "recovery": 10,
-    "attacker_progress": 30
+    "recovery": 10
   },
 
   "meta": {
@@ -92,13 +90,13 @@
       "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
       "Show consequences of the roll, but let the group's stated actions drive the logic.",
-      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery) to reflect outcomes.",
       "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
       "If the group stalls with no clear action for a while, inject a pressure point to move things.",
       "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
       "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
-      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
-      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+      "The situation can collapse into a narrated LOSS: if public_trust AND regulator_confidence both fall to 20 or below for consecutive turns, the story ends badly - members lose faith, the regulator escalates, the board loses confidence in the response. Narrate that strain realistically as confidence falls, but reward competent, coordinated response with recovery.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment keeps struggling - the story keeps biting, the regulator stays unsatisfied - until it closes out the full arc."
     ]
   },
 
@@ -107,38 +105,38 @@
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
       "text": "With no word from SCU, the vacuum fills on its own: the local story jumps to the top of regional feeds, 'SCU' and 'arrested' are now associated in search, and members are asking branch staff what they're supposed to tell their families.",
-      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+      "state_delta": { "public_trust": -4 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
       "text": "The Facebook photos go wide: Wells at a charity gala with a commercial borrower whose loan expansion he approved last spring. A conflict-of-interest thread takes off, and the phrase 'he approved the loan' starts appearing in member comments.",
-      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+      "state_delta": { "public_trust": -6 }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "trigger": { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 40 },
       "text": "The trade press runs the story nationally with SCU's logo as the thumbnail, and the internal 'double standard' post - 'a teller would already be escorted out' - is screenshot and spreading through staff channels.",
-      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+      "state_delta": { "public_trust": -4, "regulator_confidence": -5 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
       "text": "The regulator's supervision lead calls: they want to know whether Wells remains fit for his role pending the outcome - and whether SCU's governance has a conduct process at all, or is improvising this as it goes.",
-      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+      "state_delta": { "regulator_confidence": -5 }
     },
     {
       "id": "e5",
-      "trigger": { "type": "turn", "turn": 6 },
+      "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
       "text": "A resurfaced conference video shows Wells making an off-color joke about borrowers at an industry panel two years ago. On its own it is mild; stitched into the arrest narrative it becomes the 'a pattern?' story, and the local reporter asks SCU to comment on 'the culture around lending.'",
-      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+      "state_delta": { "public_trust": -3 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board leaks its own split to a reporter within a day, and then the conflict-of-interest file surfaces showing the borrower friendship was disclosed informally and never recorded. The story stops being about a hotel arrest and becomes about an organization that answers questions before it asks them.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos: the police issue a statement that answers nothing - 'the investigation continues, no charges have been laid' - and a national aggregator runs the arrest with SCU's logo as the thumbnail while a former employee posts a secondhand rumor thread that fills the vacuum with worse. The team is now fighting a story with no facts in it at all.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the organization announces a clear, humane process - presumption of innocence, stepped-back lending authority pending outcome, an independent conflict-of-interest review, and a published conduct framework that applies to anyone from teller to executive. Wells accepts with dignity, staff see a single standard, the board unifies behind the process, and the reporter writes that 'for once, an organization has a process.'", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board leaks its own split to a reporter within a day, and then the conflict-of-interest file surfaces showing the borrower friendship was disclosed informally and never recorded. The story stops being about a hotel arrest and becomes about an organization that answers questions before it asks them.", "state_delta": { "public_trust": -12, "containment": -8 } },
+    "11": { "kind": "twist", "twist": "Chaos: the police issue a statement that answers nothing - 'the investigation continues, no charges have been laid' - and a national aggregator runs the arrest with SCU's logo as the thumbnail while a former employee posts a secondhand rumor thread that fills the vacuum with worse. The team is now fighting a story with no facts in it at all.", "state_delta": { "public_trust": -6 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the organization announces a clear, humane process - presumption of innocence, stepped-back lending authority pending outcome, an independent conflict-of-interest review, and a published conduct framework that applies to anyone from teller to executive. Wells accepts with dignity, staff see a single standard, the board unifies behind the process, and the reporter writes that 'for once, an organization has a process.'", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 
   "beats": [
@@ -160,8 +158,16 @@
   ],
 
   "end_conditions": [
-    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the vacuum wins, and the organization's judgment becomes the story." },
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: media, board division, and regulatory doubt compound into a full governance crisis." },
+    {
+      "type": "stat",
+      "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse: the vacuum wins. The arrest story becomes a governance story becomes a cover-up story, the board's split leaks in full, and the regulator's questions arrive in writing. Members conclude the organization answers questions before it asks them, Wells is left carrying the whole failure alone, and the board concludes it cannot defend a response it never received. The exercise concludes as a loss."
+    },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 

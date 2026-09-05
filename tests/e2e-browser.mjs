@@ -58,14 +58,14 @@ const afterRoll = await page.evaluate(() => ({
   stateText: document.getElementById('stateList').textContent,
 }));
 check('narrative populated', afterRoll.narrative.length > 20);
-check('state dashboard populated (7 widgets: budget + 5 lights + attacker bar)', afterRoll.stateCount === 7);
+check('state dashboard populated (6 widgets: budget + 5 lights)', afterRoll.stateCount === 6);
 check('log has entry', afterRoll.logCount >= 1);
 check('5 traffic-light metrics rendered', afterRoll.trafficLights === 5);
-check('attacker_progress rendered as a progress bar', afterRoll.apBar);
+check('NO attacker_progress bar rendered (metric removed)', !afterRoll.apBar);
 check('budget rendered as a spend card', afterRoll.budgetCard);
 check('security_posture dropped from the state panel', afterRoll.postureGone);
-check('traffic lights show NO color word (Green/Yellow/Red)', !/\bGreen\b|\bYellow\b|\bRed\b/.test(afterRoll.stateText.replace(/Public Trust|Attacker progress|Budget/g, '')));
-check('attacker bar has no color label', !/[0-9]+\s*%/.test(afterRoll.stateText));
+check('traffic lights show NO color word (Green/Yellow/Red)', !/\bGreen\b|\bYellow\b|\bRed\b/.test(afterRoll.stateText.replace(/Public Trust|Budget/g, '')));
+check('state panel shows no numeric score or percent', !/[0-9]+\s*%/.test(afterRoll.stateText));
 
 console.log('  NARRATIVE:', afterRoll.narrative.slice(0, 90));
 console.log('  STATE ITEMS:', afterRoll.stateCount, '| LOG:', afterRoll.logCount);

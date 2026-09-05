@@ -24,7 +24,7 @@ class MockProvider {
     const roll = rollMatch ? Number(rollMatch[1]) : 15;
     const reply = {
       narrative: `The team handled turn ${roll}: a measured response. Consequences applied.`,
-      state_delta: roll >= 20 ? { public_trust: 6, containment: 4 } : roll <= 1 ? { public_trust: -10, attacker_progress: 8 } : { public_trust: 1 },
+      state_delta: roll >= 20 ? { public_trust: 6, containment: 4 } : roll <= 1 ? { public_trust: -10 } : { public_trust: 1 },
     };
     if (this.progress !== undefined) reply.progress = this.progress;
     if (this.reveal) reply.reveal_stage = this.reveal;
@@ -49,7 +49,7 @@ check('history length', s1.history.length === 1);
 const s2 = new DMSession(new MockProvider(), scenario);
 await s2.takeTurn('Reassure members', 11);
 check('fate event recorded on 11', s2.history[0].fate !== null);
-check('attacker_progress increased from fate delta', s2.state.attacker_progress > scenario.opening_state.attacker_progress);
+check('fate delta applied on 11 (public_trust dropped)', s2.state.public_trust < scenario.opening_state.public_trust);
 
 // 3. Fate on 1 (crit fail)
 const s3 = new DMSession(new MockProvider(), scenario);
@@ -57,50 +57,70 @@ await s3.takeTurn('Do nothing', 1);
 check('fate on 1', s3.history[0].fate !== null);
 check('public_trust dropped on 1', s3.state.public_trust < scenario.opening_state.public_trust);
 
-// 4. End condition detection: stat thresholds (e.g. attacker_progress >= 90)
-//    must NOT end the game — Dan's design: no instant loss on a metric hitting
-//    100. The exercise runs until the team decides it's done (manual end) or
-//    the timeout fires. Drive attacker_progress to the ceiling and confirm the
-//    session does NOT auto-end.
+// 4. End conditions: a single bad stat does NOT end the game (Dan's design:
+//    no instant loss on one metric hitting a threshold), but the NARRATIVE
+//    COLLAPSE does: public_trust AND regulator_confidence both critically low
+//    for consecutive turns ends the session as a narrated LOSS.
 const s4 = new DMSession(new MockProvider(), scenario);
 let endHit = false;
-for (let i = 0; i < 40 && !endHit; i++) {
-  const res = await s4.takeTurn('Escalate aggressively', 11); // fate adds attacker_progress each time
-  s4.state.attacker_progress = Math.min(100, s4.state.attacker_progress + 20); // force toward threshold
+for (let i = 0; i < 10 && !endHit; i++) {
+  const res = await s4.takeTurn('Escalate aggressively', 11); // fate chips public_trust each turn
+  s4.state.containment = Math.min(100, s4.state.containment + 20); // force ONE metric to the ceiling
   if (res.endCondition) endHit = true;
 }
-check('stat threshold does NOT end the game (no instant loss at 100)', !endHit);
+check('single stat at 100 does NOT end the game (no instant loss)', !endHit);
 
-// 4b. Goal (win condition): when all goal thresholds are met simultaneously,
+// 4b. Narrative collapse: BOTH confidence stats critically low for
+//     `consecutive` turns ends the session as a narrated loss.
+const s4L = new DMSession(new MockProvider(), scenario);
+s4L.state.public_trust = 12;
+s4L.state.regulator_confidence = 15;
+const r4La = await s4L.takeTurn('Act', 10);   // collapse turn 1: streak 1
+check('collapse does NOT end on the first low turn', !r4La.endCondition);
+s4L.state.public_trust = 12;                   // still collapsed
+const r4Lb = await s4L.takeTurn('Act', 10);   // collapse turn 2: streak 2
+check('collapse ends the session as a loss', r4Lb.endCondition && r4Lb.endCondition.type === 'loss' && r4Lb.endCondition.result === 'loss');
+check('loss ending is the narrated collapse', r4Lb.endCondition && r4Lb.endCondition.ending === scenario.end_conditions[0].ending);
+
+// 4c. ONE confidence metric recovering breaks the collapse: no loss.
+const s4R = new DMSession(new MockProvider(), scenario);
+s4R.state.public_trust = 12;
+s4R.state.regulator_confidence = 15;
+await s4R.takeTurn('Act', 10);                // collapse turn 1: streak 1
+s4R.state.regulator_confidence = 55;          // regulator recovers: collapse broken
+const r4Rb = await s4R.takeTurn('Act', 10);   // streak reset
+check('recovery of one confidence metric prevents the loss', !r4Rb.endCondition);
+
+// 4d. Goal (win condition): when all goal thresholds are met simultaneously,
 //     the scenario ends successfully.
 const goalScenario = {
   ...scenario,
   goal: {
     ending: 'Crisis resolved.',
     win_conditions: [
-      { stat: 'attacker_progress', operator: 'lte', value: 20 },
       { stat: 'public_trust', operator: 'gte', value: 60 },
+      { stat: 'containment', operator: 'gte', value: 80 },
     ],
   },
 };
-const s4b = new DMSession(new MockProvider(), goalScenario);
+const s4d = new DMSession(new MockProvider(), goalScenario);
 let goalEnd = null;
 for (let i = 0; i < 5 && !goalEnd; i++) {
-  s4b.state.attacker_progress = 20;   // below 20
-  s4b.state.public_trust = 75;        // above 60
-  const res = await s4b.takeTurn('Stabilize and reassure', 20);
+  s4d.state.public_trust = 70;     // above 60
+  s4d.state.containment = 80;     // at/above 80
+  const res = await s4d.takeTurn('Stabilize and reassure', 20);
   if (res.endCondition) goalEnd = res.endCondition;
 }
 check('goal fires when all win conditions met', goalEnd && goalEnd.result === 'success');
 check('goal ending shown', goalEnd && goalEnd.ending === 'Crisis resolved.');
 
-// 4c. Goal does NOT fire when only SOME thresholds are met.
-const s4c = new DMSession(new MockProvider(), goalScenario);
+// 4e. Goal does NOT fire when only SOME thresholds are met.
+const s4e = new DMSession(new MockProvider(), goalScenario);
 let goalEarly = null;
 for (let i = 0; i < 5 && !goalEarly; i++) {
-  s4c.state.attacker_progress = 80;   // above 20 -> goal NOT met
-  s4c.state.public_trust = 75;         // above 60
-  const res = await s4c.takeTurn('Stabilize and reassure', 20);
+  s4e.state.public_trust = 75;      // above 60
+  s4e.state.containment = 30;      // below 80 -> goal NOT met
+  const res = await s4e.takeTurn('Stabilize and reassure', 20);
   if (res.endCondition) goalEarly = res.endCondition;
 }
 check('goal does NOT fire when thresholds not all met', !goalEarly);
@@ -121,7 +141,7 @@ check('report includes breach_state', typeof report.breach_state === 'string');
 const s5 = new DMSession(new MockProvider(), scenario);
 for (let i = 0; i < 5; i++) {
   await s5.takeTurn('Push hard', 20);
-  s5.state.attacker_progress = Math.min(100, s5.state.attacker_progress + 50);
+  s5.state.containment = Math.min(100, s5.state.containment + 50);
 }
 for (const [k, v] of Object.entries(s5.state)) {
   check(`clamp ${k} <= 100`, v <= 100);
@@ -169,28 +189,28 @@ check('missing progress field keeps stallCount at 0', s6c.stallCount === 0);
 const statScenario = {
   ...scenario,
   events: [
-    { id: 'stat1', trigger: { type: 'stat', stat: 'attacker_progress', operator: 'gte', value: 60 }, text: 'Regulator calls.', state_delta: { regulator_confidence: -5 } },
+    { id: 'stat1', trigger: { type: 'stat', stat: 'containment', operator: 'gte', value: 60 }, text: 'Regulator calls.', state_delta: { regulator_confidence: -5 } },
   ],
 };
 const s7 = new DMSession(new MockProvider(), statScenario);
-s7.state.attacker_progress = 30;
+s7.state.containment = 30;
 await s7.takeTurn('Act', 10);
 check('stat event NOT fired below threshold', !s7.firedEvents.has('stat1'));
-s7.state.attacker_progress = 70;  // cross threshold
+s7.state.containment = 70;  // cross threshold
 await s7.takeTurn('Act', 10);
 check('stat event fires when stat crosses threshold', s7.firedEvents.has('stat1'));
 check('stat event state_delta applied', s7.state.regulator_confidence === statScenario.opening_state.regulator_confidence - 5);
 
 // 9b. Fired events do NOT re-fire on subsequent turns.
 const before = s7.state.regulator_confidence;
-await s7.takeTurn('Act', 10);  // attacker_progress still >= 60, but event already fired
+await s7.takeTurn('Act', 10);  // containment still >= 60, but event already fired
 check('fired event does NOT re-fire', s7.state.regulator_confidence === before);
 
 // 10. serialize/restore persist fired event ids (no re-fire after restore).
 const snap = s7.serialize();
 check('serialize includes firedEvents', Array.isArray(snap.firedEvents) && snap.firedEvents.includes('stat1'));
 const restored = DMSession.restore(new MockProvider(), statScenario, snap);
-restored.state.attacker_progress = 80;  // still above threshold
+restored.state.containment = 80;  // still above threshold
 await restored.takeTurn('Act', 10);
 check('restored session does NOT re-fire a previously fired event', !restored.history[0].events.includes('stat1'));
 
@@ -307,9 +327,9 @@ check('turn increments to 2', s17.turn === 2);
 //     even when fate + event + DM deltas all push the same metric.
 const capScenario = {
   ...scenario,
-  fate_table: { '1': { kind: 'crit_fail', twist: 'bad', state_delta: { public_trust: -14, attacker_progress: 12 } } },
+  fate_table: { '1': { kind: 'crit_fail', twist: 'bad', state_delta: { public_trust: -14, containment: 12 } } },
   events: [
-    { id: 'cap1', trigger: { type: 'turn', turn: 1 }, text: 'bad turn', state_delta: { public_trust: -10, attacker_progress: 10 } },
+    { id: 'cap1', trigger: { type: 'turn', turn: 1 }, text: 'bad turn', state_delta: { public_trust: -10, containment: 10 } },
   ],
 };
 const s18 = new DMSession(new MockProvider(), capScenario);
@@ -317,12 +337,13 @@ const before18 = s18.state.public_trust;
 await s18.takeTurn('Do something bad', 1);  // fate -14 + event -10 + DM -10 on public_trust
 const drop18 = before18 - s18.state.public_trust;
 check('per-turn public_trust drop capped at 15', drop18 <= 15);
-const apBefore18 = capScenario.opening_state.attacker_progress;
-const apAfter18 = s18.state.attacker_progress;
-check('per-turn attacker_progress rise capped at 15', apAfter18 - apBefore18 <= 15);
+const containAfter18 = s18.state.containment;   // +12 +10 from fate + event, capped at 15
+check('per-turn containment rise capped at 15', containAfter18 - capScenario.opening_state.containment <= 15);
 
-// 23. serialize/restore persist statStreaks (kept for backward-compat with
-//     saved sessions, though stat thresholds no longer end the game).
+// 23. Stat-based LOSS end conditions are enforced with consecutive-turn
+//     streaks: a single-stat loss condition (public_trust <= 15) fires after
+//     2 consecutive turns in the zone, and the streak persists across
+//     serialize/restore.
 const streakScenario = {
   ...scenario,
   end_conditions: [
@@ -332,26 +353,29 @@ const streakScenario = {
 const s19 = new DMSession(new MockProvider(), streakScenario);
 s19.state.public_trust = 10;  // in the failure zone
 const res19a = await s19.takeTurn('Act', 10);  // turn 1: streak 1
-check('stat threshold does NOT end on first bad turn', !res19a.endCondition);
+check('loss does NOT fire on the first bad turn', !res19a.endCondition);
 const snap19 = s19.serialize();
 check('serialize includes statStreaks', typeof snap19.statStreaks === 'object');
 const restored19 = DMSession.restore(new MockProvider(), streakScenario, snap19);
 restored19.state.public_trust = 10;  // still in the zone
-const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2
-check('stat threshold does NOT end even after 2 consecutive bad turns', !res19.endCondition);
+const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2 -> loss
+check('stat loss fires after 2 consecutive bad turns (streak survives restore)', res19.endCondition && res19.endCondition.result === 'loss');
+check('stat loss ending is the authored collapse', res19.endCondition && res19.endCondition.ending === 'collapse');
 
-// 24. Consecutive lose resets when the stat leaves the zone (mechanism kept,
-//     but it no longer ends the game).
+// 24. The loss streak RESETS when the stat leaves the zone: leaving and
+//     re-entering starts the streak over, so the loss fires only after 2
+//     CONSECUTIVE turns back in the zone.
 const s20 = new DMSession(new MockProvider(), streakScenario);
 s20.state.public_trust = 10;  // in zone
 await s20.takeTurn('Act', 10);  // streak 1
 s20.state.public_trust = 50;   // leaves zone
 const res20a = await s20.takeTurn('Act', 10);  // streak resets
-check('stat threshold does NOT fire after leaving the zone', !res20a.endCondition);
+check('no loss after leaving the zone', !res20a.endCondition);
 s20.state.public_trust = 10;   // back in zone
-await s20.takeTurn('Act', 10);  // streak 1 again
-const res20b = await s20.takeTurn('Act', 10);  // streak 2
-check('stat threshold does NOT end after re-entering zone for 2 turns', !res20b.endCondition);
+const res20m = await s20.takeTurn('Act', 10);  // streak 1 again
+check('no loss on the first turn back in the zone (streak was reset)', !res20m.endCondition);
+const res20b = await s20.takeTurn('Act', 10);  // streak 2 -> loss
+check('loss fires after 2 consecutive turns back in the zone', res20b.endCondition && res20b.endCondition.result === 'loss');
 
 // ===== NEW: roll-modifier mechanic (targeted) =====
 // 25. A granted roll modifier is fed to the DM as an adjusted roll and is
@@ -396,16 +420,17 @@ for (const stage of noGoalScenario.attack_chain) {
 }
 check('no-goal scenario does NOT auto-win on full containment', s23.attackChain.every((s) => s.contained) && !ended23);
 
-// 28. A no-goal scenario does NOT end on a stat lose condition either — the
-//     game runs until the team decides it's done (manual end) or the timeout
-//     fires, regardless of whether a goal is defined.
+// 28. A no-goal scenario still ends on the NARRATIVE COLLAPSE (loss) — the
+//     collapse is a story conclusion, not a win condition, so it applies with
+//     or without a goal. The session runs to the narrated loss, the timeout,
+//     or a manual end.
 const s24 = new DMSession(new MockProvider(), noGoalScenario);
-s24.state.public_trust = 5;   // below 15
-const r24a = await s24.takeTurn('Act', 10);  // streak 1 (consecutive 2)
-check('no-goal scenario does not end on first bad turn', !r24a.endCondition);
-s24.state.public_trust = 5;
-const r24b = await s24.takeTurn('Act', 10);  // streak 2
-check('no-goal scenario does NOT end on a stat lose condition', !r24b.endCondition);
+s24.state.public_trust = 8;            // collapsed
+s24.state.regulator_confidence = 9;    // collapsed
+const r24a = await s24.takeTurn('Act', 10);  // collapse turn 1: streak 1
+check('no-goal scenario does not end on the first collapse turn', !r24a.endCondition);
+const r24b = await s24.takeTurn('Act', 10);  // collapse turn 2: streak 2 -> loss
+check('no-goal scenario ends in the narrative collapse loss', r24b.endCondition && r24b.endCondition.result === 'loss');
 
 // 29. A no-goal scenario with a timeout ends cleanly on timeout.
 check('no-goal scenario keeps its timeout end condition', noGoalScenario.end_conditions.some((c) => c.type === 'timeout'));

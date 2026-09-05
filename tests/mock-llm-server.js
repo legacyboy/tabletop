@@ -39,8 +39,8 @@ const server = createServer((req, res) => {
 
       const delta =
         roll >= 20 ? { public_trust: 6, containment: 4, recovery: 5 }
-        : roll <= 1 ? { public_trust: -12, attacker_progress: 10 }
-        : { public_trust: -2, attacker_progress: 2 };
+        : roll <= 1 ? { public_trust: -12 }
+        : { public_trust: -2 };
 
       const reply = JSON.stringify({ narrative, state_delta: delta });
       res.writeHead(200, { 'Content-Type': 'application/json' });

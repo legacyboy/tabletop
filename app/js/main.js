@@ -358,16 +358,21 @@ async function resolveTurn(action, roll) {
 function renderState() {
   const session = state.session;
   if (!session) return;
-  // Danger zone: a stat that crosses a threshold in the scenario's
-  // end_conditions is flagged visually (red) even though it does NOT end the
-  // game — the team sees they're in trouble and must keep managing it.
+  // Danger zone: a stat inside a loss condition's failure zone (the narrative
+  // collapse) is flagged visually (red) — the team sees they are sliding into
+  // the collapse and must manage their way out before it concludes the story.
   const dangerStats = {};
   for (const c of (session.scenario.end_conditions || [])) {
-    if (c.type !== 'stat') continue;
-    const v = session.state[c.stat];
-    if (typeof v !== 'number') continue;
-    const inZone = (c.operator === 'lte' && v <= c.value) || (c.operator === 'gte' && v >= c.value);
-    if (inZone) dangerStats[c.stat] = c;
+    if (c.type !== 'stat' || (c.result && c.result !== 'loss')) continue;
+    // Loss conditions may be single-stat ({stat, operator, value}) or
+    // multi-stat ({stats: [...]} — e.g. trust AND regulator both low).
+    const constraints = Array.isArray(c.stats) && c.stats.length ? c.stats : [c];
+    for (const z of constraints) {
+      const v = session.state[z.stat];
+      if (typeof v !== 'number') continue;
+      const inZone = (z.operator === 'lte' && v <= z.value) || (z.operator === 'gte' && v >= z.value);
+      if (inZone && !dangerStats[z.stat]) dangerStats[z.stat] = c;
+    }
   }
 
   const s = session.state;
@@ -402,22 +407,9 @@ function renderState() {
     );
   }
 
-  // ---- attacker_progress: a plain progress bar (no traffic light, no color
-  // zones). Higher = the attacker is further along. ----
-  const ap = s.attacker_progress;
-  if (typeof ap === 'number') {
-    const pct = Math.max(0, Math.min(100, ap));
-    parts.push(
-      `<div class="stateItem">` +
-        `<div class="apRow"><b>Attacker progress</b></div>` +
-        `<div class="apBar"><div class="apFill" style="width:${pct}%"></div></div>` +
-      `</div>`
-    );
-  }
-
   // ---- Anything else the scenario tracks that we don't have a widget for:
   // show as a plain number (keeps custom metrics visible). ----
-  const rendered = new Set(['budget', ...lightStats, 'attacker_progress', 'security_posture']);
+  const rendered = new Set(['budget', ...lightStats, 'security_posture']);
   const extras = Object.keys(s).filter((k) => !rendered.has(k) && typeof s[k] === 'number');
   for (const k of extras) {
     const v = s[k];
@@ -480,6 +472,7 @@ function renderReport(report) {
 
   add('Report', report.report_title);
   add('Scenario', report.scenario);
+  add('Result', report.result === 'success' ? 'Success — goal achieved' : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
   add('Ending', report.ending || 'No end condition recorded');
   add('Turns', report.turns);
   add('Duration (min)', report.duration_minutes ?? '—');
