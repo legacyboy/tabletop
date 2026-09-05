@@ -124,9 +124,9 @@ is **never shown to players** in the UI.
   the closing report is the debrief (final metrics + contained vs missed
   stages). No artificial "you hit 80, you win" bell.
 
-If you include a `goal`, the win condition should reference `attacker_progress`
-+ containment / eradication / recovery (the BDB-style "contain all stages"
-objective).
+If you include a `goal`, the win condition should reference containment /
+eradication / recovery and the confidence stats (the BDB-style "contain all
+stages" objective).
 
 ```json
 "goal": {
@@ -135,8 +135,7 @@ objective).
     { "stat": "public_trust", "operator": "gte", "value": 60 },
     { "stat": "containment", "operator": "gte", "value": 80 },
     { "stat": "eradication", "operator": "gte", "value": 70 },
-    { "stat": "recovery", "operator": "gte", "value": 60 },
-    { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+    { "stat": "recovery", "operator": "gte", "value": 60 }
   ],
   "ending": "Crisis resolved: the attack chain is contained and trust restored."
 }
@@ -161,11 +160,23 @@ generate an appropriate executive tabletop scenario (security, reputation,
 operational, etc.).
 
 ### End conditions
-End the session when a stat crosses a threshold, or on timeout:
+The NARRATIVE LOSS: the story collapses when the loss condition holds for
+`consecutive` turns — by default BOTH confidence stats (`public_trust` AND
+`regulator_confidence`) critically low — and the session concludes with the
+authored collapse ending (a vivid account of the organization losing the
+public's confidence, the regulator escalating, the board losing faith).
+If a scenario defines no stat loss condition, the engine falls back to this
+built-in default. Or end on timeout:
 
 ```json
 "end_conditions": [
-  { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "ending": "Attack overload: full enterprise incident." },
+  { "type": "stat", "result": "loss",
+    "stats": [
+      { "stat": "public_trust", "operator": "lte", "value": 20 },
+      { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+    ],
+    "consecutive": 2,
+    "ending": "The collapse is complete: members lose faith, the regulator escalates to extraordinary measures, and the board loses confidence. The exercise concludes as a loss." },
   { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out." }
 ]
 ```

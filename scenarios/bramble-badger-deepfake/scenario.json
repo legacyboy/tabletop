@@ -4,14 +4,13 @@
   "version": 4,
 
   "goal": {
-    "description": "Contain the attack chain and restore confidence: get the deepfake suppressed and its spread contained, shut down the fraud campaign riding behind it, bring public trust and regulator confidence back above healthy thresholds, and keep the story's escalation low.",
+    "description": "Contain the attack chain and restore confidence: get the deepfake suppressed and its spread contained, shut down the fraud campaign riding behind it, bring public trust and regulator confidence back above healthy thresholds, and close out the full response arc.",
     "win_conditions": [
       { "stat": "public_trust", "operator": "gte", "value": 60 },
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
       { "stat": "containment", "operator": "gte", "value": 80 },
       { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
     "ending": "Crisis resolved: the deepfake is discredited and suppressed, the fraud campaign is dismantled, members are protected, and the board and regulator are confident in the response. The exercise concludes."
   },
@@ -30,8 +29,7 @@
     "security_posture": 55,
     "containment": 20,
     "eradication": 10,
-    "recovery": 10,
-    "attacker_progress": 30
+    "recovery": 10
   },
 
   "meta": {
@@ -92,13 +90,13 @@
       "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
       "Show consequences of the roll, but let the group's stated actions drive the logic.",
-      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery) to reflect outcomes.",
       "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
       "If the group stalls with no clear action for a while, inject a pressure point to move things.",
       "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
       "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
-      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
-      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+      "The situation can collapse into a narrated LOSS: if public_trust AND regulator_confidence both fall to 20 or below for consecutive turns, the story ends badly - members lose faith, the regulator escalates, the board loses confidence in the response. Narrate that strain realistically as confidence falls, but reward competent, coordinated response with recovery.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment keeps struggling - the story keeps biting, the regulator stays unsatisfied - until it closes out the full arc."
     ]
   },
 
@@ -107,38 +105,38 @@
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
       "text": "A screenshot of a confused staff reply ('we're still validating the video's authenticity') leaks online, making the team look flat-footed while the clip keeps spreading.",
-      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+      "state_delta": { "public_trust": -4 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
       "text": "A second deepfake clip drops, naming specific branches and claiming 'temporary withdrawal limits' start tomorrow. Lineups form at two branches and the transfer spike steepens.",
-      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+      "state_delta": { "public_trust": -6 }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "trigger": { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 40 },
       "text": "A fraud spike report lands: multiple members have transferred funds to 'safe accounts' after calls referencing the video. Several cases involve six-figure sums.",
-      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+      "state_delta": { "public_trust": -4, "containment": -4 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
       "text": "The regulator's office calls demanding a factual summary, the video's provenance, and this morning's complete timeline - today.",
-      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+      "state_delta": { "regulator_confidence": -5 }
     },
     {
       "id": "e5",
-      "trigger": { "type": "turn", "turn": 6 },
+      "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
       "text": "A regional outlet runs 'Credit union at center of viral CEO video: what members should know' - framing it as a solvency question rather than a fraud question.",
-      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+      "state_delta": { "public_trust": -3 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster - a rushed holding statement goes out with a line that reads like an insolvency admission, and an internal chat screenshot showing visible panic contradicts it within minutes. The clip's spread rate doubles and members start pulling deposits in earnest.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos: the deepfake spawns remixes and duets, a doctored 'internal memo' screenshot starts circulating, and a rumor claims withdrawals over $500 are already frozen. A second wave of frightened members calls at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO goes live from the branch floor with undeniable authenticity, platforms act on the takedown notices within minutes, and a side-by-side forensic breakdown of the fake goes viral for the right reasons. Community voices amplify the correction and member fear visibly drains out of the feeds.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster - a rushed holding statement goes out with a line that reads like an insolvency admission, and an internal chat screenshot showing visible panic contradicts it within minutes. The clip's spread rate doubles and members start pulling deposits in earnest.", "state_delta": { "public_trust": -12, "containment": -8 } },
+    "11": { "kind": "twist", "twist": "Chaos: the deepfake spawns remixes and duets, a doctored 'internal memo' screenshot starts circulating, and a rumor claims withdrawals over $500 are already frozen. A second wave of frightened members calls at once.", "state_delta": { "public_trust": -6 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO goes live from the branch floor with undeniable authenticity, platforms act on the takedown notices within minutes, and a side-by-side forensic breakdown of the fake goes viral for the right reasons. Community voices amplify the correction and member fear visibly drains out of the feeds.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 
   "beats": [
@@ -160,8 +158,16 @@
   ],
 
   "end_conditions": [
-    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Confidence collapse: deposit panic wins before the facts can, and the run becomes the story." },
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Crisis overload: the fraud wave and the panic compound into a full enterprise incident and members are harmed." },
+    {
+      "type": "stat",
+      "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse: no correction ever lands. Members pull deposits in a run that starts quiet and ends on the evening news, the fraud crew empties accounts faster than they can be frozen, and the story shifts from 'deepfake targets credit union' to 'credit union wobbles.' The regulator escalates from questions to extraordinary measures, the board loses faith in the response, and the members who stayed learn that trust, once spent, does not come back. The exercise concludes as a loss."
+    },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 

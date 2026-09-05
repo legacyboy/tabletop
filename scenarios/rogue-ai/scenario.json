@@ -10,8 +10,7 @@
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
       { "stat": "containment", "operator": "gte", "value": 80 },
       { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
     "ending": "Crisis resolved: the AI's failures are understood and owned, the system is fixed or responsibly retired, affected members are made whole, governance is rebuilt, and the story becomes a case study in handling AI failure the right way. The exercise concludes."
   },
@@ -30,8 +29,7 @@
     "security_posture": 50,
     "containment": 20,
     "eradication": 10,
-    "recovery": 10,
-    "attacker_progress": 30
+    "recovery": 10
   },
 
   "meta": {
@@ -92,13 +90,13 @@
       "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
       "Show consequences of the roll, but let the group's stated actions drive the logic.",
-      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery) to reflect outcomes.",
       "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
       "If the group stalls with no clear action for a while, inject a pressure point to move things.",
       "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
       "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
-      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
-      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+      "The situation can collapse into a narrated LOSS: if public_trust AND regulator_confidence both fall to 20 or below for consecutive turns, the story ends badly - members lose faith, the regulator escalates, the board loses confidence in the response. Narrate that strain realistically as confidence falls, but reward competent, coordinated response with recovery.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment keeps struggling - the story keeps biting, the regulator stays unsatisfied - until it closes out the full arc."
     ]
   },
 
@@ -107,38 +105,38 @@
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
       "text": "With no response from SCU, the reporter's teaser posts: 'Tomorrow: the credit union AI that gave a retiree confident advice, leaked member data, and treated members differently by postal code.' Screenshots start circulating on their own.",
-      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+      "state_delta": { "public_trust": -4 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
       "text": "An internal engineer posts in a public AI forum, thinly anonymized: 'We flagged the session bug in March and were told to stay in our lane.' The comment gets matched to the vendor's release notes within the hour.",
-      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+      "state_delta": { "public_trust": -6 }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "trigger": { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 40 },
       "text": "The privacy advocate files a formal complaint with the regulator demanding a full review of SCU Assist, and a second wave of members comes forward with bad-advice screenshots - including one about a mortgage prepayment penalty.",
-      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+      "state_delta": { "public_trust": -4, "regulator_confidence": -5 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
       "text": "The regulator's AI file lead calls: they want SCU Assist's governance documentation, the launch decision record, and an answer to whether the AI made product recommendations - this week.",
-      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+      "state_delta": { "regulator_confidence": -5 }
     },
     {
       "id": "e5",
-      "trigger": { "type": "turn", "turn": 6 },
+      "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
       "text": "The story publishes and lands harder than the teaser suggested: 'The credit union that let an unvalidated AI talk to its members.' It quotes the internal warning, the retiree, and a line from the vendor's own marketing deck. The industry press picks it up by afternoon.",
-      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+      "state_delta": { "public_trust": -3 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature' and 'isolated context quirks,' while a leadership interview accidentally confirms the March warning was real. The reporter leads with the contradiction, the screenshots go national, and members start recording their own SCU Assist sessions to catch it out.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos: the vendor's own account rep emails the board directly saying the problems are 'SCU's data quality,' the email leaks within the hour, and a screenshot thread titled 'SCU Assist's greatest hits' starts drawing examples from three other provinces. Two stories - the failure and the blame - are now running at once.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team takes SCU Assist offline gracefully with a plain-language message about why, proactively self-reports to the regulator, gives the reporter the honest version first - including the March warning - and calls the retired member personally with a concrete make-whole plan. The piece publishes as 'How one credit union handled its AI failure the right way,' and even the privacy advocate credits the transparency.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature' and 'isolated context quirks,' while a leadership interview accidentally confirms the March warning was real. The reporter leads with the contradiction, the screenshots go national, and members start recording their own SCU Assist sessions to catch it out.", "state_delta": { "public_trust": -12, "containment": -8 } },
+    "11": { "kind": "twist", "twist": "Chaos: the vendor's own account rep emails the board directly saying the problems are 'SCU's data quality,' the email leaks within the hour, and a screenshot thread titled 'SCU Assist's greatest hits' starts drawing examples from three other provinces. Two stories - the failure and the blame - are now running at once.", "state_delta": { "public_trust": -6 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team takes SCU Assist offline gracefully with a plain-language message about why, proactively self-reports to the regulator, gives the reporter the honest version first - including the March warning - and calls the retired member personally with a concrete make-whole plan. The piece publishes as 'How one credit union handled its AI failure the right way,' and even the privacy advocate credits the transparency.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 
   "beats": [
@@ -160,8 +158,16 @@
   ],
 
   "end_conditions": [
-    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the credit union becomes the permanent example of reckless AI in financial services." },
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: the story, the regulator, the vendor, and the members' harm compound into a full governance crisis." },
+    {
+      "type": "stat",
+      "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse: the story writes itself and SCU is the villain in every version. SCU Assist is pulled amid a formal regulatory review, the vendor points at SCU's launch decision, harmed members tell their stories to a national audience, and the board loses faith in the team that shipped it. The credit union becomes the permanent example of reckless AI in financial services. The exercise concludes as a loss."
+    },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 

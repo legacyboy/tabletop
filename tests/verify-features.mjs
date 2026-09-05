@@ -304,7 +304,7 @@ check('random scenario title shown', /Random/i.test(randomIntro.title));
 // not contain the hidden chain.)
 const chainLeak = await page.evaluate(() => {
   const body = document.body.innerText;
-  return /How they got in|How it spread|What they took|win_conditions|attacker_progress.*lte/i.test(body);
+  return /How they got in|How it spread|What they took|win_conditions/i.test(body);
 });
 check('hidden attack chain does NOT leak to players in the intro', !chainLeak);
 

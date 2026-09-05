@@ -15,9 +15,11 @@
  *   4. State changes are clamped to [0,100]. End conditions are checked.
  *
  * End conditions: the session ends on the goal (win) being met, the timeout
- * firing, or the group manually ending the exercise. Stat thresholds (e.g. a
- * metric hitting 100) do NOT end the game — a bad stat is a consequence the
- * group keeps managing, not a hard stop (Dan's design).
+ * firing, a manual end, or the NARRATIVE COLLAPSE (loss): when the scenario's
+ * stat loss conditions (public_trust AND regulator_confidence both critically
+ * low, by default) hold for consecutive turns, the story has collapsed and the
+ * session concludes as a narrated loss. A single bad stat does NOT end the
+ * game — no instant loss on one metric hitting a threshold (Dan's design).
  *
  * The DM is explicitly instructed NOT to propose actions or lead the group —
  * it only reacts to what the group actually typed.
@@ -31,6 +33,29 @@ const STATE_MAX = 100;
 // this, a single turn could swing a metric by +30 (fate 10 + event 10 + DM 10)
 // and snowball the session into a foregone loss. Keeps the arc believable.
 const PER_TURN_MAX_CHANGE = 15;
+
+/**
+ * Default NARRATIVE-LOSS condition, used when a scenario defines no stat-based
+ * loss in its end_conditions. The old "attacker progress" counter is gone:
+ * failure is now narrated. The story has collapsed when BOTH public_trust AND
+ * regulator_confidence sit at/below 20 for 2 consecutive turns — the group
+ * has failed badly, the DM has narrated the strain, and the session concludes
+ * as a loss with the collapse ending below.
+ */
+const DEFAULT_LOSS_CONDITION = {
+  type: 'stat',
+  result: 'loss',
+  stats: [
+    { stat: 'public_trust', operator: 'lte', value: 20 },
+    { stat: 'regulator_confidence', operator: 'lte', value: 20 },
+  ],
+  consecutive: 2,
+  ending:
+    'The collapse is complete: the public has stopped believing a word the ' +
+    'organization says, the regulator has escalated from questions to ' +
+    'extraordinary measures, and the board has lost faith in the executive ' +
+    "team. The story ends badly. The exercise concludes as a loss.",
+};
 
 const clamp = (v) => Math.max(STATE_MIN, Math.min(STATE_MAX, v));
 
@@ -117,7 +142,7 @@ function buildSystemPrompt(scenario, opts = {}) {
         'Choose a realistic executive scenario type (security incident, reputation/misinformation crisis, operational or financial disruption, regulatory matter, etc.).',
         'Invent: the opening scene (what the group observes), the stakes, the key actors, the tracked metrics and their opening values, the goal, and a hidden attack chain of 3-5 stages.',
         'Keep it EXECUTIVE-FOCUSED: describe the attack in plain language (e.g. "How they got in", "How it spread", "What they took") \u2014 NOT technical MITRE jargon.',
-        'Use the BDB-style metric set where appropriate: budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress.',
+        'Use the BDB-style metric set where appropriate: budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery.',,
         'The win condition is to contain all attack-chain stages and restore the response metrics.',
         'Start the session by narrating the opening scene you invented, then adjudicate the group\u2019s actions against it.',
       ].join('\n')
@@ -140,7 +165,8 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- The group types a free-form action. Do NOT present them with a menu of options.',
     '- A single turn can contain MULTIPLE coordinated actions across different departments (e.g. comms issues a statement AND the fraud team freezes accounts AND legal contacts the regulator). Realistic turns are 2-3 coordinated actions, not one narrow action.',
     '- NEVER present a menu or list of choices, and do not prescribe a specific next action. But DO advance the world: every turn should move the situation forward into its next natural beat.',
-    '- KEEP THE MOMENTUM. A turn must NOT end as a flat dead end. The group acted; the world reacts AND moves on. End each response by introducing a NEW DEVELOPMENT: a fresh escalation, new information, a reaction from an actor/regulator/media, an event that complicates or sharpens the situation. Leave the group facing something concrete.',
+    '- KEEP THE MOMENTUM. A turn must NOT end as a flat dead end. The group acted; the world reacts AND moves on. End each response by introducing a NEW DEVELOPMENT: new information, a reaction from an actor/regulator/media, a complication that sharpens the situation. Leave the group facing something concrete.',
+    '- A NEW DEVELOPMENT must NOT re-punish a metric the group just competently addressed. If the group issued a clear public statement, do NOT invent a fresh "internal leak" or "confused staff reply" that undercuts it the same turn. Escalation is for when the group FAILS, stalls, or rolls badly (1-5) — not as a reward for good play. Vary the development; never repeat the same setback (e.g. the same leaked screenshot) turn after turn.',
     '- ADVANCE WITH EVENTS, NEVER DIRECTIVES. Do not frame your response as "the team needs to...", "the group should...", "it may be wise to...", "consider...", or "the next step is to...". Those lead the group. Instead, the world itself moves: a reporter publishes a follow-up, a deadline lands, a new screenshot surfaces, a regulator sharpens its demand, a complication emerges. You present the NEW SITUATION, never instructions on how to handle it.',
     '- Distinguish leading from world-driving: proposing options, prescribing an action, or telling them what to do is FORBIDDEN; having the situation actively develop and push back is REQUIRED.',
     '- Judge the group\u2019s actions fairly and realistically for this organization. Address each of the coordinated actions in your response.',
@@ -153,11 +179,11 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- Change any single metric by AT MOST 10 points per turn (usually 1-6).',
     '- Do NOT max out or zero out metrics. Keep values in a believable mid-range so a 60-minute session has room to escalate and recover.',
     '- Only change metrics that the action genuinely affects; leave the rest unchanged.',
-    '- A GOOD action on a GOOD roll (roughly 12+) should STABILIZE or IMPROVE the relevant metrics, not punish them. Do not keep dropping public_trust or other metrics every turn even when the group acts sensibly.',
+    '- A GOOD action on a GOOD roll (roughly 12+) should STABILIZE or IMPROVE the relevant metrics, not punish them. Do not keep dropping public_trust or other metrics every turn even when the group acts sensibly. When the group does the right things (clear statement, takedown, regulator package, member outreach), public_trust and regulator_confidence should RECOVER — not keep sliding. Trust should not decline monotonically turn after turn on competent play; give the group visible recovery so the session is winnable.',
     '- A bad roll (roughly 1-5) is where real damage happens. Reserve large negative deltas for genuinely bad outcomes, not for competent actions.',
     '- The session should be winnable: the group must be able to recover. Do not make it a foregone loss by turn 4-5.',
-    '- Advance `attacker_progress` ONLY when the group fails, stalls, or takes a genuinely harmful action, or when a scripted event/fate twist calls for it. Do NOT raise attacker_progress every turn, and never on a good, competent action with a decent roll.',
-    '- The complete response arc is CONTAIN \u2192 ERADICATE \u2192 RECOVER. A group that only does public relations and containment but never eradicates the root cause or restores operations will keep losing ground to `attacker_progress`. Reflect this in outcomes: eradication and recovery efforts should be rewarded when the group attempts them.',
+    '- The complete response arc is CONTAIN \u2192 ERADICATE \u2192 RECOVER. A group that only does public relations and containment but never eradicates the root cause or restores operations should keep struggling — the story keeps biting, the regulator stays unsatisfied — until it closes out the full arc. Reflect this in outcomes: eradication and recovery efforts should be rewarded when the group attempts them.',
+    '- THE NARRATIVE COLLAPSE (loss): if the situation has GENUINELY collapsed — public_trust AND regulator_confidence both critically low (20 or below) for consecutive turns — the session ends as a LOSS with a narrated collapse ending. When both confidence metrics are in that zone, do not soften the world: narrate the strain realistically (members lose faith, the regulator escalates, the board wavers). The engine concludes the session when the collapse holds; until then, the group can still fight its way back, so give competent recovery room to work.',
     '',
     '## THE ATTACK CHAIN (kill chain)',
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
@@ -591,12 +617,12 @@ export class DMSession {
   }
 
   _checkEnd() {
-    // NOTE: Stat-based lose conditions are intentionally NOT enforced here.
-    // Dan's design: a metric hitting 100 (or any failure threshold) must NOT
-    // end the game — the exercise runs until the team decides it's done (manual
-    // end) or the timeout fires. A bad stat is a consequence the group must
-    // keep managing, not a hard stop. Only the goal (win) and timeout end the
-    // session automatically.
+    // NOTE: a single bad stat does NOT end the game (Dan's design: no instant
+    // loss on one metric hitting a threshold). But the NARRATIVE COLLAPSE does:
+    // when the scenario's stat loss conditions (public_trust AND
+    // regulator_confidence both critically low, by default) hold for
+    // `consecutive` turns in a row, the story has collapsed and the session
+    // ends as a narrated LOSS (see _checkNarrativeLoss below).
 
     // Goal (win condition): all goal thresholds met simultaneously -> the
     // group has achieved the objective, so the scenario ends successfully.
@@ -628,6 +654,74 @@ export class DMSession {
       };
     }
 
+    // Narrative loss: the story has collapsed (see _checkNarrativeLoss).
+    const loss = this._checkNarrativeLoss();
+    if (loss) return loss;
+
+    return null;
+  }
+
+  /**
+   * The scenario's stat-based loss conditions: end_conditions entries with
+   * type 'stat' (result defaults to 'loss'). Supports a single-stat form
+   * ({ stat, operator, value }) and a multi-stat form ({ stats: [{ stat,
+   * operator, value }, ...] }) where ALL stats must be in the failure zone
+   * (the narrative collapse). Falls back to the built-in DEFAULT_LOSS_CONDITION
+   * (public_trust AND regulator_confidence both <= 20) when the scenario
+   * defines none — every session has a narrative-loss path.
+   */
+  _lossConditions() {
+    const conds = (this.scenario.end_conditions || []).filter(
+      (c) => c && c.type === 'stat' && (c.result === undefined || c.result === 'loss')
+    );
+    return conds.length ? conds : [DEFAULT_LOSS_CONDITION];
+  }
+
+  /** True when a single stat constraint is satisfied this turn. */
+  _statInZone(c) {
+    const v = this.state[c.stat];
+    if (typeof v !== 'number') return false;
+    if (c.operator === 'lte') return v <= c.value;
+    if (c.operator === 'gte') return v >= c.value;
+    return false;
+  }
+
+  /** True when ALL of a loss condition's stat constraints hold this turn. */
+  _lossConditionMet(cond) {
+    const constraints = Array.isArray(cond.stats) && cond.stats.length ? cond.stats : [cond];
+    return constraints.every((c) => this._statInZone(c));
+  }
+
+  /**
+   * NARRATIVE-LOSS check: a loss condition that holds for `consecutive`
+   * turns in a row ends the session as a narrated LOSS (the collapse ending).
+   * The consecutive-turn streak is tracked in this.statStreaks keyed by
+   * condition index and is updated at most once per turn (guarded by
+   * lastTurn), so repeated _checkEnd calls within one turn never
+   * double-count. The streak resets to 0 the turn the condition stops
+   * holding (e.g. one confidence metric recovers above the threshold).
+   */
+  _checkNarrativeLoss() {
+    const conds = this._lossConditions();
+    for (let i = 0; i < conds.length; i++) {
+      const cond = conds[i];
+      const met = this._lossConditionMet(cond);
+      const streak = this.statStreaks[i] || { count: 0, lastTurn: -1 };
+      if (streak.lastTurn !== this.turn) {
+        streak.count = met ? streak.count + 1 : 0;
+        streak.lastTurn = this.turn;
+      }
+      this.statStreaks[i] = streak;
+      const need = Math.max(1, cond.consecutive || 1);
+      if (met && streak.count >= need) {
+        return {
+          ...cond,
+          type: 'loss',
+          result: 'loss',
+          ending: cond.ending || DEFAULT_LOSS_CONDITION.ending,
+        };
+      }
+    }
     return null;
   }
 
@@ -858,6 +952,7 @@ export class DMSession {
       scenario: this.scenario.title,
       scenario_id: this.scenario.scenario_id,
       ending: endCondition ? endCondition.ending : null,
+      result: endCondition ? (endCondition.result || null) : null,
       turns: this.turn,
       duration_minutes: minutes,
       final_state: clone(this.state),

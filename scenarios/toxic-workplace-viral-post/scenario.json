@@ -10,8 +10,7 @@
       { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
       { "stat": "containment", "operator": "gte", "value": 80 },
       { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 },
-      { "stat": "attacker_progress", "operator": "lte", "value": 20 }
+      { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
     "ending": "Crisis resolved: the story is defused, the credible concerns are owned and being fixed, members and staff feel heard, and the board and regulator are confident in the response. The exercise concludes."
   },
@@ -30,8 +29,7 @@
     "security_posture": 55,
     "containment": 20,
     "eradication": 10,
-    "recovery": 10,
-    "attacker_progress": 30
+    "recovery": 10
   },
 
   "meta": {
@@ -92,13 +90,13 @@
       "A single turn can contain 2-3 coordinated actions across departments (e.g. comms statement + fraud freeze + regulator update). Address each in your response.",
       "Keep the tone realistic for a credit union: members matter, trust is the product, regulation is real.",
       "Show consequences of the roll, but let the group's stated actions drive the logic.",
-      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery, attacker_progress) to reflect outcomes.",
+      "Update the tracked metrics (budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery) to reflect outcomes.",
       "Reveal an attack-chain stage when the group's investigation plausibly uncovers it; mark it contained when the group neutralizes it.",
       "If the group stalls with no clear action for a while, inject a pressure point to move things.",
       "Detection and response are limited resources: the group cannot do everything at once, and activating monitoring costs budget.",
       "Keep the session winnable: a good action on a good roll should stabilize or improve metrics, not punish them. Reserve large negative deltas for genuinely bad outcomes. Do not make it a foregone loss by turn 4-5.",
-      "Advance attacker_progress only when the group fails, stalls, or acts harmfully, or when a scripted event/fate twist calls for it. Do not raise it every turn, and never on a good, competent action with a decent roll.",
-      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment will keep losing ground to attacker_progress."
+      "The situation can collapse into a narrated LOSS: if public_trust AND regulator_confidence both fall to 20 or below for consecutive turns, the story ends badly - members lose faith, the regulator escalates, the board loses confidence in the response. Narrate that strain realistically as confidence falls, but reward competent, coordinated response with recovery.",
+      "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment keeps struggling - the story keeps biting, the regulator stays unsatisfied - until it closes out the full arc."
     ]
   },
 
@@ -107,38 +105,38 @@
       "id": "e1",
       "trigger": { "type": "stall", "turns": 2 },
       "text": "With no word from SCU, the story fills the vacuum on its own: an all-hands summary gets screenshotted and leaked, and its 'let's not feed this' line becomes the top comment under the post.",
-      "state_delta": { "public_trust": -4, "attacker_progress": 3 }
+      "state_delta": { "public_trust": -4 }
     },
     {
       "id": "e2",
       "trigger": { "type": "stall", "turns": 3 },
       "text": "A second former employee publishes a corroborating account with its own screenshots - this one naming a different manager. Current staff comments pile on, and the story becomes 'a pattern,' not a grievance.",
-      "state_delta": { "public_trust": -6, "attacker_progress": 8 }
+      "state_delta": { "public_trust": -6 }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 60 },
+      "trigger": { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 40 },
       "text": "The escalation peaks: three staff resign citing 'the environment,' candidates pull out of final interviews, and members are closing accounts over the phone while citing the post by name.",
-      "state_delta": { "attacker_progress": 6, "public_trust": -4 }
+      "state_delta": { "public_trust": -4, "regulator_confidence": -5 }
     },
     {
       "id": "e4",
       "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
       "text": "The regulator calls: they are treating the public allegations as potential conduct risk and want to know what governance response SCU will commit to - in writing, this week.",
-      "state_delta": { "regulator_confidence": -5, "attacker_progress": 4 }
+      "state_delta": { "regulator_confidence": -5 }
     },
     {
       "id": "e5",
-      "trigger": { "type": "turn", "turn": 6 },
+      "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
       "text": "A local outlet runs a follow-up: 'SCU staff corroborate viral culture post.' It quotes two current employees on condition of anonymity, and the reporter asks the executive team for a sit-down interview.",
-      "state_delta": { "public_trust": -3, "attacker_progress": 4 }
+      "state_delta": { "public_trust": -3 }
     }
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on SCU.", "state_delta": { "public_trust": -14, "containment": -10, "attacker_progress": 12 } },
-    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #SCUculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6, "attacker_progress": 8 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to an independent review with published findings, thanks the people who spoke up, and asks members for patience. Even critics call it the right response, staff internally exhale, and the story's momentum visibly stalls.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5, "attacker_progress": -8 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on SCU.", "state_delta": { "public_trust": -12, "containment": -8 } },
+    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #SCUculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6 } },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to an independent review with published findings, thanks the people who spoke up, and asks members for patience. Even critics call it the right response, staff internally exhale, and the story's momentum visibly stalls.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 
   "beats": [
@@ -160,8 +158,16 @@
   ],
 
   "end_conditions": [
-    { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 15, "consecutive": 2, "ending": "Reputation collapse: the organization's people-first identity is lost while the story is still moving." },
-    { "type": "stat", "stat": "attacker_progress", "operator": "gte", "value": 90, "consecutive": 2, "ending": "Escalation overload: resignations, member attrition, and regulatory scrutiny compound into a full organizational crisis." },
+    {
+      "type": "stat",
+      "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse: the story is everywhere and the response is nowhere. Resignations stack up, candidates walk away, and members who believed the people-first identity go quiet while the union and the press escalate past the organization to the regulator. A conduct review opens, the board loses faith in the leadership team, and SCU's culture story becomes a cautionary tale. The exercise concludes as a loss."
+    },
     { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
 

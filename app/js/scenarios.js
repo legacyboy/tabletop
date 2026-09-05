@@ -100,7 +100,6 @@ export function randomScenarioShell() {
       containment: 20,
       eradication: 10,
       recovery: 10,
-      attacker_progress: 30,
     },
     meta: {
       suggested_minutes: 60,

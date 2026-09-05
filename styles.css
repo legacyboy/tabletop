@@ -162,10 +162,6 @@ video {
 .lightDot.yellow { background: #f5c542; box-shadow: 0 0 8px #f5c54288; }
 .lightDot.red { background: #ff6b6b; box-shadow: 0 0 8px #ff6b6b88; }
 
-/* ---- Attacker progress bar ---- */
-.apRow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.apBar { height: 12px; border-radius: 8px; background: #0a0f1c; border: 1px solid #ffffff22; overflow: hidden; }
-.apFill { height: 100%; background: #4bd5ff; transition: width .3s ease; }
 #log { max-height: 240px; overflow-y: auto; }
 .logItem { font-size: 13px; padding: 8px 10px; margin: 5px 0; }
 

@@ -15,8 +15,7 @@
     "security_posture": 60,
     "containment": 20,
     "eradication": 10,
-    "recovery": 10,
-    "attacker_progress": 30
+    "recovery": 10
   },
   "meta": {
     "suggested_minutes": 60,
@@ -75,22 +74,21 @@
       },
       "text": "An event that fires if the group stalls for 2 turns.",
       "state_delta": {
-        "public_trust": -4,
-        "attacker_progress": 5
+        "public_trust": -4
       }
     },
     {
       "id": "e2",
       "trigger": {
         "type": "stat",
-        "stat": "attacker_progress",
-        "operator": "gte",
-        "value": 60
+        "stat": "public_trust",
+        "operator": "lte",
+        "value": 40
       },
-      "text": "An event that fires when attacker_progress crosses 60.",
+      "text": "An event that fires when public_trust drops to 40 or below (the team is failing).",
       "state_delta": {
-        "attacker_progress": 5,
-        "public_trust": -3
+        "public_trust": -4,
+        "regulator_confidence": -5
       }
     }
   ],
@@ -99,16 +97,17 @@
       "kind": "crit_fail",
       "twist": "Roll 1 catastrophe.",
       "state_delta": {
-        "public_trust": -8,
-        "attacker_progress": 10
+        "public_trust": -12,
+        "containment": -8
       }
     },
     "20": {
       "kind": "crit_success",
       "twist": "Roll 20 outstanding win.",
       "state_delta": {
-        "public_trust": 6,
-        "attacker_progress": -8
+        "public_trust": 10,
+        "containment": 8,
+        "regulator_confidence": 5
       }
     }
   },
@@ -147,11 +146,6 @@
         "stat": "recovery",
         "operator": "gte",
         "value": 60
-      },
-      {
-        "stat": "attacker_progress",
-        "operator": "lte",
-        "value": 20
       }
     ],
     "ending": "Crisis resolved: the attack chain is contained and trust restored. The exercise concludes."
@@ -159,16 +153,15 @@
   "end_conditions": [
     {
       "type": "stat",
-      "stat": "attacker_progress",
-      "operator": "gte",
-      "value": 90,
-      "ending": "Attack overload: the event becomes a full enterprise incident."
+      "result": "loss",
+      "stats": [
+        { "stat": "public_trust", "operator": "lte", "value": 20 },
+        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+      ],
+      "consecutive": 2,
+      "ending": "The collapse: the story ends badly. Replace this with a vivid, scenario-specific narration of the organization losing the confidence of the people it serves, the regulator escalating, and the board losing faith in the response. The exercise concludes as a loss."
     },
-    {
-      "type": "timeout",
-      "duration_seconds": 3600,
-      "ending": "Time ran out on the scheduled exercise."
-    }
+    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
   ],
   "report": {
     "title_note": "Tabletop Report",
