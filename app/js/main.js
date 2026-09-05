@@ -436,12 +436,17 @@ function renderTimer() {
   const session = state.session;
   if (!session) return;
   const left = session.secondsLeft();
-  el.timer.textContent = formatTime(left);
-
-  // Auto-finish on timeout.
-  if (left <= 0) {
-    const tEnd = session.timeoutEnd();
-    finish(tEnd);
+  // Soft pace guide, never a hard cutoff: the session ends on win, narrative
+  // loss, or the group choosing to wrap up — NOT when the timer hits zero.
+  // Dan: "the scenarios should be completable in 60 minutes, not forced."
+  if (left > 0) {
+    el.timer.textContent = formatTime(left);
+  } else {
+    el.timer.textContent = '—';
+    if (!window.__timeUpNoticed) {
+      window.__timeUpNoticed = true;
+      el.narrative.textContent += '\n\n⏱️ Recommended wrap-up: 60 minutes have passed. If your team isn\u2019t done, that\u2019s fine — keep going until you reach a resolution (win, collapse, or you decide to stop).';
+    }
   }
 }
 
