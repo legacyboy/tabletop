@@ -596,5 +596,73 @@ check('openScene falls back when provider returns empty', typeof blankOpening ==
 const blankTurn = await sBlank.takeTurn('We respond publicly.', 12);
 check('takeTurn falls back when provider returns empty', typeof blankTurn.narrative === 'string' && blankTurn.narrative.trim().length > 0);
 
+// 46. (Issue 2B) A NO-OP narrative from the DM ("didn't do anything but the
+// story continues") must NEVER surface to the player. It must be replaced with
+// a forward-driving fallback and flagged as no-progress so stall mechanics apply.
+class NoopProvider {
+  async chat() {
+    return JSON.stringify({ narrative: 'Nothing happened but the story continues, the situation remains unchanged, no immediate development, still waiting.', state_delta: { public_trust: 0 } });
+  }
+}
+const sNoop = new DMSession(new NoopProvider(), scenario);
+const noopTurn = await sNoop.takeTurn('The group takes decisive action.', 12);
+check('no-op narrative is NOT surfaced to the player', !String(noopTurn.narrative).toLowerCase().includes('nothing happened') && !String(noopTurn.narrative).toLowerCase().includes('story continues'));
+check('no-op narrative is replaced with a fallback', String(noopTurn.narrative).trim().length > 0 && String(noopTurn.narrative) !== "Nothing happened but the story continues, the situation remains unchanged, no immediate development, still waiting.");
+check('no-op narrative flags no progress (stallCount increments)', sNoop.stallCount >= 1);
+
+// 46b. (GLM F1/F2 canary) A LEGITIMATE narrative that mentions 'unchanged' or
+// 'still waiting' about a specific metric/front must NOT be treated as a no-op
+// (false positive). Only scoped markers should match.
+class LegitProvider {
+  async chat() {
+    return JSON.stringify({
+      narrative: 'Trust is unchanged this turn, but the regulator just called demanding the full timeline by tonight, so the group faces a fresh deadline.',
+      state_delta: { public_trust: 0, regulator_confidence: -2 },
+    });
+  }
+}
+const sLegit = new DMSession(new LegitProvider(), scenario);
+const legitTurn = await sLegit.takeTurn('Brief the board.', 12);
+check('legit narrative mentioning "unchanged" is NOT treated as a no-op', String(legitTurn.narrative).includes('Trust is unchanged') && String(legitTurn.narrative).includes('regulator just called'));
+check('legit narrative does not force progress=false', sLegit.stallCount === 0);
+
+// 46c. (GLM F1 canary) A pressure narrative about the regulator 'still waiting'
+// for a response must NOT be flagged as a no-op (scoped marker check).
+class RegulatorWaitProvider {
+  async chat() {
+    return JSON.stringify({
+      narrative: 'The regulator is still waiting for your response, and the media have begun to cover the delay.',
+      state_delta: { regulator_confidence: -3 },
+    });
+  }
+}
+const sRegWait = new DMSession(new RegulatorWaitProvider(), scenario);
+const regWaitTurn = await sRegWait.takeTurn('File the response.', 12);
+check('regulator "is still waiting" narrative is NOT a no-op', String(regWaitTurn.narrative).includes('still waiting for your response'));
+check('regulator wait narrative does not force progress=false', sRegWait.stallCount === 0);
+
+// 47. (Issue 2A) The system prompt must ban no-op narratives explicitly.
+class NoopPromptProvider {
+  constructor() { this.lastSystem = ''; }
+  async chat(messages) {
+    this.lastSystem = messages[0].content;
+    return JSON.stringify({ narrative: 'The team acted and events developed.', state_delta: { public_trust: 1 } });
+  }
+}
+const noopPromptProv = new NoopPromptProvider();
+const noopPromptSession = new DMSession(noopPromptProv, scenario);
+await noopPromptSession.takeTurn('The group responds.', 12);
+const noopPromptSys = noopPromptProv.lastSystem;
+check('system prompt bans no-op narratives', noopPromptSys.includes('NO-OP NARRATIVE') && noopPromptSys.toLowerCase().includes('the story continues') && noopPromptSys.includes('concrete development'));
+
+// 48. (Issue 1b) The closing report must capture BOTH the action the group
+// took AND the DM's response per turn, not half of each exchange.
+const sFull = new DMSession(new MockProvider(), scenario);
+const full1 = await sFull.takeTurn('Issue a public apology.', 14);
+const reportFull = sFull.buildReport({ result: 'ended', ending: 'The group concluded.' });
+const turn0 = reportFull.log[0];
+check('report log entry has the group action', typeof turn0 && ('action' in turn0) && String(turn0.action).length > 0 && String(turn0.action).includes('public apology'));
+check('report log entry has the DM narrative', typeof turn0 && typeof turn0.narrative === 'string' && String(turn0.narrative).trim().length > 0);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

@@ -169,6 +169,8 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- A NEW DEVELOPMENT must NOT re-punish a metric the group just competently addressed. If the group issued a clear public statement, do NOT invent a fresh "internal leak" or "confused staff reply" that undercuts it the same turn. Escalation is for when the group FAILS, stalls, or rolls badly (1-5) — not as a reward for good play. Vary the development; never repeat the same setback (e.g. the same leaked screenshot) turn after turn.',
     '- ADVANCE WITH EVENTS, NEVER DIRECTIVES. Do not frame your response as "the team needs to...", "the group should...", "it may be wise to...", "consider...", or "the next step is to...". Those lead the group. Instead, the world itself moves: a reporter publishes a follow-up, a deadline lands, a new screenshot surfaces, a regulator sharpens its demand, a complication emerges. You present the NEW SITUATION, never instructions on how to handle it.',
     '- Distinguish leading from world-driving: proposing options, prescribing an action, or telling them what to do is FORBIDDEN; having the situation actively develop and push back is REQUIRED.',
+    '- NEVER RETURN A NO-OP NARRATIVE. The narrative MUST concretely respond to the group\u2019s action: acknowledge and address each coordinated action they took and its immediate consequence. It MUST introduce at least one NEW, concrete development (new information, an actor/regulator/media reaction, a complication, a deadline) that leaves the group facing something specific to react to. Every turn the world must measurably move forward or sideways.',
+    '- A no-op narrative is FORBIDDEN. The response must NEVER say or imply that "nothing happened", "nothing responded", "the situation is unchanged", "the story continues", "no immediate development/response", "they are still waiting", "didn\u2019t do anything", or any equivalent. If the group did something (anything), the world MUST react to it concretely. Reacting to the action and developing the world with EVENTS is REQUIRED and is NOT the same as prescribing/directing the next action (which stays forbidden).',
     '- Judge the group\u2019s actions fairly and realistically for this organization. Address each of the coordinated actions in your response.',
     '- The D20 roll you receive reflects the overall outcome quality of the turn. Use it to decide if the actions land, partially succeed, or backfire. 20 = outstanding success, 1 = severe failure, middle numbers = partial/ordinary.',
     '- Make the world respond concretely: consequences, reactions from actors/regulators/media, resource changes, new complications. Keep it tense and believable.',
@@ -426,6 +428,18 @@ export class DMSession {
     if (!String(narrative).trim()) {
       narrative = 'The situation continues to develop. (The moderator returned no narrative this turn — try again or continue.)';
     }
+
+    // No-op guard: the DM must never return a hollow narrative that says
+    // nothing happened / nothing responded and "the story continues" — that
+    // dead-ends the group with no new development to react to. Detect the
+    // tell-tale phrases and replace them with a forward-driving fallback, and
+    // force progress=false so the stall mechanics still apply.
+    const noop = this._detectNoopNarrative(narrative);
+    if (noop) {
+      narrative = 'The group\u2019s actions were absorbed by events already in motion — a new development now presses on them: the situation has escalated and demands their attention. A fresh complication surfaces that they must address before it worsens.';
+      parsed.progress = false;
+    }
+
     const delta = parsed.state_delta || {};
 
     // The DM judges whether the group made meaningful progress this turn.
@@ -957,6 +971,38 @@ export class DMSession {
       if (typeof parsed === 'string') return parsed.trim();
     } catch { /* keep as-is */ }
     return t;
+  }
+
+  /** Detect a no-op narrative: the DM said nothing happened / nothing
+   *  responded and "the story continues", which dead-ends the group with no
+   *  new development to react to. Returns true when the narrative is hollow.
+   *  Case-insensitive; matches the tell-tale phrases the prompt bans. */
+  _detectNoopNarrative(narrative) {
+    if (typeof narrative !== 'string') return false;
+    const n = narrative.toLowerCase();
+    const markers = [
+      'nothing happened',
+      'nothing responded',
+      'nothing has happened',
+      'nothing changed',
+      'the story continues',
+      'the situation remains unchanged',
+      'the situation is unchanged',
+      'situation remains unchanged',
+      'situation is unchanged',
+      'no response yet',
+      'no immediate development',
+      'no immediate response',
+      'they are still waiting',
+      'the group is still waiting',
+      'didn\u2019t do anything',
+      "didn't do anything",
+      'did not do anything',
+      'no new development',
+      'remains the same',
+      'nothing of note',
+    ];
+    return markers.some((m) => n.includes(m));
   }
 
   /** Build the closing / audit report. */

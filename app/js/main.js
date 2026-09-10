@@ -329,7 +329,7 @@ async function resolveTurn(action, roll) {
     }
 
     logLine(
-      `<b>Turn ${result.event.turn}</b>: ${escapeHtml(action)} — <b>d20=${roll}</b>`
+      `<b>Turn ${result.event.turn}</b>: <b>${escapeHtml(action)}</b> — <b>d20=${roll}</b><br>${escapeHtml(result.narrative)}`
     );
 
     renderState();
@@ -502,7 +502,7 @@ function renderReport(report) {
     const div = document.createElement('div');
     div.className = 'stateItem';
     div.innerHTML =
-      `<b>Turn ${i + 1}</b> (d20=${e.roll})<br>${escapeHtml(e.narrative)}` +
+      `<b>Turn ${i + 1}</b> (d20=${e.roll})<br><b>${escapeHtml(e.action)}</b><br>${escapeHtml(e.narrative)}` +
       (e.fate ? `<br><i>Fate: ${escapeHtml(e.fate)}</i>` : '') +
       `<br><small>State after: ${escapeHtml(JSON.stringify(e.state))}</small>`;
     el.reportBody.appendChild(div);
