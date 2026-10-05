@@ -27,13 +27,18 @@ let sessionApiKey = '';
 /**
  * Common Ollama models offered in the settings dropdown for the
  * "Ollama (remote)" preset. Each entry is { value, label } where value is the
- * model id sent to the server and label is what the user sees. deepseek-v4-flash:cloud
- * is first and is the preset default DM (1M context, latest cloud build).
+ * model id sent to the server and label is what the user sees.
+ * deepseek-v4.1-flash:cloud is first and is the preset default DM.
+ *
+ * NOTE: the old id `deepseek-v4-flash:cloud` was RETIRED by Ollama on
+ * 2026-09-25 (it resolved to deepseek-v4-flash:0731 and now returns
+ * 410 Gone). Use deepseek-v4.1-flash:cloud instead. `deepseek-v3.2:cloud`
+ * is likewise retired.
  */
 export const OLLAMA_MODELS = [
-  { value: 'deepseek-v4-flash:cloud', label: 'DeepSeek Flash' },
-  { value: 'glm-5.2:cloud', label: 'GLM 5.2' },
-  { value: 'qwen3.5:397b-cloud', label: 'Qwen 3.5' },
+  { value: 'deepseek-v4.1-flash:cloud', label: 'DeepSeek Flash 4.1' },
+  { value: 'deepseek-v4-pro:cloud', label: 'DeepSeek Pro' },
+  { value: 'glm-5.3:cloud', label: 'GLM 5.3' },
 ];
 
 /**
@@ -78,7 +83,7 @@ export const PRESETS = [
     id: 'server-local',
     label: 'Server (local Ollama)',
     baseUrl: 'http://localhost:11434/v1',
-    model: 'deepseek-v4-flash:cloud',
+    model: 'deepseek-v4.1-flash:cloud',
     viaServer: true,
   },
   {
@@ -92,7 +97,7 @@ export const PRESETS = [
     // from the server's perspective. The settings UI hides the Base URL field
     // for this preset.
     viaServer: true,
-    model: 'deepseek-v4-flash:cloud',
+    model: 'deepseek-v4.1-flash:cloud',
   },
 ];
 
@@ -201,8 +206,13 @@ export function syncPresetFields(s) {
   // Fill a blank base URL from the preset (stale saves may have it empty).
   if (!s.baseUrl && p.baseUrl) s.baseUrl = p.baseUrl;
   // The old Ollama-routed DeepSeek preset saved cloud model ids
-  // (deepseek-v4-flash:cloud); the pure-DeepSeek preset uses plain ids.
+  // (deepseek-v4-flash:cloud, now retired); the pure-DeepSeek preset uses
+  // plain ids. Also migrate a stale RETIRED Ollama id to its replacement so a
+  // returning browser that saved deepseek-v4-flash:cloud does not keep hitting
+  // a 410 Gone.
   if (p.id === 'deepseek' && /:cloud$/.test(s.model || '') && p.model) s.model = p.model;
+  if (s.model === 'deepseek-v4-flash:cloud') s.model = 'deepseek-v4.1-flash:cloud';
+  if (s.model === 'deepseek-v3.2:cloud') s.model = 'deepseek-v4.1-flash:cloud';
   return s;
 }
 

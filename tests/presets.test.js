@@ -35,7 +35,7 @@ check('preset ids are unique', new Set(ids).size === ids.length);
 // 2. Ollama (remote) preset routes via the server proxy and exposes NO base URL.
 const remote = PRESETS.find((p) => p.id === 'ollama-remote');
 check('ollama-remote exists', !!remote);
-check('ollama-remote model is deepseek-v4-flash:cloud', remote && remote.model === 'deepseek-v4-flash:cloud');
+check('ollama-remote model is deepseek-v4.1-flash:cloud', remote && remote.model === 'deepseek-v4.1-flash:cloud');
 check('ollama-remote routes via the server (viaServer)', remote && remote.viaServer === true);
 check('ollama-remote has NO client base URL (server reaches Ollama)', remote && !remote.baseUrl);
 
@@ -104,12 +104,13 @@ check('defaultSettings rememberKey defaults true (key persisted)', def.rememberK
 check('OLLAMA_MODELS is exported as an array', Array.isArray(OLLAMA_MODELS));
 const modelValues = OLLAMA_MODELS.map((m) => m.value);
 check('OLLAMA_MODELS does NOT include gemma3:4b', !modelValues.includes('gemma3:4b'));
-check('OLLAMA_MODELS includes glm-5.2:cloud', modelValues.includes('glm-5.2:cloud'));
-check('OLLAMA_MODELS includes deepseek-v4-flash:cloud', modelValues.includes('deepseek-v4-flash:cloud'));
-check('OLLAMA_MODELS includes qwen3.5:397b-cloud', modelValues.includes('qwen3.5:397b-cloud'));
+check('OLLAMA_MODELS includes deepseek-v4.1-flash:cloud', modelValues.includes('deepseek-v4.1-flash:cloud'));
+check('OLLAMA_MODELS includes glm-5.3:cloud', modelValues.includes('glm-5.3:cloud'));
+check('OLLAMA_MODELS includes deepseek-v4-pro:cloud', modelValues.includes('deepseek-v4-pro:cloud'));
+check('OLLAMA_MODELS does NOT include the RETIRED deepseek-v4-flash:cloud', !modelValues.includes('deepseek-v4-flash:cloud'));
 check('OLLAMA_MODELS ids are unique', new Set(modelValues).size === modelValues.length);
 check('OLLAMA_MODELS entries have value + label', OLLAMA_MODELS.every((m) => typeof m.value === 'string' && typeof m.label === 'string' && m.value && m.label));
-check('OLLAMA_MODELS default (first) is deepseek-v4-flash:cloud', OLLAMA_MODELS[0] && OLLAMA_MODELS[0].value === 'deepseek-v4-flash:cloud');
+check('OLLAMA_MODELS default (first) is deepseek-v4.1-flash:cloud', OLLAMA_MODELS[0] && OLLAMA_MODELS[0].value === 'deepseek-v4.1-flash:cloud');
 
 // 9. DEEPSEEK_MODELS dropdown list is exported and well-formed.
 check('DEEPSEEK_MODELS is exported as an array', Array.isArray(DEEPSEEK_MODELS));

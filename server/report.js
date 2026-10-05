@@ -71,6 +71,22 @@ export function buildReport(session, opts = {}) {
     state_after: e.state,
   }));
 
+  // Part 1b: full two-sided transcript for the audit trail. For every turn this
+  // shows the PLAYER side (the action taken + D20 roll), the exact PROMPT sent
+  // to the DM, and the DM's RAW reply (before parsing/cleanup). Omitted for any
+  // turn that predates audit capture (older persisted sessions) so the report
+  // never shows empty conversation blocks.
+  const transcript = session.history
+    .filter((e) => Array.isArray(e.dm_prompt) || typeof e.dm_reply === 'string')
+    .map((e, i) => ({
+      turn: e.turn,
+      player_action: e.action,
+      player_roll: e.roll,
+      dm_prompt: e.dm_prompt || null,
+      dm_reply_raw: typeof e.dm_reply === 'string' ? e.dm_reply : null,
+      narrative_shown: e.narrative,
+    }));
+
   // Part 2: proof of play.
   const proof = {
     scenario_id: session.scenario.scenario_id,
@@ -114,6 +130,12 @@ export function buildReport(session, opts = {}) {
       turns: audit,
       final_state: session.state,
     },
+    part1b_transcript: {
+      title: 'Part 1b — Full Transcript (both sides of the conversation)',
+      description:
+        'The complete DM <-> player exchange for every turn: the player action and D20 roll, the exact prompt sent to the DM, and the DM\'s raw reply, alongside the narrative shown to the group.',
+      turns: transcript,
+    },
     part2_proof: {
       title: 'Part 2 — Proof of Play',
       description: 'Evidence the exercise was conducted, for an auditor.',
@@ -148,6 +170,25 @@ export function renderReportHtml(report) {
     .map((r, i) => `<li><b>${i + 1}.</b> ${esc(r)}</li>`)
     .join('');
 
+  // Part 1b — full two-sided transcript, collapsible per turn.
+  const transcriptBlocks = (report.part1b_transcript && report.part1b_transcript.turns || [])
+    .map((t) => {
+      const promptMsgs = (t.dm_prompt || [])
+        .map((m) => `<div style="margin:4px 0"><b style="color:#1f3a5f">${esc(m.role)}:</b><pre style="white-space:pre-wrap;margin:4px 0;background:#f7f8fa;border:1px solid #e3e6ea;padding:8px;font-size:12px;border-radius:4px">${esc(m.content)}</pre></div>`)
+        .join('');
+      return `
+      <details style="border:1px solid #ddd;border-radius:6px;margin:10px 0;padding:8px 12px;background:#fcfcfd">
+        <summary style="cursor:pointer;font-weight:600">Turn ${t.turn}${t.turn === 0 ? ' (opening scene)' : ''} — roll ${t.player_roll === null || t.player_roll === undefined ? '—' : t.player_roll}</summary>
+        <div style="margin-top:8px">
+          <div style="margin:4px 0"><b style="color:#2a6b3f">player action:</b> <span>${esc(t.player_action)}</span></div>
+          ${promptMsgs}
+          <div style="margin:4px 0"><b style="color:#8a3b00">dm reply (raw):</b><pre style="white-space:pre-wrap;margin:4px 0;background:#fff7f0;border:1px solid #f0e0d0;padding:8px;font-size:12px;border-radius:4px">${esc(t.dm_reply_raw || '(not captured)')}</pre></div>
+          <div style="margin:4px 0"><b style="color:#1f3a5f">narrative shown to group:</b><div style="background:#eef4fb;border:1px solid #d6e4f5;padding:8px;border-radius:4px">${esc(t.narrative_shown || '')}</div></div>
+        </div>
+      </details>`;
+    })
+    .join('');
+
   const proof = report.part2_proof;
 
   return `<!doctype html>
@@ -178,6 +219,12 @@ export function renderReportHtml(report) {
       <thead><tr style="background:#eef2f7"><th style="padding:8px;border:1px solid #ddd;text-align:left">Metric</th><th style="padding:8px;border:1px solid #ddd">Value</th></tr></thead>
       <tbody>${stateRows}</tbody>
     </table>
+
+    ${report.part1b_transcript ? `
+    <h2 style="color:#1f3a5f;border-bottom:2px solid #1f3a5f;padding-bottom:6px;margin-top:32px">${esc(report.part1b_transcript.title)}</h2>
+    <p style="color:#555">${esc(report.part1b_transcript.description)}</p>
+    ${transcriptBlocks || '<p style="color:#888">No transcript captured for this session.</p>'}
+    ` : ''}
 
     ${report.attack_chain_debrief ? `
     <h3 style="color:#1f3a5f;margin-top:24px">Attack chain debrief</h3>

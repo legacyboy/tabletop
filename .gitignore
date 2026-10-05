@@ -17,3 +17,6 @@ data/
 # Python
 __pycache__/
 *.pyc
+
+# Generated test artifacts (transcripts, reports)
+tests/out/

@@ -397,7 +397,18 @@ export class DMSession {
       narrative = 'The opening scene begins. (The moderator returned no narrative this turn — try again or continue.)';
     }
     // Seed the transcript so the opening scene shows in the closing report.
-    this.history.push({ turn: 0, action: '(opening scene)', narrative, roll: null });
+    // Include the audit trail (both sides of the opening exchange) as well.
+    this.history.push({
+      turn: 0,
+      action: '(opening scene)',
+      narrative,
+      roll: null,
+      dm_prompt: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      dm_reply: dmResult,
+    });
     return narrative;
   }
 
@@ -423,6 +434,10 @@ export class DMSession {
     // tracked and never re-fire.
     const preFired = this._pendingStatTurnEvents();
 
+    // ---------------- AUDIT TRAIL (both sides) -----------------------------
+    // Capture the exact system + user prompt sent to the DM and the model's raw
+    // reply (before parsing), so the closing report can show the full
+    // DM<->player conversation for an auditor. See the event object below.
     const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
     const user = buildUserTurn(this.scenario, this, action, roll, fate, preFired);
 
@@ -520,6 +535,14 @@ export class DMSession {
       beat_quality: this.lastBeatQuality,
       budget_spend: this.lastBudgetSpend,
       total_budget_spend: this.budgetSpend,
+      // Audit trail: both sides of the DM exchange, verbatim.
+      //   dm_prompt : the exact [system, user] messages sent to the model
+      //   dm_reply  : the raw model reply BEFORE parsing/narrative cleanup
+      dm_prompt: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      dm_reply: dmResult,
       ts: Date.now(),
     };
     this.history.push(event);
