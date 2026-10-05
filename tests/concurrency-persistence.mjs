@@ -109,7 +109,13 @@ console.log('\nC3 — Mid-session resume is seamless');
 
 // ---- 4. Browser: reload + resume -------------------------------------------
 if (BROWSER) {
-  console.log('\nC4 — Browser: play a turn, reload, resume (deployed app)');
+  // Browser resume must run against an HTTP origin: an HTTPS page cannot call a
+  // plain-HTTP mock on localhost (Chrome Private Network Access / mixed-content
+  // blocks it), which would make the turn fail for an unrelated reason. So we
+  // always drive the browser part against a LOCAL http server, regardless of
+  // LIVE_URL. The static/deployed app is proven by live-browser-budget.mjs.
+  const ORIGIN = process.env.LOCAL_URL || 'http://localhost:8000';
+  console.log(`\nC4 — Browser: play a turn, reload, resume (${ORIGIN})`);
   const { default: puppeteer } = await import('puppeteer');
   const http = await import('node:http');
   const mock = http.createServer((req, res) => {
@@ -129,7 +135,7 @@ if (BROWSER) {
   const browser = await puppeteer.launch({ executablePath: '/usr/bin/chromium', args: ['--no-sandbox'] });
   const page = await browser.newPage();
   page.on('dialog', async (d) => { await d.accept(); }); // auto-accept resume prompt
-  await page.goto(`${LIVE}/`, { waitUntil: 'networkidle0' });
+  await page.goto(`${ORIGIN}/`, { waitUntil: 'networkidle0' });
   await page.evaluate(() => localStorage.setItem('tabletop.dm.settings.v1', JSON.stringify({
     provider: 'openai-compatible', apiKey: '', baseUrl: 'http://localhost:9999/v1', model: 'mock', allowCompanyFetch: false,
   })));
