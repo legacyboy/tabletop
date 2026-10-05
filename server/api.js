@@ -161,12 +161,14 @@ export async function handleApi(req, res, pathname, url) {
       return json(res, 400, { error: err.message });
     }
     try {
+      let usage = null;
       const content = await provider.chat(body.messages, {
         temperature: body.temperature,
         maxTokens: body.max_tokens,
         numCtx: body.num_ctx || ENV.numCtx,
+        onUsage: (u) => { usage = u; },
       });
-      return json(res, 200, { content });
+      return json(res, 200, usage ? { content, usage } : { content });
     } catch (err) {
       return json(res, 502, { error: 'DM call failed: ' + err.message });
     }

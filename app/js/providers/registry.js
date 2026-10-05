@@ -136,6 +136,19 @@ export function loadSettings() {
     // and re-picking the already-selected dropdown option fires no change
     // event, so the stale state never heals on its own).
     syncPresetFields(s);
+    // Self-heal stale persisted settings: if the migration changed anything
+    // (e.g. a retired model id), write the corrected form back so a returning
+    // browser is fixed for good, not just this session. Never write the API key
+    // unless the user opted into "remember my key".
+    try {
+      const parsed = JSON.parse(raw);
+      const changed = JSON.stringify(parsed) !== JSON.stringify(
+        s.rememberKey ? s : { ...s, apiKey: '' }
+      );
+      if (changed) {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s.rememberKey ? s : { ...s, apiKey: '' }));
+      }
+    } catch { /* non-fatal */ }
     // Session-only key: pull it from memory (if set this session) so the
     // current session still works even though the key isn't persisted.
     if (!s.rememberKey) s.apiKey = sessionApiKey;

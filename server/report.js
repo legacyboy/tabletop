@@ -64,6 +64,7 @@ export function buildReport(session, opts = {}) {
   // Part 1: full audit — every turn with action, roll, DM decision, state.
   const audit = session.history.map((e, i) => ({
     turn: i + 1,
+    player: e.player || null,
     action: e.action,
     roll: e.roll,
     fate: e.fate || null,
@@ -80,6 +81,7 @@ export function buildReport(session, opts = {}) {
     .filter((e) => Array.isArray(e.dm_prompt) || typeof e.dm_reply === 'string')
     .map((e, i) => ({
       turn: e.turn,
+      player: e.player || null,
       player_action: e.action,
       player_roll: e.roll,
       dm_prompt: e.dm_prompt || null,
@@ -119,6 +121,25 @@ export function buildReport(session, opts = {}) {
       }
     : null;
 
+  // Token accounting: session totals from the DM calls (provider-reported,
+  // else estimated). Cost is intentionally not computed here because pricing
+  // varies by provider/model - we expose the token counts an auditor needs.
+  const tu = session.tokenUsage || { prompt_tokens: 0, completion_tokens: 0 };
+  const tokenUsage = {
+    prompt_tokens: tu.prompt_tokens || 0,
+    completion_tokens: tu.completion_tokens || 0,
+    total_tokens: (tu.prompt_tokens || 0) + (tu.completion_tokens || 0),
+    model_calls: tu.calls || 0,
+    estimated: !!(tu.prompt_estimated || tu.completion_estimated),
+  };
+
+  // Per-player action counts (attribution). Empty when no player was named.
+  const byPlayer = {};
+  for (const e of session.history) {
+    if (!e.player) continue;
+    byPlayer[e.player] = (byPlayer[e.player] || 0) + 1;
+  }
+
   return {
     report_title: (session.scenario.report && session.scenario.report.title_note) || 'Tabletop Exercise Report',
     scenario: session.scenario.title,
@@ -141,6 +162,12 @@ export function buildReport(session, opts = {}) {
       description: 'Evidence the exercise was conducted, for an auditor.',
       ...proof,
     },
+    part3_usage: {
+      title: 'Part 3 — Resource Usage',
+      description: 'Token accounting for the DM calls and per-player action attribution.',
+      tokens: tokenUsage,
+      actions_by_player: byPlayer,
+    },
     attack_chain_debrief: chainDebrief,
     recommendations: opts.recommendations || [],
     audit_note: (session.scenario.report && session.scenario.report.audit_note) || '',
@@ -158,6 +185,7 @@ export function renderReportHtml(report) {
       (t) => `
       <tr>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top;white-space:nowrap">${t.turn}</td>
+        <td style="padding:8px;border:1px solid #ddd;vertical-align:top;white-space:nowrap">${esc(t.player || '—')}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.action)}</td>
         <td style="padding:8px;border:1px solid #ddd;text-align:center">${t.roll === null || t.roll === undefined ? '—' : t.roll}${t.fate ? ' ⚡' : ''}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.dm_decision)}</td>
@@ -180,7 +208,7 @@ export function renderReportHtml(report) {
       <details style="border:1px solid #ddd;border-radius:6px;margin:10px 0;padding:8px 12px;background:#fcfcfd">
         <summary style="cursor:pointer;font-weight:600">Turn ${t.turn}${t.turn === 0 ? ' (opening scene)' : ''} — roll ${t.player_roll === null || t.player_roll === undefined ? '—' : t.player_roll}</summary>
         <div style="margin-top:8px">
-          <div style="margin:4px 0"><b style="color:#2a6b3f">player action:</b> <span>${esc(t.player_action)}</span></div>
+          <div style="margin:4px 0"><b style="color:#2a6b3f">player action:</b> <span>${esc(t.player ? t.player + ' - ' : '')}${esc(t.player_action)}</span></div>
           ${promptMsgs}
           <div style="margin:4px 0"><b style="color:#8a3b00">dm reply (raw):</b><pre style="white-space:pre-wrap;margin:4px 0;background:#fff7f0;border:1px solid #f0e0d0;padding:8px;font-size:12px;border-radius:4px">${esc(t.dm_reply_raw || '(not captured)')}</pre></div>
           <div style="margin:4px 0"><b style="color:#1f3a5f">narrative shown to group:</b><div style="background:#eef4fb;border:1px solid #d6e4f5;padding:8px;border-radius:4px">${esc(t.narrative_shown || '')}</div></div>
@@ -206,6 +234,7 @@ export function renderReportHtml(report) {
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       <thead><tr style="background:#eef2f7">
         <th style="padding:8px;border:1px solid #ddd;text-align:left">Turn</th>
+        <th style="padding:8px;border:1px solid #ddd;text-align:left">Player</th>
         <th style="padding:8px;border:1px solid #ddd;text-align:left">Action taken</th>
         <th style="padding:8px;border:1px solid #ddd">D20</th>
         <th style="padding:8px;border:1px solid #ddd;text-align:left">DM decision / outcome</th>
@@ -254,6 +283,20 @@ export function renderReportHtml(report) {
       </tbody>
     </table>
     <p style="color:#888;font-size:12px;margin-top:8px">${esc(proof.integrity_note)}</p>
+
+    ${report.part3_usage ? `
+    <h2 style="color:#1f3a5f;border-bottom:2px solid #1f3a5f;padding-bottom:6px;margin-top:32px">${esc(report.part3_usage.title)}</h2>
+    <p style="color:#555">${esc(report.part3_usage.description)}</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <tbody>
+        <tr><td style="padding:6px;border:1px solid #ddd;width:40%"><b>Model calls</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.model_calls}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Prompt tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.prompt_tokens}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Completion tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.completion_tokens}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Total tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.total_tokens}${report.part3_usage.tokens.estimated ? ' (partly estimated)' : ''}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Actions by player</b></td><td style="padding:6px;border:1px solid #ddd">${esc(Object.entries(report.part3_usage.actions_by_player || {}).map(([p, n]) => p + ': ' + n).join(', ') || 'Not attributed')}</td></tr>
+      </tbody>
+    </table>
+    ` : ''}
 
     <h2 style="color:#1f3a5f;border-bottom:2px solid #1f3a5f;padding-bottom:6px;margin-top:32px">Recommendations</h2>
     ${recRows ? `<ol>${recRows}</ol>` : '<p style="color:#888">No recommendations recorded.</p>'}

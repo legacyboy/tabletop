@@ -104,6 +104,15 @@ export class OpenAICompatibleProvider {
     const data = await res.json();
     const text = data?.message?.content;
     if (text === undefined) throw new Error('Model returned no content.');
+    // Token accounting: Ollama reports prompt_eval_count / eval_count.
+    if (typeof opts.onUsage === 'function') {
+      opts.onUsage({
+        prompt_tokens: data?.prompt_eval_count ?? null,
+        completion_tokens: data?.eval_count ?? null,
+        model: this.model,
+        provider: 'ollama',
+      });
+    }
     return String(text).trim();
   }
 
@@ -168,6 +177,16 @@ export class OpenAICompatibleProvider {
     const data = await res.json();
     const text = data?.choices?.[0]?.message?.content;
     if (text === undefined) throw new Error('Model returned no content.');
+    // Token accounting: OpenAI-compatible APIs report usage.
+    if (typeof opts.onUsage === 'function') {
+      const u = data?.usage || {};
+      opts.onUsage({
+        prompt_tokens: u.prompt_tokens ?? null,
+        completion_tokens: u.completion_tokens ?? null,
+        model: this.model,
+        provider: 'openai-compatible',
+      });
+    }
     return text.trim();
   }
 

@@ -72,12 +72,16 @@ if (BROWSER) {
   let captured = null;
   const http = await import('node:http');
   const mock = http.createServer((req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
     let raw = '';
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
       try { captured = JSON.parse(raw); } catch { captured = { raw }; }
       const content = JSON.stringify({ narrative: 'The team acts and the situation develops. Pressure mounts on the crisis response as events force a decision.' });
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ id: 'mock', choices: [{ message: { role: 'assistant', content } }] }));
     });
   });

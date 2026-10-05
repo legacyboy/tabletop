@@ -27,10 +27,46 @@ const state = {
   phase: 'select', // 'select' | 'intro' | 'play' | 'report'
   selectReturn: 'select', // phase the Back button on the select screen returns to
   companyInfo: null,
+  tabId: null, // unique per browser tab, for two-tab detection
+  readOnly: false, // true when another tab owns the live session
 };
 
 /** Bound DOM references set once after DOM ready. */
 const el = {};
+
+// ---- Session persistence (refresh/resume + two-tab safety) --------------
+// The live DM session is snapshotted to localStorage after each turn so a
+// browser refresh (or accidental close) can resume without losing the game.
+// A second tab is detected via the storage event and offered read-only resume
+// rather than silently driving the same session from two places.
+const SESSION_KEY = 'tabletop.dm.session.v1';
+const TAB_KEY = 'tabletop.dm.activetab.v1';
+
+function saveSessionSnapshot() {
+  const s = state.session;
+  if (!s || s.ended) return;
+  if (state.readOnly) return; // another tab owns the live session
+  try {
+    const snap = s.serialize();
+    snap.__savedAt = Date.now();
+    snap.__tabId = state.tabId;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(snap));
+  } catch { /* quota / private mode: persistence is best-effort */ }
+}
+
+function clearSessionSnapshot() {
+  try { localStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+}
+
+function loadSessionSnapshot() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const snap = JSON.parse(raw);
+    if (!snap || !snap.scenario_id) return null;
+    return snap;
+  } catch { return null; }
+}
 
 function humanize(key) {
   return key.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase());
@@ -49,7 +85,7 @@ function setPhase(phase) {
 async function init() {
   // Cache DOM refs.
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
-   'startButton', 'actionText', 'manualRoll', 'submitBtn', 'outcome',
+   'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
@@ -84,7 +120,40 @@ async function init() {
     window.dispatchEvent(new CustomEvent('tabletop:refreshsettings'));
   });
 
+  // ---- Two-tab safety + resume -----------------------------------------
+  // Give this tab an id and publish it as the active tab.
+  state.tabId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  try { localStorage.setItem(TAB_KEY, state.tabId); } catch { /* ignore */ }
+
+  // If another tab takes over the active-tab key, this tab is now a follower:
+  // it stops writing snapshots so the two tabs cannot fight over the session.
+  window.addEventListener('storage', (e) => {
+    if (e.key === TAB_KEY && e.newValue && e.newValue !== state.tabId) {
+      state.readOnly = true;
+      if (el.outcome && state.phase === 'play') {
+        el.outcome.textContent = 'Another tab is now playing this session. This tab is read-only.';
+      }
+    }
+    // Another tab finished/ended the session: drop our stale snapshot view.
+    if (e.key === SESSION_KEY && !e.newValue && state.phase === 'play' && state.readOnly) {
+      el.outcome.textContent = 'The session ended in another tab.';
+    }
+  });
+
   await populateScenarios();
+
+  // Offer to resume an interrupted session (saved snapshot with turns).
+  const snap = loadSessionSnapshot();
+  if (snap && snap.scenario_id && (snap.turn || 0) > 0 && !snap.ended) {
+    const when = snap.__savedAt ? new Date(snap.__savedAt).toLocaleString() : 'earlier';
+    const ok = confirm(`Resume your interrupted session (${snap.scenario_id}, turn ${snap.turn}, saved ${when})?\n\nCancel to start fresh.`);
+    if (ok) {
+      const resumed = await resumeSession(snap);
+      if (!resumed) clearSessionSnapshot();
+    } else {
+      clearSessionSnapshot();
+    }
+  }
 }
 
 /** Fill the scenario <select> dropdown from the loaded registry. */
@@ -194,6 +263,53 @@ async function selectScenario(index) {
   setPhase('intro');
 }
 
+async function resumeSession(snap) {
+  try {
+    const settings = loadSettings();
+    const provider = buildProvider(settings);
+    if (!provider) {
+      el.outcome.textContent = 'No DM configured to resume. Open Settings first.';
+      return false;
+    }
+    const desc = state.registry.find((s) => s.id === snap.scenario_id);
+    if (!desc) return false;
+    const scenario = await loadScenario(desc.path);
+    state.scenario = scenario;
+    state.isRandom = isRandomEntry(desc);
+
+    state.session = DMSession.restore(provider, scenario, snap);
+    state.session.onTimerTick = renderTimer;
+    state.session.start();
+
+    el.moderatorRead.textContent = scenario.intro.narrative || '';
+    el.scenarioTitle.textContent = scenario.title;
+    if (state.session.durationSeconds) {
+      el.timer.textContent = formatTime(state.session.secondsLeft());
+    } else {
+      el.timer.textContent = 'no time limit';
+    }
+
+    // Re-build the run log from the restored history so the player sees where
+    // they left off.
+    (state.session.history || []).forEach((e) => {
+      if (!e || e.turn === 0 || e.action === '(opening scene)') {
+        if (e && e.narrative) el.narrative.textContent = e.narrative;
+        return;
+      }
+      logLine(`<b>Turn ${e.turn}</b>: <b>${escapeHtml(e.action)}</b> — <b>d20=${e.roll}</b><br>${escapeHtml(e.narrative)}`);
+    });
+
+    renderState();
+    setPhase('play');
+    bindRollFlow(scenario);
+    el.outcome.textContent = 'Session resumed. What does the group do?';
+    return true;
+  } catch (err) {
+    el.outcome.textContent = 'Could not resume: ' + err.message;
+    return false;
+  }
+}
+
 async function beginSession() {
   try {
     const settings = loadSettings();
@@ -221,6 +337,8 @@ async function beginSession() {
     state.session.onTimerTick = renderTimer;
     // Random mode: tell the DM to generate the scenario.
     if (state.isRandom) state.session.random = true;
+    // A brand-new session supersedes any saved (resumable) snapshot.
+    clearSessionSnapshot();
 
     // Show the group's case introduction (intro.narrative). There is no
     // human facilitator — the DM is the LLM — so everyone reads the same case
@@ -264,6 +382,10 @@ function bindRollFlow(scenario) {
   // internally, and let the DM adjudicate. This merges the old separate
   // 'D20' card + 'What does the group do?' card into one flow.
   el.submitBtn.onclick = async () => {
+    if (state.readOnly) {
+      el.outcome.textContent = 'This tab is read-only — another tab is playing this session.';
+      return;
+    }
     const action = el.actionText.value;
     if (!action.trim()) {
       el.outcome.textContent = 'Type what the group wants to do, then submit.';
@@ -318,7 +440,8 @@ async function resolveTurn(action, roll) {
   el.submitBtn.disabled = true;
 
   try {
-    const result = await session.takeTurn(action, roll);
+    const player = (el.playerName && el.playerName.value.trim()) || null;
+    const result = await session.takeTurn(action, roll, player);
 
     el.narrative.textContent = result.narrative;
     if (result.event.fate) {
@@ -333,6 +456,7 @@ async function resolveTurn(action, roll) {
     );
 
     renderState();
+    saveSessionSnapshot();
 
     if (result.endCondition) {
       finish(result.endCondition);
@@ -463,6 +587,9 @@ function finish(endCondition) {
   const report = session.buildReport(endCondition);
   renderReport(report);
   setPhase('report');
+  // Session is over: drop the resumable snapshot so a refresh doesn't offer to
+  // resume a finished game.
+  clearSessionSnapshot();
 }
 
 function renderReport(report) {

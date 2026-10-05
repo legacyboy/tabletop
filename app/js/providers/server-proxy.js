@@ -91,6 +91,15 @@ export class ServerProxyProvider {
 
     const data = await res.json();
     if (data.content === undefined) throw new Error('Server proxy returned no content.');
+    // Token accounting: the server forwards upstream usage when available.
+    if (typeof opts.onUsage === 'function') {
+      opts.onUsage({
+        prompt_tokens: data?.usage?.prompt_tokens ?? null,
+        completion_tokens: data?.usage?.completion_tokens ?? null,
+        model: this.model,
+        provider: 'server-proxy',
+      });
+    }
     return data.content.trim();
   }
 

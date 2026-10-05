@@ -344,6 +344,44 @@ export class DMSession {
     this.durationSeconds = this._durationFromEndConditions() || null;
     this.timerHandle = null;
     this.onTimerTick = null;
+
+    // Token accounting. Usage is reported per turn when the provider exposes
+    // it (Ollama eval counts / OpenAI usage); when absent we fall back to a
+    // character-based ESTIMATE so the audit always has a number. `tokenUsage`
+    // accumulates the session totals.
+    this.tokenUsage = {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      prompt_estimated: false,
+      completion_estimated: false,
+      calls: 0,
+    };
+  }
+
+  /**
+   * Rough token estimate from text length (~4 chars/token). Used only when the
+   * provider does not report usage, so the accounting is never empty.
+   */
+  _estimateTokens(text) {
+    return Math.ceil(String(text || '').length / 4);
+  }
+
+  /**
+   * Record one model call's usage into the session totals. `usage` may be null
+   * (provider reported nothing) — we then estimate from the prompt/reply text.
+   */
+  _recordUsage(usage, promptText, replyText) {
+    const u = this.tokenUsage;
+    u.calls += 1;
+    if (usage && (usage.prompt_tokens != null || usage.completion_tokens != null)) {
+      u.prompt_tokens += usage.prompt_tokens || 0;
+      u.completion_tokens += usage.completion_tokens || 0;
+    } else {
+      u.prompt_tokens += this._estimateTokens(promptText);
+      u.completion_tokens += this._estimateTokens(replyText);
+      u.prompt_estimated = true;
+      u.completion_estimated = true;
+    }
   }
 
   _durationFromEndConditions() {
@@ -385,8 +423,11 @@ export class DMSession {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { temperature: 0.8, maxTokens: SCENE_TOKENS, numCtx: DM_NUM_CTX }
+      { temperature: 0.8, maxTokens: SCENE_TOKENS, numCtx: DM_NUM_CTX, onUsage: (u) => { this._lastUsage = u; } }
     );
+    const openingUsage = this._lastUsage || null;
+    this._lastUsage = null;
+    this._recordUsage(openingUsage, system + user, dmResult);
     const parsed = this._extractJson(dmResult);
     let narrative = parsed.narrative || dmResult;
     if (!parsed.narrative) {
@@ -408,6 +449,13 @@ export class DMSession {
         { role: 'user', content: user },
       ],
       dm_reply: dmResult,
+      usage: openingUsage,
+      tokens_prompt: openingUsage && openingUsage.prompt_tokens != null
+        ? openingUsage.prompt_tokens
+        : this._estimateTokens(system + user),
+      tokens_completion: openingUsage && openingUsage.completion_tokens != null
+        ? openingUsage.completion_tokens
+        : this._estimateTokens(dmResult),
     });
     return narrative;
   }
@@ -421,7 +469,7 @@ export class DMSession {
    * Resolve one turn: action text + roll -> narrative, state update, end check.
    * @returns {Promise<{narrative, state, event, endCondition, roll}>}
    */
-  async takeTurn(action, roll) {
+  async takeTurn(action, roll, player = null) {
     if (!action || !action.trim()) throw new Error('Describe an action first.');
     if (!Number.isInteger(roll) || roll < 1 || roll > 20) throw new Error('D20 roll must be 1-20.');
 
@@ -446,8 +494,11 @@ export class DMSession {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { temperature: 0.8, maxTokens: TURN_TOKENS, numCtx: DM_NUM_CTX }
+      { temperature: 0.8, maxTokens: TURN_TOKENS, numCtx: DM_NUM_CTX, onUsage: (u) => { this._lastUsage = u; } }
     );
+    const turnUsage = this._lastUsage || null;
+    this._lastUsage = null;
+    this._recordUsage(turnUsage, system + user, dmResult);
 
     const parsed = this._extractJson(dmResult);
     // Never let raw JSON leak to the player as the narrative. If extraction
@@ -524,6 +575,9 @@ export class DMSession {
     const event = {
       turn: this.turn,
       action,
+      // Per-player attribution: which participant took (or spoke for) this
+      // action. Null for the opening scene / unattributed play.
+      player: player || null,
       roll,
       fate: fate ? fate.twist : null,
       events: firedEvents.map((e) => e.id),
@@ -543,6 +597,14 @@ export class DMSession {
         { role: 'user', content: user },
       ],
       dm_reply: dmResult,
+      // Token accounting for THIS turn (provider-reported, else estimated).
+      usage: turnUsage,
+      tokens_prompt: turnUsage && turnUsage.prompt_tokens != null
+        ? turnUsage.prompt_tokens
+        : this._estimateTokens(system + user),
+      tokens_completion: turnUsage && turnUsage.completion_tokens != null
+        ? turnUsage.completion_tokens
+        : this._estimateTokens(dmResult),
       ts: Date.now(),
     };
     this.history.push(event);
@@ -1095,6 +1157,7 @@ export class DMSession {
       lastBeatQuality: this.lastBeatQuality,
       lastBudgetSpend: this.lastBudgetSpend,
       budgetSpend: this.budgetSpend,
+      tokenUsage: clone(this.tokenUsage),
     };
   }
 
@@ -1121,6 +1184,9 @@ export class DMSession {
     session.lastBeatQuality = snapshot.lastBeatQuality || '';
     session.lastBudgetSpend = snapshot.lastBudgetSpend || 0;
     session.budgetSpend = snapshot.budgetSpend || 0;
+    session.tokenUsage = snapshot.tokenUsage
+      ? clone(snapshot.tokenUsage)
+      : { prompt_tokens: 0, completion_tokens: 0, prompt_estimated: false, completion_estimated: false, calls: 0 };
     return session;
   }
 }

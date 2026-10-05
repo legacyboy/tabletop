@@ -67,7 +67,8 @@ let advanced = 0;
 for (let i = 0; i < Math.min(TURNS, PLAYBOOK.length); i++) {
   const roll = ((i * 7 + 3) % 20) + 1;
   const before = JSON.stringify(session.state);
-  const res = await session.takeTurn(PLAYBOOK[i], roll);
+  const players = ['Alice', 'Bob', 'Carol'];
+  const res = await session.takeTurn(PLAYBOOK[i], roll, players[i % players.length]);
   if (res.narrative && res.narrative.trim().length > 50) advanced++;
   if (JSON.stringify(session.state) !== before) advanced++;
   console.log(`  turn ${i + 1}: roll ${roll}, narrative ${res.narrative.length} chars`);
@@ -96,6 +97,8 @@ record('every prompt has system+user+reply', promptComplete === history.length, 
 // Player side must include the action; opening is labelled.
 const firstTurn = history[1];
 record('player action + roll captured', !!firstTurn.action && Number.isInteger(firstTurn.roll), `roll=${firstTurn.roll}`);
+record('player attribution recorded', firstTurn.player === 'Alice', `player=${firstTurn.player}`);
+record('token usage recorded', session.tokenUsage.calls >= history.length && session.tokenUsage.prompt_tokens > 0, `calls=${session.tokenUsage.calls}, prompt=${session.tokenUsage.prompt_tokens}, est=${session.tokenUsage.prompt_estimated}`);
 record('opening turn labelled', history[0].action === '(opening scene)');
 
 // Raw reply must be the pre-parse text (may be JSON), and the shown narrative
@@ -114,6 +117,8 @@ record(
 const html = renderReportHtml(report);
 record('rendered HTML shows the transcript heading', /Full Transcript/.test(html));
 record('rendered HTML includes a raw DM reply block', /dm reply \(raw\)/.test(html));
+record('report includes resource usage', !!report.part3_usage && report.part3_usage.tokens.model_calls > 0, `calls=${report.part3_usage ? report.part3_usage.tokens.model_calls : 0}`);
+record('report shows per-player attribution', !!report.part3_usage && Object.keys(report.part3_usage.actions_by_player || {}).length > 0, JSON.stringify(report.part3_usage ? report.part3_usage.actions_by_player : {}));
 
 // ---- dump artifacts --------------------------------------------------------
 mkdirSync(OUT, { recursive: true });
