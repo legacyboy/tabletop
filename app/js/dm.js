@@ -1116,10 +1116,28 @@ export class DMSession {
     const durationSec = this.startedAt ? Math.round((Date.now() - this.startedAt) / 1000) : null;
     const minutes = durationSec ? Math.floor(durationSec / 60) : null;
 
+    // Per-player action counts and token totals, so the in-app report matches
+    // the exported report (server/report.js) rather than being a thinner view.
+    const byPlayer = {};
+    for (const e of this.history) {
+      if (!e.player) continue;
+      byPlayer[e.player] = (byPlayer[e.player] || 0) + 1;
+    }
+    const tu = this.tokenUsage || { prompt_tokens: 0, completion_tokens: 0 };
+    // Indicative cost (best-effort public list prices, USD per 1M tokens).
+    const lastUsage = [...this.history].reverse().find((e) => e && e.usage && e.usage.model);
+    const modelId = (lastUsage && lastUsage.usage.model) || null;
+    const rates = { 'deepseek-v4-pro': [0.55, 2.19], 'deepseek-v4.1-flash': [0.07, 0.28], 'deepseek': [0.27, 1.1], 'glm': [0.6, 2.2], 'gpt-4o-mini': [0.15, 0.6] };
+    const key = String(modelId || '').toLowerCase();
+    const matched = Object.keys(rates).find((m) => key.includes(m));
+    const [rin, rout] = (matched && rates[matched]) || [0.07, 0.28];
+    const costUsd = Math.round(((tu.prompt_tokens || 0) / 1e6 * rin + (tu.completion_tokens || 0) / 1e6 * rout) * 10000) / 10000;
+
     return {
       report_title: (this.scenario.report && this.scenario.report.title_note) || 'Tabletop Report',
       scenario: this.scenario.title,
       scenario_id: this.scenario.scenario_id,
+      generated_at: new Date().toISOString(),
       ending: endCondition ? endCondition.ending : null,
       result: endCondition ? (endCondition.result || null) : null,
       turns: this.turn,
@@ -1128,6 +1146,16 @@ export class DMSession {
       log: clone(this.history),
       attack_chain: clone(this.attackChain),
       breach_state: this.breachState,
+      actions_by_player: byPlayer,
+      token_usage: {
+        prompt_tokens: tu.prompt_tokens || 0,
+        completion_tokens: tu.completion_tokens || 0,
+        total_tokens: (tu.prompt_tokens || 0) + (tu.completion_tokens || 0),
+        model_calls: tu.calls || 0,
+        estimated: !!(tu.prompt_estimated || tu.completion_estimated),
+        model: modelId,
+        cost_usd: costUsd,
+      },
       audit_note: (this.scenario.report && this.scenario.report.audit_note) || '',
     };
   }

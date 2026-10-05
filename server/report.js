@@ -32,6 +32,28 @@ function esc(s) {
   }[m]));
 }
 
+/** Human-readable local date-time, e.g. "Oct 5, 2026, 1:58 PM". */
+function fmtDate(iso) {
+  const d = iso ? new Date(iso) : new Date();
+  if (Number.isNaN(d.getTime())) return String(iso || '');
+  try {
+    return d.toLocaleString(undefined, {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+    });
+  } catch {
+    return d.toISOString();
+  }
+}
+
+/** Render a state object as a compact, readable inline metric list. */
+function stateInline(state) {
+  if (!state || typeof state !== 'object') return '—';
+  return Object.entries(state)
+    .map(([k, v]) => `${humanize(k)}: <b>${v}</b>`)
+    .join(' · ');
+}
+
 /** Build a verifiable session fingerprint (SHA-256 of the full log). */
 function fingerprint(session) {
   const canonical = JSON.stringify({
@@ -49,6 +71,30 @@ function fmtDuration(sec) {
   const m = Math.floor(sec / 60);
   const s = sec % 60;
   return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+// USD per 1,000,000 tokens, [input, output]. Best-effort public list prices;
+// used only to give the audit an indicative dollar figure. Matched by model
+// substring (first hit wins); unknown models fall back to the DeepSeek flash
+// rate so the number is always populated and clearly indicative.
+const PRICING = [
+  { match: 'deepseek-v4-pro', in: 0.55, out: 2.19 },
+  { match: 'deepseek-v4.1-flash', in: 0.07, out: 0.28 },
+  { match: 'deepseek-v4-flash', in: 0.07, out: 0.28 },
+  { match: 'deepseek', in: 0.27, out: 1.1 },
+  { match: 'glm-5.3', in: 0.6, out: 2.2 },
+  { match: 'glm', in: 0.6, out: 2.2 },
+  { match: 'gpt-4o-mini', in: 0.15, out: 0.6 },
+];
+const DEFAULT_PRICE = { in: 0.07, out: 0.28 };
+
+/** Estimate USD cost from token counts for a given model id. */
+function estimateCost(promptTokens, completionTokens, modelId) {
+  const key = String(modelId || '').toLowerCase();
+  const row = PRICING.find((p) => key.includes(p.match)) || DEFAULT_PRICE;
+  const cost = (promptTokens / 1e6) * row.in + (completionTokens / 1e6) * row.out;
+  // Round to 4 dp so tiny sessions still show a non-zero figure.
+  return { usd: Math.round(cost * 10000) / 10000, rate_in: row.in, rate_out: row.out };
 }
 
 /**
@@ -125,12 +171,19 @@ export function buildReport(session, opts = {}) {
   // else estimated). Cost is intentionally not computed here because pricing
   // varies by provider/model - we expose the token counts an auditor needs.
   const tu = session.tokenUsage || { prompt_tokens: 0, completion_tokens: 0 };
+  // Identify the model from the most recent turn's usage (falls back to none).
+  const lastUsage = [...(session.history || [])].reverse().find((e) => e && e.usage && e.usage.model);
+  const modelId = (lastUsage && lastUsage.usage.model) || opts.model || null;
+  const cost = estimateCost(tu.prompt_tokens || 0, tu.completion_tokens || 0, modelId);
   const tokenUsage = {
     prompt_tokens: tu.prompt_tokens || 0,
     completion_tokens: tu.completion_tokens || 0,
     total_tokens: (tu.prompt_tokens || 0) + (tu.completion_tokens || 0),
     model_calls: tu.calls || 0,
     estimated: !!(tu.prompt_estimated || tu.completion_estimated),
+    model: modelId,
+    cost_usd: cost.usd,
+    cost_basis: modelId ? `$${cost.rate_in}/M in, $${cost.rate_out}/M out (indicative)` : 'default rate (indicative)',
   };
 
   // Per-player action counts (attribution). Empty when no player was named.
@@ -189,7 +242,7 @@ export function renderReportHtml(report) {
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.action)}</td>
         <td style="padding:8px;border:1px solid #ddd;text-align:center">${t.roll === null || t.roll === undefined ? '—' : t.roll}${t.fate ? ' ⚡' : ''}</td>
         <td style="padding:8px;border:1px solid #ddd;vertical-align:top">${esc(t.dm_decision)}</td>
-        <td style="padding:8px;border:1px solid #ddd;vertical-align:top;font-size:12px">${esc(JSON.stringify(t.state_after))}</td>
+        <td style="padding:8px;border:1px solid #ddd;vertical-align:top;font-size:12px">${stateInline(t.state_after)}</td>
       </tr>`
     )
     .join('');
@@ -225,7 +278,7 @@ export function renderReportHtml(report) {
 <div style="max-width:900px;margin:auto;background:#fff;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden">
   <div style="background:#1f3a5f;color:#fff;padding:20px 28px">
     <h1 style="margin:0;font-size:22px">${esc(report.report_title)}</h1>
-    <p style="margin:6px 0 0;opacity:.85">${esc(report.scenario)} · Generated ${esc(report.generated_at)}</p>
+    <p style="margin:6px 0 0;opacity:.85">${esc(report.scenario !== report.report_title ? report.scenario : (report.scenario_id || report.scenario))} · Generated ${esc(fmtDate(report.generated_at))}</p>
   </div>
 
   <div style="padding:24px 28px">
@@ -274,7 +327,7 @@ export function renderReportHtml(report) {
         <tr><td style="padding:6px;border:1px solid #ddd;width:40%"><b>Scenario</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.scenario_title)} (${esc(proof.scenario_id)})</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Participants</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.participants)}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Moderator</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.moderator)}</td></tr>
-        <tr><td style="padding:6px;border:1px solid #ddd"><b>Date</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.date)}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Date</b></td><td style="padding:6px;border:1px solid #ddd">${esc(fmtDate(proof.date))}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Duration</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.duration)}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Turns played</b></td><td style="padding:6px;border:1px solid #ddd">${proof.turns}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Fate events</b></td><td style="padding:6px;border:1px solid #ddd">${proof.fate_events}</td></tr>
@@ -293,6 +346,8 @@ export function renderReportHtml(report) {
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Prompt tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.prompt_tokens}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Completion tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.completion_tokens}</td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Total tokens</b></td><td style="padding:6px;border:1px solid #ddd">${report.part3_usage.tokens.total_tokens}${report.part3_usage.tokens.estimated ? ' (partly estimated)' : ''}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Model</b></td><td style="padding:6px;border:1px solid #ddd">${esc(report.part3_usage.tokens.model || '—')}</td></tr>
+        <tr><td style="padding:6px;border:1px solid #ddd"><b>Indicative cost</b></td><td style="padding:6px;border:1px solid #ddd">$${(report.part3_usage.tokens.cost_usd ?? 0).toFixed(4)} <span style="color:#888;font-size:12px">(${esc(report.part3_usage.tokens.cost_basis || '')})</span></td></tr>
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Actions by player</b></td><td style="padding:6px;border:1px solid #ddd">${esc(Object.entries(report.part3_usage.actions_by_player || {}).map(([p, n]) => p + ': ' + n).join(', ') || 'Not attributed')}</td></tr>
       </tbody>
     </table>

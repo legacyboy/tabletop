@@ -603,11 +603,12 @@ function renderReport(report) {
   };
 
   add('Report', report.report_title);
-  add('Scenario', report.scenario);
+  add('Scenario', report.scenario && !report.report_title.includes(report.scenario) ? report.scenario : (report.scenario_id || undefined));
   add('Result', report.result === 'success' ? 'Success — goal achieved' : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
   add('Ending', report.ending || 'No end condition recorded');
   add('Turns', report.turns);
   add('Duration (min)', report.duration_minutes ?? '—');
+  add('Generated', report.generated_at ? new Date(report.generated_at).toLocaleString() : undefined);
   add('Final state', JSON.stringify(report.final_state, null, 2));
 
   // BDB-style debrief: which attack-chain stages the group contained and
@@ -625,13 +626,34 @@ function renderReport(report) {
     add('Final breach state', report.breach_state || '—');
   }
 
+  // Resource usage: token accounting + per-player attribution (matches the
+  // exported report's Part 3).
+  if (report.token_usage) {
+    const t = report.token_usage;
+    add('Resource usage',
+      `Model calls: ${t.model_calls}\n` +
+      `Prompt tokens: ${t.prompt_tokens}\n` +
+      `Completion tokens: ${t.completion_tokens}\n` +
+      `Total tokens: ${t.total_tokens}${t.estimated ? ' (partly estimated)' : ''}` +
+      (t.model ? `\nModel: ${t.model}` : '') +
+      (t.cost_usd !== undefined ? `\nIndicative cost: $${Number(t.cost_usd).toFixed(4)}` : ''));
+  }
+  if (report.actions_by_player && Object.keys(report.actions_by_player).length) {
+    add('Actions by player', Object.entries(report.actions_by_player).map(([p, n]) => `${p}: ${n}`).join(', '));
+  }
+
   report.log.forEach((e, i) => {
     const div = document.createElement('div');
     div.className = 'stateItem';
+    const who = e.player ? ` · ${escapeHtml(e.player)}` : '';
+    const isOpening = e.turn === 0 || e.action === '(opening scene)';
+    const title = isOpening ? 'Opening scene' : `Turn ${i + 1}`;
     div.innerHTML =
-      `<b>Turn ${i + 1}</b> (d20=${e.roll})<br><b>${escapeHtml(e.action)}</b><br>${escapeHtml(e.narrative)}` +
+      `<b>${title}</b> (d20=${e.roll === null || e.roll === undefined ? '—' : e.roll}${who})<br>` +
+      (!isOpening && e.action ? `<b>${escapeHtml(e.action)}</b><br>` : '') +
+      `${escapeHtml(e.narrative)}` +
       (e.fate ? `<br><i>Fate: ${escapeHtml(e.fate)}</i>` : '') +
-      `<br><small>State after: ${escapeHtml(JSON.stringify(e.state))}</small>`;
+      `<br><small>State after: ${escapeHtml(Object.entries(e.state || {}).map(([k, v]) => `${humanize(k)} ${v}`).join(' · '))}</small>`;
     el.reportBody.appendChild(div);
   });
 
@@ -643,6 +665,34 @@ function renderReport(report) {
     a.click();
     URL.revokeObjectURL(a.href);
   };
+
+  // Export a self-contained HTML report (the rendered DOM as it appears on
+  // screen). Works on static hosting (no server needed) so a facilitator can
+  // save or email a printable report.
+  const exportHtmlBtn = $('exportReportHtml');
+  if (exportHtmlBtn) {
+    exportHtmlBtn.onclick = () => {
+      const scen = report.scenario && !report.report_title.includes(report.scenario) ? ` — ${report.scenario}` : '';
+      const title = `${report.report_title}${scen}`;
+      const body = el.reportBody ? el.reportBody.innerHTML : '';
+      const html =
+        '<!doctype html><html><head><meta charset="utf-8">' +
+        `<title>${escapeHtml(title)}</title>` +
+        '<style>body{font-family:Segoe UI,Arial,sans-serif;color:#1a1a1a;line-height:1.5;margin:0;padding:24px;background:#f5f6f8}' +
+        '.stateItem{background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin:10px 0}' +
+        'small{color:#666}</style></head><body>' +
+        `<h1 style="color:#1f3a5f">${escapeHtml(title)}</h1>` +
+        body +
+        `<p style="color:#888;font-size:12px;margin-top:24px">Generated ${escapeHtml(new Date().toLocaleString())}</p>` +
+        '</body></html>';
+      const blob = new Blob([html], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `tabletop-report-${report.scenario_id || 'run'}.html`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+  }
 }
 
 function logLine(html) {

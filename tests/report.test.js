@@ -60,3 +60,48 @@ console.log('HTML has attack chain debrief:', html.includes('Attack chain debrie
 console.log('HTML shows contained stage:', html.includes('How they got in'));
 console.log('HTML shows missed stage:', html.includes('How it spread'));
 console.log('HTML shows breach state:', html.includes('active'));
+
+// ---- v2.1 additions: transcript, usage, player, readable state -----------
+let passed = 0, failed = 0;
+const ok = (name, cond) => { if (cond) passed++; else { failed++; console.log('  FAIL', name); } };
+
+// Player attribution + audit trail fields are surfaced.
+const s2 = JSON.parse(JSON.stringify(session));
+s2.history[0].player = 'Alice';
+s2.history[1].player = 'Bob';
+s2.history[0].dm_prompt = [{ role: 'system', content: 'SYS' }, { role: 'user', content: 'USER' }];
+s2.history[0].dm_reply = '{"narrative":"raw reply text"}';
+s2.tokenUsage = { prompt_tokens: 100, completion_tokens: 40, calls: 3, prompt_estimated: false, completion_estimated: false };
+const r2 = buildReport(s2, {});
+const h2 = renderReportHtml(r2);
+
+ok('part1_audit carries player', r2.part1_audit.turns[0].player === 'Alice');
+ok('part1b transcript exists', !!r2.part1b_transcript && r2.part1b_transcript.turns.length >= 1);
+ok('transcript exposes the prompt', !!r2.part1b_transcript.turns[0].dm_prompt);
+ok('transcript exposes the raw reply', r2.part1b_transcript.turns[0].dm_reply_raw.includes('raw reply text'));
+ok('part3 usage is present', !!r2.part3_usage);
+ok('part3 token totals computed', r2.part3_usage.tokens.total_tokens === 140);
+ok('part3 shows actions by player', r2.part3_usage.actions_by_player.Alice === 1 && r2.part3_usage.actions_by_player.Bob === 1);
+ok('part3 includes an indicative cost', typeof r2.part3_usage.tokens.cost_usd === 'number' && r2.part3_usage.tokens.cost_usd >= 0);
+ok('HTML shows the model line', h2.includes('Model'));
+ok('HTML shows indicative cost', /Indicative cost/.test(h2));
+
+ok('HTML has a Player column', /<th[^>]*>Player<\/th>/.test(h2));
+ok('HTML shows the player name', h2.includes('Alice'));
+ok('HTML shows the transcript heading', h2.includes('Full Transcript'));
+ok('HTML shows the raw DM reply block', h2.includes('dm reply (raw)'));
+ok('HTML shows Part 3 heading', h2.includes('Resource Usage'));
+ok('HTML shows the total token count', h2.includes('140'));
+ok('HTML shows per-player attribution', h2.includes('Alice: 1'));
+ok('HTML does NOT dump raw JSON for state', !h2.includes('{&quot;budget&quot;'));
+ok('HTML state is humanized inline', /Public Trust: <b>/.test(h2));
+ok('HTML date is human-readable (no raw ISO)', !/Generated 20\d\d-\d\d-\d\dT/.test(h2));
+
+// Graceful when no player was recorded at all.
+const s3 = JSON.parse(JSON.stringify(session));
+const r3 = buildReport(s3, {});
+ok('no-player session still builds', !!r3 && !!r3.part3_usage);
+ok('no-player actions_by_player is empty', Object.keys(r3.part3_usage.actions_by_player).length === 0);
+
+console.log(`report.test additions: ${passed} passed, ${failed} failed`);
+if (failed) process.exitCode = 1;
