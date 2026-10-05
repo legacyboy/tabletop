@@ -43,8 +43,13 @@ export class ServerProxyProvider {
       model: this.model,
       messages,
       temperature: opts.temperature ?? 0.8,
-      max_tokens: opts.maxTokens ?? 800,
+      max_tokens: opts.maxTokens ?? 8192,
     };
+    // Forward an explicit context window / output cap for Ollama-backed
+    // servers. The DM system prompt is large; without a raised num_ctx the
+    // server-side Ollama truncates replies mid-sentence.
+    if (opts.numCtx) body.num_ctx = opts.numCtx;
+    if (opts.maxTokens) body.num_predict = opts.maxTokens;
     // Only send an upstream base URL when the client actually set one; the
     // server otherwise uses its own OLLAMA_URL default.
     if (this.baseUrl) body.base_url = this.baseUrl;

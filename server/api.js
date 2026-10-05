@@ -51,6 +51,11 @@ const ENV = {
   baseUrl: process.env.OLLAMA_URL || 'http://localhost:11434/v1',
   apiKey: process.env.OLLAMA_API_KEY || '',
   model: process.env.MODEL || 'deepseek-v4-flash:cloud',
+  // Ollama context window. The DM system prompt is ~4-5k tokens, so the
+  // default 4096 truncates replies mid-sentence (and at 4096 the model can
+  // even return EMPTY content). 16384 gives the model room for the full
+  // prompt PLUS the JSON turn envelope with headroom.
+  numCtx: Number(process.env.NUM_CTX) || 16384,
 };
 
 /** Load the scenario registry. */
@@ -159,6 +164,7 @@ export async function handleApi(req, res, pathname, url) {
       const content = await provider.chat(body.messages, {
         temperature: body.temperature,
         maxTokens: body.max_tokens,
+        numCtx: body.num_ctx || ENV.numCtx,
       });
       return json(res, 200, { content });
     } catch (err) {

@@ -62,10 +62,58 @@ export class OpenAICompatibleProvider {
     return 'openai-compatible';
   }
 
+  /** True when the base URL points at an Ollama server (native API available). */
+  _isOllama() {
+    return /:(11434)(\/|$)/.test(this.baseUrl) || /ollama/i.test(this.baseUrl);
+  }
+
+  /**
+   * Ollama's OpenAI-compatible endpoint (/v1/chat/completions) IGNORES
+   * options.num_ctx and clips the prompt to the model's loaded context
+   * (default 4096). The DM system prompt is ~4-5k tokens, so that endpoint
+   * silently truncates the reply mid-sentence. Ollama's NATIVE endpoint
+   * (/api/chat) honours options.num_ctx, so we use it when the target is
+   * Ollama. 16384 is used by default: the system prompt (~4.3k) plus the
+   * JSON turn envelope needs headroom, and smaller windows (4096) make the
+   * model return EMPTY content while 8192 runs out of output budget
+   * (done_reason=length). Returns the model's text reply.
+   */
+  async _chatOllama(messages, opts = {}) {
+    const url = `${this.baseUrl.replace(/\/v1$/, '')}/api/chat`;
+    const options = {
+      temperature: opts.temperature ?? 0.8,
+      num_ctx: opts.numCtx || 16384,
+    };
+    if (opts.maxTokens) options.num_predict = opts.maxTokens;
+
+    let res;
+    try {
+      res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: this.model, messages, stream: false, options }),
+        signal: opts.signal,
+      });
+    } catch (err) {
+      if (err && (err.name === 'AbortError' || opts.signal?.aborted)) throw err;
+      throw new Error(`Could not reach Ollama at ${url} (${err?.message || 'network error'}).`);
+    }
+    if (!res.ok) {
+      throw new Error(`Model call failed (${res.status}): ${await errorDetail(res)}`);
+    }
+    const data = await res.json();
+    const text = data?.message?.content;
+    if (text === undefined) throw new Error('Model returned no content.');
+    return String(text).trim();
+  }
+
   /** @returns {Promise<string>} the model's text reply. */
   async chat(messages, opts = {}) {
     if (!this.baseUrl) throw new Error('OpenAI-compatible provider needs a base URL.');
     if (!this.model) throw new Error('OpenAI-compatible provider needs a model name.');
+
+    // Route Ollama to its native API so num_ctx is honoured (see _chatOllama).
+    if (this._isOllama()) return this._chatOllama(messages, opts);
 
     const url = `${this.baseUrl}/chat/completions`;
 
@@ -81,17 +129,21 @@ export class OpenAICompatibleProvider {
     const headers = { 'Content-Type': 'application/json' };
     if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`;
 
+    // Non-Ollama OpenAI-compatible servers ignore unknown fields, so sending
+    // max_tokens is safe. numCtx is Ollama-specific and handled above.
+    const body = {
+      model: this.model,
+      messages,
+      temperature: opts.temperature ?? 0.8,
+      max_tokens: opts.maxTokens ?? 8192,
+    };
+
     let res;
     try {
       res = await fetch(url, {
         method: 'POST',
         headers,
-        body: JSON.stringify({
-          model: this.model,
-          messages,
-          temperature: opts.temperature ?? 0.8,
-          max_tokens: opts.maxTokens ?? 800,
-        }),
+        body: JSON.stringify(body),
         signal: opts.signal,
       });
     } catch (err) {

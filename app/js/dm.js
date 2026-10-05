@@ -28,6 +28,27 @@
 const STATE_MIN = 0;
 const STATE_MAX = 100;
 
+// Token budgets for DM calls.
+//
+// These were raised after real truncation reports (Dan, 2026-10-05): replies
+// "started and stopped before the end of the paragraph". Root cause was the
+// output budget, not the model. A complete, well-formed turn (4-7 sentence
+// narrative + the strict-JSON envelope: state_delta, progress, reveal_stage,
+// contain_stage, beat, beat_quality) measures ~700-1300 generated tokens on
+// capable models, and reasoning models (e.g. glm-5.3) can burn thousands more
+// on internal chain-of-thought BEFORE the answer. At the old 1200/1500 caps the
+// model hit the ceiling mid-sentence and the app silently showed clipped prose
+// (recovered by _extractJson Strategy 4).
+//
+// SCENE_TOKENS: opening scene (narrative only) - smaller envelope.
+// TURN_TOKENS:  full turn - must fit thinking + narrative + JSON envelope.
+const SCENE_TOKENS = 4096;
+const TURN_TOKENS = 8192;
+// Ollama context window. The DM system prompt alone is ~4.3k tokens, so a
+// local model loaded at Ollama's default 4096 context silently clips the
+// prompt (and at 8192 runs out of output room). 16384 gives full headroom.
+const DM_NUM_CTX = 16384;
+
 // Hard cap on the TOTAL change to any single metric within one turn, across
 // ALL delta sources (fate twist + pre-compiled events + DM judgment). Without
 // this, a single turn could swing a metric by +30 (fate 10 + event 10 + DM 10)
@@ -364,7 +385,7 @@ export class DMSession {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { temperature: 0.8, maxTokens: 1200 }
+      { temperature: 0.8, maxTokens: SCENE_TOKENS, numCtx: DM_NUM_CTX }
     );
     const parsed = this._extractJson(dmResult);
     let narrative = parsed.narrative || dmResult;
@@ -410,7 +431,7 @@ export class DMSession {
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      { temperature: 0.8, maxTokens: 1500 }
+      { temperature: 0.8, maxTokens: TURN_TOKENS, numCtx: DM_NUM_CTX }
     );
 
     const parsed = this._extractJson(dmResult);
