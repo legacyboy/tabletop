@@ -86,16 +86,20 @@ try {
     const txt = panel ? panel.innerText : '';
     const hasArc = !!document.querySelector('#objectivePanel .arcList .arcStep');
     const activeStep = !!document.querySelector('#objectivePanel .arcStep.active');
-    const claimsNarrative = /resolv\w* the STORY|work through the arc/i.test(txt);
+    const claimsNarrative = /work\w* the arc to its end|reach the final step to win|resolv\w* the STORY/i.test(txt);
+    // Dan's design (2026-10-06): the panel must make clear containment is an
+    // ALTERNATIVE and not required — missing a stage must not read as a failure.
+    const saysContainmentOptional = /do NOT need to contain|alternative way|missing a stage/i.test(txt);
     // Guard: the panel must NOT present a numeric-threshold checklist.
     const leaksNumericGate = /≥\s*\d|\b(60|55|80|70)\b.*\b(win|target|achieve)\b/i.test(txt);
-    return { visible, txt, hasArc, activeStep, claimsNarrative, leaksNumericGate };
+    return { visible, txt, hasArc, activeStep, claimsNarrative, saysContainmentOptional, leaksNumericGate };
   });
 
   record('Objective panel is visible in the PLAY phase', probe.visible);
   record('Objective panel lists the story arc (beats)', probe.hasArc);
   record('Objective panel highlights the CURRENT step', probe.activeStep);
   record('Objective panel states the win is narrative', probe.claimsNarrative, probe.txt.slice(0, 60).replace(/\n/g, ' '));
+  record('Objective panel says containment is an alternative, not required', probe.saysContainmentOptional);
   record('Objective panel does NOT leak a numeric win-gate checklist', !probe.leaksNumericGate);
 
   // Take one turn and confirm the panel still renders (the arc marks keep the
