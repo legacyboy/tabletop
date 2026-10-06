@@ -112,6 +112,48 @@ try {
     return { visible: !!(panel && panel.style.display !== 'none'), steps: document.querySelectorAll('#objectivePanel .arcStep').length };
   });
   record('Objective panel persists through a played turn', after.visible && after.steps > 0, `${after.steps} steps`);
+
+  // ---- Story-arc hide/fuzz toggle (Dan, 2026-10-06) ---------------------
+  // The group may want to attempt the exercise cold. The toggle must fuzz the
+  // arc steps (not just delete them), keep the objective visible, and be
+  // reversible. While hidden, no step may reveal which one is current.
+  const toggleVisible = await page.evaluate(() => {
+    const b = document.getElementById('arcToggle');
+    return !!b && b.offsetParent !== null;
+  });
+  record('Story-arc hide toggle is offered in the PLAY phase', toggleVisible);
+
+  await page.evaluate(() => { const b = document.getElementById('arcToggle'); if (b) b.click(); });
+  await new Promise((r) => setTimeout(r, 300));
+  const hidden = await page.evaluate(() => {
+    const panel = document.getElementById('objectivePanel');
+    const steps = [...document.querySelectorAll('#objectivePanel .arcStep')];
+    const fuzzed = steps.filter((s) => s.classList.contains('fuzzed')).length;
+    const activeWhileHidden = document.querySelectorAll('#objectivePanel .arcStep.active').length;
+    const label = document.getElementById('arcToggle').textContent.trim();
+    return {
+      panelVisible: panel.style.display !== 'none',
+      steps: steps.length,
+      fuzzed,
+      activeWhileHidden,
+      label,
+      readsHidden: /hidden|reveal/i.test(label),
+      objectiveStillThere: /objective/i.test(panel.innerText),
+    };
+  });
+  record('Hiding the arc keeps the Objective panel visible', hidden.panelVisible && hidden.objectiveStillThere);
+  record('Hiding the arc fuzzes every step (keeps shape, hides text)', hidden.steps > 0 && hidden.fuzzed === hidden.steps, `${hidden.fuzzed}/${hidden.steps} fuzzed`);
+  record('Hiding the arc withholds the CURRENT step highlight (no position leak)', hidden.activeWhileHidden === 0);
+  record('Toggle label flips to a reveal affordance', hidden.readsHidden, hidden.label);
+
+  await page.evaluate(() => { const b = document.getElementById('arcToggle'); if (b) b.click(); });
+  await new Promise((r) => setTimeout(r, 300));
+  const revealed = await page.evaluate(() => ({
+    fuzzed: document.querySelectorAll('#objectivePanel .arcStep.fuzzed').length,
+    active: document.querySelectorAll('#objectivePanel .arcStep.active').length,
+    label: document.getElementById('arcToggle').textContent.trim(),
+  }));
+  record('Revealing the arc restores the normal steps + active marker', revealed.fuzzed === 0 && revealed.active === 1, revealed.label);
 } finally {
   await browser.close();
   mock.close();

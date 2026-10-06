@@ -41,6 +41,7 @@ button:hover { outline: 2px solid #4bd5ff; }
 button:disabled { opacity: 0.45; cursor: not-allowed; }
 button.primary { background: #1f6fb2; border-color: #4bd5ff66; }
 button.ghost { background: transparent; }
+button.small { font-size: 12px; padding: 5px 10px; border-radius: 8px; }
 button.danger { color: #ff6b6b; border-color: #ff6b6b66; }
 button.danger:hover { outline-color: #ff6b6b; }
 
@@ -184,6 +185,18 @@ video {
 .arcStep.active { color: #ffffff; font-weight: 600; }
 .arcStep.active .arcMark { color: #7ea2ff; }
 .arcStep.todo { color: #6b7690; }
+
+/* Fuzzed arc (Dan, 2026-10-06): the toggle hides the steps from the group so
+   they can attempt the exercise cold. Labels are blocked-out, not deleted, so
+   the panel keeps its shape; no highlight reveals which step is current. */
+.arcStep.fuzzed { color: #55607a; }
+.arcFuzz {
+  filter: blur(4px);
+  user-select: none;
+  cursor: default;
+  letter-spacing: .04em;
+}
+.objectivePanel.arcHidden .objLabel { color: #6b7690; }
 .objHint { font-size: 11px; color: #7f8aa3; line-height: 1.4; border-top: 1px solid #ffffff11; padding-top: 8px; }
 .objCollapse {
   font-size: 12px; line-height: 1.45; color: #ffd9a0;

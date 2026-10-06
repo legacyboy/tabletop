@@ -29,6 +29,7 @@ const state = {
   companyInfo: null,
   tabId: null, // unique per browser tab, for two-tab detection
   readOnly: false, // true when another tab owns the live session
+  arcHidden: false, // true = story arc is fuzzed in the Objective panel (Dan, 2026-10-06)
 };
 
 /** Bound DOM references set once after DOM ready. */
@@ -86,10 +87,14 @@ async function init() {
   // Cache DOM refs.
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
-   'narrative', 'stateList', 'flags', 'objectivePanel', 'timer', 'reportBody', 'exportReport',
+   'narrative', 'stateList', 'flags', 'objectivePanel', 'arcToggle', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
   ].forEach((id) => { el[id] = $(id); });
+
+  // Restore the arc's shown/hidden state (per tab). Lets a facilitator hide the
+  // arc before handing the screen to the group and have it stick across reloads.
+  try { state.arcHidden = sessionStorage.getItem('tabletop.dm.arcHidden.v1') === '1'; } catch {}
 
   // Settings navigation.
   $('settingsButton').onclick = () => setPhase('settings');
@@ -426,6 +431,16 @@ function bindRollFlow(scenario) {
       finish({ type: 'manual', result: 'ended', ending: 'The group decided to conclude the exercise.' });
     };
   }
+
+  // Toggle the story arc between shown and fuzzed. Persisted for the tab so a
+  // facilitator can hide it before handing the screen to the group.
+  if (el.arcToggle) {
+    el.arcToggle.onclick = () => {
+      state.arcHidden = !state.arcHidden;
+      try { sessionStorage.setItem('tabletop.dm.arcHidden.v1', state.arcHidden ? '1' : '0'); } catch {}
+      renderObjective();
+    };
+  }
 }
 
 async function resolveTurn(action, roll) {
@@ -490,7 +505,7 @@ async function resolveTurn(action, roll) {
 function renderObjective() {
   if (!el.objectivePanel) return;
   const session = state.session;
-  if (!session || !session.scenario) { el.objectivePanel.style.display = 'none'; return; }
+  if (!session || !session.scenario) { el.objectivePanel.style.display = 'none'; if (el.arcToggle) el.arcToggle.style.display = 'none'; return; }
   const scenario = session.scenario;
   const goal = scenario.goal || {};
   const beats = session.beats || [];
@@ -504,19 +519,32 @@ function renderObjective() {
   // current step as active. This is the player-facing "win condition": work
   // through the arc LINEARLY to the end. Containing the threat is an
   // alternative resolution, not an extra requirement.
+  //
+  // Dan's ask (2026-10-06): the group may want to try the exercise cold, without
+  // the arc spelled out. So the toggle below FUZZES the arc (steps blurred, the
+  // active marker withheld) rather than deleting it: the objective stays visible,
+  // the shape of the panel is unchanged, and nobody can accidentally read ahead.
   let arc = '';
   if (beats.length) {
+    const fuzzed = !!state.arcHidden;
     const items = beats.map((b, i) => {
-      const cls = i < idx ? 'done' : i === idx ? 'active' : 'todo';
-      const mark = i < idx ? '✓' : i === idx ? '▸' : '·';
-      return `<li class="arcStep ${cls}"><span class="arcMark">${mark}</span> ${escapeHtml(b.name || b.id)}</li>`;
+      // When fuzzed, do NOT reveal which step is active/done — every step reads
+      // the same so the group can't infer their position from the highlight.
+      const cls = fuzzed ? 'todo' : (i < idx ? 'done' : i === idx ? 'active' : 'todo');
+      const mark = fuzzed ? '·' : (i < idx ? '✓' : i === idx ? '▸' : '·');
+      const label = fuzzed
+        ? `<span class="arcFuzz" aria-label="hidden step">${escapeHtml(fuzzText(b.name || b.id))}</span>`
+        : escapeHtml(b.name || b.id);
+      return `<li class="arcStep ${cls} ${fuzzed ? 'fuzzed' : ''}" aria-hidden="${fuzzed ? 'true' : 'false'}"><span class="arcMark">${mark}</span> ${label}</li>`;
     }).join('');
     arc =
       `<div class="objLabel">The story arc — reach the final step to win</div>` +
       `<ol class="arcList">${items}</ol>`;
   }
 
-  const hint = `<div class="objHint">Win by working the arc to its end — the steps go in order, one after another. Containing the whole threat is an alternative way to close it out, but you do NOT need to contain everything: missing a stage just makes the ending read as costlier. The metrics are texture; they never gate the win.</div>`;
+  const hint = state.arcHidden
+    ? `<div class="objHint">Arc hidden — run the exercise cold and find your own way through. Reveal it any time with the button below.</div>`
+    : `<div class="objHint">Win by working the arc to its end — the steps go in order, one after another. Containing the whole threat is an alternative way to close it out, but you do NOT need to contain everything: missing a stage just makes the ending read as costlier. The metrics are texture; they never gate the win.</div>`;
 
   // Collapse pressure banner: the situation is critical but the story is STILL
   // playable — make that explicit so nobody reads a red metric as "game over".
@@ -525,8 +553,29 @@ function renderObjective() {
     : '';
 
   el.objectivePanel.style.display = '';
+  el.objectivePanel.classList.toggle('arcHidden', !!state.arcHidden);
   el.objectivePanel.innerHTML =
     `<div class="objTitle">Objective</div>` + desc + arc + collapseBanner + hint;
+
+  syncArcToggle();
+}
+
+// Fuzz a beat label: keep the character count and word breaks so the layout is
+// identical, but replace the letters (per-word, stable per string) with block
+// characters. Deterministic so re-renders don't visually shimmer.
+function fuzzText(s) {
+  const str = String(s || '');
+  return str.replace(/[^\s]/g, (ch, i) => FUZZ_CHARS[(str.charCodeAt(i) + ch.charCodeAt(0)) % FUZZ_CHARS.length]);
+}
+const FUZZ_CHARS = ['░', '▒', '▓', '█'];
+
+// Show/hide the arc toggle and keep its label + aria state in sync.
+function syncArcToggle() {
+  if (!el.arcToggle) return;
+  const hasBeats = !!(state.session && state.session.beats && state.session.beats.length);
+  el.arcToggle.style.display = hasBeats ? '' : 'none';
+  el.arcToggle.textContent = state.arcHidden ? 'Reveal story arc' : 'Hide story arc';
+  el.arcToggle.setAttribute('aria-pressed', state.arcHidden ? 'true' : 'false');
 }
 
 function renderState() {
