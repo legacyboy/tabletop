@@ -12,6 +12,7 @@
       { "stat": "eradication", "operator": "gte", "value": 70 },
       { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
+    "win_conditions_note": "Advisory only. The exercise is won by resolving the STORY (the final beat reached, or the attack chain fully contained), NOT by these numeric thresholds. They colour how costly the win reads; they never gate it.",
     "ending": "Crisis resolved: the AI's failures are understood and owned, the system is fixed or responsibly retired, affected members are made whole, governance is rebuilt, and the story becomes a case study in handling AI failure the right way. The exercise concludes."
   },
 

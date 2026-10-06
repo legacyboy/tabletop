@@ -162,6 +162,30 @@ video {
 .lightDot.yellow { background: #f5c542; box-shadow: 0 0 8px #f5c54288; }
 .lightDot.red { background: #ff6b6b; box-shadow: 0 0 8px #ff6b6b88; }
 
+/* ---- Objective panel (story win, not a score gate) ---- */
+.objectivePanel {
+  background: linear-gradient(180deg, #101a30, #0d1424);
+  border: 1px solid #3b6fe055;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 4px 0 12px;
+}
+.objTitle {
+  font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: #7ea2ff; margin-bottom: 6px;
+}
+.objDesc { font-size: 13px; color: #dfe9ff; line-height: 1.45; margin-bottom: 10px; }
+.objLabel { font-size: 11px; color: #8a95ab; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+.arcList { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.arcStep { font-size: 13px; display: flex; align-items: baseline; gap: 8px; color: #8a95ab; }
+.arcMark { width: 14px; flex: 0 0 auto; text-align: center; font-weight: 700; }
+.arcStep.done { color: #9fb4d8; }
+.arcStep.done .arcMark { color: #34d17b; }
+.arcStep.active { color: #ffffff; font-weight: 600; }
+.arcStep.active .arcMark { color: #7ea2ff; }
+.arcStep.todo { color: #6b7690; }
+.objHint { font-size: 11px; color: #7f8aa3; line-height: 1.4; border-top: 1px solid #ffffff11; padding-top: 8px; }
+
 #log { max-height: 240px; overflow-y: auto; }
 .logItem { font-size: 13px; padding: 8px 10px; margin: 5px 0; }
 

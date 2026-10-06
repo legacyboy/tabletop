@@ -17,6 +17,9 @@ class MockProvider {
     // Optional: force reveal/contain stage ids.
     this.reveal = opts.reveal;
     this.contain = opts.contain;
+    // Optional: force the DM's beat transition (advance the story arc).
+    this.beat = opts.beat;
+    this.beatQuality = opts.beat_quality;
   }
   async chat(messages, opts = {}) {
     const userMsg = messages[messages.length - 1].content;
@@ -29,12 +32,22 @@ class MockProvider {
     if (this.progress !== undefined) reply.progress = this.progress;
     if (this.reveal) reply.reveal_stage = this.reveal;
     if (this.contain) reply.contain_stage = this.contain;
+    if (this.beat) reply.beat = this.beat;
+    if (this.beatQuality) reply.beat_quality = this.beatQuality;
     return JSON.stringify(reply);
   }
 }
 
 let passed = 0, failed = 0;
 const check = (name, cond) => { if (cond) { passed++; console.log('  PASS', name); } else { failed++; console.log('  FAIL', name); } };
+
+// Story-win model (Dan's design 2026-10-05): the numeric win_conditions are
+// ADVISORY only \u2014 they must be explicitly marked as such so nobody mistakes
+// them for a pass/fail gate again.
+check('goal win_conditions are marked advisory (not a gate)',
+  typeof scenario.goal.win_conditions_note === 'string' && /advisory/i.test(scenario.goal.win_conditions_note));
+check('goal defines a story ending (used when the arc resolves)',
+  typeof scenario.goal.ending === 'string' && scenario.goal.ending.length > 0);
 
 // 1. Basic turn resolves and updates state
 const s1 = new DMSession(new MockProvider(), scenario);
@@ -91,39 +104,72 @@ s4R.state.regulator_confidence = 55;          // regulator recovers: collapse br
 const r4Rb = await s4R.takeTurn('Act', 10);   // streak reset
 check('recovery of one confidence metric prevents the loss', !r4Rb.endCondition);
 
-// 4d. Goal (win condition): when all goal thresholds are met simultaneously,
-//     the scenario ends successfully.
-const goalScenario = {
+// 4d. STORY WIN (Dan's design 2026-10-05): the win is narrative, NOT a score
+//     gate. The session ends successfully when the story arc resolves — the
+//     final beat is reached, or the attack chain is fully contained. Reaching
+//     the numeric thresholds is NOT required.
+const storyWinScenario = {
   ...scenario,
   goal: {
     ending: 'Crisis resolved.',
+    // Advisory only: these colour the win, they do NOT gate it.
     win_conditions: [
       { stat: 'public_trust', operator: 'gte', value: 60 },
       { stat: 'containment', operator: 'gte', value: 80 },
     ],
   },
+  beats: [
+    { id: 'b1', name: 'Step 1' },
+    { id: 'b2', name: 'Step 2' },
+  ],
 };
-const s4d = new DMSession(new MockProvider(), goalScenario);
+
+// 4d-i. Reaching the FINAL beat wins by story, even with ragged metrics.
+const s4d = new DMSession(new MockProvider({ beat: 'b2' }), storyWinScenario);
 let goalEnd = null;
 for (let i = 0; i < 5 && !goalEnd; i++) {
-  s4d.state.public_trust = 70;     // above 60
-  s4d.state.containment = 80;     // at/above 80
-  const res = await s4d.takeTurn('Stabilize and reassure', 20);
+  // Deliberately BAD metrics: the old gate would refuse the win.
+  s4d.state.public_trust = 30;
+  s4d.state.containment = 25;
+  const res = await s4d.takeTurn('Resolve the crisis', 20);
   if (res.endCondition) goalEnd = res.endCondition;
 }
-check('goal fires when all win conditions met', goalEnd && goalEnd.result === 'success');
-check('goal ending shown', goalEnd && goalEnd.ending === 'Crisis resolved.');
+check('story win fires when the final beat is reached (metrics do NOT gate)', goalEnd && goalEnd.result === 'success');
+check('story win is labelled as a story win', goalEnd && goalEnd.success_kind === 'story');
+check('story win ending shown', goalEnd && goalEnd.ending === 'Crisis resolved.');
 
-// 4e. Goal does NOT fire when only SOME thresholds are met.
-const s4e = new DMSession(new MockProvider(), goalScenario);
+// 4d-ii. Fully containing the attack chain also wins by story, no thresholds.
+const chainScenario = {
+  ...scenario,
+  goal: { ending: 'Threat neutralised.' },
+  attack_chain: [
+    { id: 's1', name: 'Hook', symptom: 'probe' },
+    { id: 's2', name: 'Spread', symptom: 'wave' },
+  ],
+};
+const s4d2 = new DMSession(new MockProvider({ contain_stage: 's1' }), chainScenario);
+let chainEnd = null;
+for (let i = 0; i < 5 && !chainEnd; i++) {
+  s4d2.state.public_trust = 10;   // bad metrics must not block the story win
+  const res = await s4d2.takeTurn('Contain the threat', 20);
+  // Second stage gets contained on the next pass via the mock's fixed id.
+  if (res.endCondition) chainEnd = res.endCondition;
+  else s4d2.attackChain.forEach((s) => { s.contained = true; s.revealed = true; });
+}
+check('story win fires on full attack-chain containment (metrics do NOT gate)', chainEnd && chainEnd.result === 'success' && chainEnd.success_kind === 'story');
+
+// 4e. The metrics are ADVISORY: a story win with ragged numbers is still a win
+//     (it just reads as more costly). It must NEVER be blocked by low metrics.
+const s4e = new DMSession(new MockProvider({ beat: 'b2' }), storyWinScenario);
 let goalEarly = null;
 for (let i = 0; i < 5 && !goalEarly; i++) {
-  s4e.state.public_trust = 75;      // above 60
-  s4e.state.containment = 30;      // below 80 -> goal NOT met
-  const res = await s4e.takeTurn('Stabilize and reassure', 20);
+  s4e.state.public_trust = 5;      // far below the old 60 threshold
+  s4e.state.containment = 5;      // far below the old 80 threshold
+  const res = await s4e.takeTurn('Resolve the crisis', 20);
   if (res.endCondition) goalEarly = res.endCondition;
 }
-check('goal does NOT fire when thresholds not all met', !goalEarly);
+check('low metrics do NOT block the story win', !!goalEarly && goalEarly.result === 'success');
+check('story win reports a win-quality tier', !!goalEarly && typeof goalEarly.win_quality === 'string');
 
 // 5. Timeout end condition
 const timeout = s4.timeoutEnd();
@@ -401,24 +447,24 @@ const s22 = new DMSession(new CapturingProvider(), scenario);
 await s22.takeTurn('Act normally', 10);
 check('no adjusted-roll line when no modifier', !s22.provider.lastUser.includes('adjusted roll'));
 
-// ===== NEW: no-goal mode (executive "deal with the fallout" exercise) =====
-// 27. A scenario with NO goal and an attack_chain must NOT auto-win when all
-//     stages are contained. It runs to timeout or a manual end instead; the
-//     report is the debrief. (IT/BDB scenarios define a goal and DO win on
-//     containment; executive scenarios without a goal do not.)
+// ===== no-goal mode (executive "deal with the fallout" exercise) =====
+// 27. Under the STORY-WIN model (Dan's design 2026-10-05), containing the full
+//     attack chain resolves the story and WINS — the goal object is optional.
+//     A scenario with no `goal` still wins on full containment; the `goal` only
+//     supplies the ending text (with a generic fallback when absent).
 const noGoalScenario = {
   ...scenario,
-  goal: undefined,  // no win condition
+  goal: undefined,  // no goal object at all
 };
 const s23 = new DMSession(new MockProvider({ reveal: 'hook', contain: 'hook' }), noGoalScenario);
-// Contain all stages across turns; track whether an end condition ever fires.
 let ended23 = null;
 for (const stage of noGoalScenario.attack_chain) {
   s23.provider = new MockProvider({ reveal: stage.id, contain: stage.id });
   const res = await s23.takeTurn('Contain ' + stage.id, 15);
   if (res.endCondition) { ended23 = res.endCondition; break; }
 }
-check('no-goal scenario does NOT auto-win on full containment', s23.attackChain.every((s) => s.contained) && !ended23);
+check('no-goal scenario WINS by story once the chain is fully contained', s23.attackChain.every((s) => s.contained) && !!ended23 && ended23.result === 'success');
+check('no-goal story win still carries a fallback ending', !!ended23 && typeof ended23.ending === 'string' && ended23.ending.length > 0);
 
 // 28. A no-goal scenario still ends on the NARRATIVE COLLAPSE (loss) — the
 //     collapse is a story conclusion, not a win condition, so it applies with

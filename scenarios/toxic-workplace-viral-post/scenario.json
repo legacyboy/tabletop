@@ -12,6 +12,7 @@
       { "stat": "eradication", "operator": "gte", "value": 70 },
       { "stat": "recovery", "operator": "gte", "value": 60 }
     ],
+    "win_conditions_note": "Advisory only. The exercise is won by resolving the STORY (the final beat reached, or the attack chain fully contained), NOT by these numeric thresholds. They colour how costly the win reads; they never gate it.",
     "ending": "Crisis resolved: the story is defused, the credible concerns are owned and being fixed, members and staff feel heard, and the board and regulator are confident in the response. The exercise concludes."
   },
 

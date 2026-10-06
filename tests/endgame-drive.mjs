@@ -4,7 +4,9 @@
  * Every other live test stops after N turns. This one drives a session all the
  * way to each of the three terminal states and asserts the ending + report:
  *
- *   WIN      — all goal win_conditions met  -> endCondition.type='goal', result='success'
+ *   WIN      — the STORY resolves (final beat reached, or attack chain fully
+ *              contained) -> endCondition.type='goal', result='success'
+ *              (metrics are advisory and do NOT gate the win)
  *   LOSS     — narrative collapse (loss stats in the failure zone N turns) -> result='loss'
  *   TIMEOUT  — the timer expires -> type='timeout'
  *
@@ -30,9 +32,12 @@ const results = [];
 const record = (n, ok, d = '') => { results.push({ n, ok, d }); console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${n}${d ? '  [' + d + ']' : ''}`); };
 
 /**
- * Programmable provider. `plan` is a function(turnIndex) -> object of state
- * deltas the fake DM "wants". The provider returns strict DM JSON whose
- * `state_delta` is that object, so we control the arc precisely.
+ * Programmable provider. `plan` is a function(turnIndex) -> object the fake DM
+ * "wants". It may return either:
+ *   - a plain state-delta object ({ public_trust: 5, ... }), OR
+ *   - a structured object { delta, contain, reveal, beat, quality } to also
+ *     drive the story arc (contain/reveal a chain stage, advance a beat).
+ * The provider returns strict DM JSON so we control the arc precisely.
  */
 function makeProgrammable(plan) {
   let calls = 0;
@@ -47,12 +52,22 @@ function makeProgrammable(plan) {
       // The opening consumed idx 0; the first real turn is idx 1, so expose a
       // 0-based turn index to the plan.
       const turnIdx = idx - 1;
-      const delta = plan(turnIdx) || {};
-      return JSON.stringify({
+      const raw = plan(turnIdx) || {};
+      // Support both a plain delta object and a structured { delta, contain, ... }.
+      const structured = 'delta' in raw || 'contain' in raw || 'reveal' in raw || 'beat' in raw;
+      const delta = structured ? (raw.delta || {}) : raw;
+      const reply = {
         narrative: 'The team executes. ' + 'Pressure shifts across the crisis. '.repeat(2),
         state_delta: delta,
         beat_judgment: { quality: 'good' },
-      });
+      };
+      if (structured) {
+        if (raw.contain) reply.contain_stage = raw.contain;
+        if (raw.reveal) reply.reveal_stage = raw.reveal;
+        if (raw.beat) reply.beat = raw.beat;
+        if (raw.quality) reply.beat_quality = raw.quality;
+      }
+      return JSON.stringify(reply);
     },
   };
 }
@@ -74,21 +89,48 @@ async function drive(provider, { turns = 12 } = {}) {
 
 console.log(`\n############ ENDGAME DRIVE — ${SCENARIO_ID} ############\n`);
 
-// ---- WIN: push every win_condition above threshold -------------------------
+// ---- WIN: resolve the STORY (contain the full attack chain) ----------------
+// Under the story-win model (Dan's design 2026-10-05) the numeric thresholds do
+// NOT gate victory; the win is narrative. We drive the chain to full containment
+// and assert it resolves as a success, then separately prove the metrics are
+// only advisory.
 const scen = loadScenario();
 const goal = scen.goal;
-record('scenario has a goal with win_conditions', !!(goal && goal.win_conditions && goal.win_conditions.length), `${goal ? goal.win_conditions.length : 0} conds`);
-if (goal && goal.win_conditions.length) {
-  const winDelta = {};
-  for (const c of goal.win_conditions) {
-    // overshoot: gte 65 -> +15/turn (the per-turn cap), lte 20 -> -15/turn
-    winDelta[c.stat] = c.operator === 'gte' ? 15 : -15;
-  }
-  const { end: winEnd } = await drive(makeProgrammable(() => winDelta));
-  record('WIN reached', !!winEnd && winEnd.type === 'goal' && winEnd.result === 'success', winEnd ? `${winEnd.type}/${winEnd.result}` : 'no end');
-  if (winEnd) {
-    record('win ending is the authored goal ending', winEnd.ending === goal.ending, String(winEnd.ending).slice(0, 50));
-  }
+record('scenario defines a story arc (beats) or an attack chain',
+  (Array.isArray(scen.beats) && scen.beats.length > 0) || (Array.isArray(scen.attack_chain) && scen.attack_chain.length > 0),
+  `beats=${scen.beats ? scen.beats.length : 0} chain=${scen.attack_chain ? scen.attack_chain.length : 0}`);
+
+// Drive the attack chain to full containment (a story win). The programmable
+// provider marks the next uncontained stage each turn and keeps metrics ragged
+// on purpose, to prove the win is NOT gated by the numbers.
+if (Array.isArray(scen.attack_chain) && scen.attack_chain.length) {
+  const stages = scen.attack_chain.map((s) => s.id);
+  const chainProvider = makeProgrammable((turnIdx) => {
+    const id = stages[Math.min(turnIdx, stages.length - 1)];
+    // Ragged metrics: everything low, to prove they do not gate the win.
+    const delta = { public_trust: -3, regulator_confidence: -3 };
+    return { delta, contain: id };
+  }, { containFromPlan: true });
+  const { end: winEnd } = await drive(chainProvider, { turns: 6 });
+  record('WIN reached by STORY (full attack-chain containment)',
+    !!winEnd && winEnd.type === 'goal' && winEnd.result === 'success' && winEnd.success_kind === 'story',
+    winEnd ? `${winEnd.type}/${winEnd.result}/${winEnd.success_kind || '-'}` : 'no end');
+  record('win carries a quality tier + summary (advisory, non-gating)',
+    !!winEnd && typeof winEnd.win_quality === 'string' && typeof winEnd.win_summary === 'string',
+    winEnd ? `${winEnd.win_quality}: ${String(winEnd.win_summary).slice(0, 40)}` : '-');
+}
+
+// ---- ADVISORY METRICS: a story win with terrible metrics is still a win ----
+if (Array.isArray(scen.beats) && scen.beats.length) {
+  const lastBeat = scen.beats[scen.beats.length - 1].id;
+  const beatProvider = makeProgrammable(() => ({
+    delta: { public_trust: -15, regulator_confidence: -15 },
+    beat: lastBeat,
+  }), { beatFromPlan: true });
+  const { end: advEnd } = await drive(beatProvider, { turns: 4 });
+  record('metrics do NOT gate the win: low numbers still resolve as success',
+    !!advEnd && advEnd.result === 'success',
+    advEnd ? `${advEnd.result} (quality=${advEnd.win_quality || '-'})` : 'no end');
 }
 
 // ---- LOSS: narrative collapse ----------------------------------------------
@@ -121,13 +163,18 @@ const consec = (lossCond && lossCond.consecutive) || 2;
 
 // ---- Report survives a real ending -----------------------------------------
 {
-  const winProvider = makeProgrammable(() => Object.fromEntries(goal.win_conditions.map((c) => [c.stat, c.operator === 'gte' ? 15 : -15])));
-  const { s, end } = await drive(winProvider);
+  // Reach a story WIN by containing the full attack chain (metrics ragged).
+  const stages = (scen.attack_chain || []).map((s) => s.id);
+  const winProvider = makeProgrammable((turnIdx) => ({
+    delta: { public_trust: -2, regulator_confidence: -2 },
+    contain: stages[Math.min(turnIdx, stages.length - 1)],
+  }));
+  const { s, end } = await drive(winProvider, { turns: 6 });
   if (end) {
     const report = buildReport(s, { ending: end });
     const html = renderReportHtml(report);
     record('report builds on a WIN ending', !!report && !!report.part1_audit);
-    record('report end condition recorded', !!report.part2_proof.end_condition, typeof report.part2_proof.end_condition === 'object' ? `${report.part2_proof.end_condition.type}/${report.part2_proof.end_condition.result}` : String(report.part2_proof.end_condition));
+    record('report records a story win outcome', !!report.part2_proof.result && report.part2_proof.success_kind === 'story', `${report.part2_proof.result}/${report.part2_proof.success_kind}`);
     record('HTML renders the ending', html.length > 5000 && /Proof of Play/.test(html));
   } else {
     record('report builds on a WIN ending', false, 'no win end produced');

@@ -14,12 +14,20 @@
  *      update.
  *   4. State changes are clamped to [0,100]. End conditions are checked.
  *
- * End conditions: the session ends on the goal (win) being met, the timeout
- * firing, a manual end, or the NARRATIVE COLLAPSE (loss): when the scenario's
- * stat loss conditions (public_trust AND regulator_confidence both critically
- * low, by default) hold for consecutive turns, the story has collapsed and the
- * session concludes as a narrated loss. A single bad stat does NOT end the
- * game — no instant loss on one metric hitting a threshold (Dan's design).
+ * End conditions: the session ends on a STORY WIN — the narrative arc resolves
+ * (the final story beat is reached, or the attack chain is fully contained) —
+ * the timeout firing, a manual end, or the NARRATIVE COLLAPSE (loss): when the
+ * scenario's stat loss conditions (public_trust AND regulator_confidence both
+ * critically low, by default) hold for consecutive turns, the story has
+ * collapsed and the session concludes as a narrated loss. A single bad stat
+ * does NOT end the game — no instant loss on one metric hitting a threshold
+ * (Dan's design).
+ *
+ * NOTE on scoring (Dan's design, 2026-10-05): the numeric metrics are advisory
+ * texture, NOT a win gate. A five-stat threshold AND-gate is brittle and turns
+ * a story exercise into stat-grinding, so the win is narrative (see
+ * _checkEnd / _winQuality). Metrics only colour how glorious versus how costly
+ * the resolution reads.
  *
  * The DM is explicitly instructed NOT to propose actions or lead the group —
  * it only reacts to what the group actually typed.
@@ -161,10 +169,10 @@ function buildSystemPrompt(scenario, opts = {}) {
         '## RANDOM MODE — GENERATE THE SCENARIO',
         'No pre-authored scenario is provided. You must generate an appropriate executive tabletop scenario on the fly.',
         'Choose a realistic executive scenario type (security incident, reputation/misinformation crisis, operational or financial disruption, regulatory matter, etc.).',
-        'Invent: the opening scene (what the group observes), the stakes, the key actors, the tracked metrics and their opening values, the goal, and a hidden attack chain of 3-5 stages.',
+        'Invent: the opening scene (what the group observes), the stakes, the key actors, the tracked metrics and their opening values, the goal, an ordered 3-step story arc (beats), and a hidden attack chain of 3-5 stages.',
         'Keep it EXECUTIVE-FOCUSED: describe the attack in plain language (e.g. "How they got in", "How it spread", "What they took") \u2014 NOT technical MITRE jargon.',
         'Use the BDB-style metric set where appropriate: budget, public_trust, regulator_confidence, security_posture, containment, eradication, recovery.',,
-        'The win condition is to contain all attack-chain stages and restore the response metrics.',
+        'The WIN is a STORY win, not a score gate: the exercise resolves when the group works through the final beat of the arc OR contains every attack-chain stage (whichever fits). The metrics are texture that colours how costly the win reads \u2014 they do NOT gate victory. Invent a goal whose `ending` describes that story resolution.',
         'Start the session by narrating the opening scene you invented, then adjudicate the group\u2019s actions against it.',
       ].join('\n')
     : '';
@@ -203,6 +211,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- Do NOT max out or zero out metrics. Keep values in a believable mid-range so a 60-minute session has room to escalate and recover.',
     '- Only change metrics that the action genuinely affects; leave the rest unchanged.',
     '- A GOOD action on a GOOD roll (roughly 12+) should STABILIZE or IMPROVE the relevant metrics, not punish them. Do not keep dropping public_trust or other metrics every turn even when the group acts sensibly. When the group does the right things (clear statement, takedown, regulator package, member outreach), public_trust and regulator_confidence should RECOVER — not keep sliding. Trust should not decline monotonically turn after turn on competent play; give the group visible recovery so the session is winnable.',
+    '- The metrics are NARRATIVE TEXTURE, not a scoreboard. They colour how the story reads (a clean win versus a costly one) and how the world reacts. They are NOT a pass/fail gate — a session is won by resolving the STORY (see THE WIN CONDITION below), not by pushing numbers over a line.',
     '- A bad roll (roughly 1-5) is where real damage happens. Reserve large negative deltas for genuinely bad outcomes, not for competent actions.',
     '- The session should be winnable: the group must be able to recover. Do not make it a foregone loss by turn 4-5.',
     '- The complete response arc is CONTAIN \u2192 ERADICATE \u2192 RECOVER. A group that only does public relations and containment but never eradicates the root cause or restores operations should keep struggling — the story keeps biting, the regulator stays unsatisfied — until it closes out the full arc. Reflect this in outcomes: eradication and recovery efforts should be rewarded when the group attempts them.',
@@ -212,7 +221,14 @@ function buildSystemPrompt(scenario, opts = {}) {
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
     'Your job is to REVEAL a stage when the group\u2019s investigation plausibly uncovers it, and mark it CONTAINED when the group neutralizes it.',
     'The current chain state is fed to you each turn. Reveal stages gradually as the group investigates \u2014 do not dump the whole chain at once.',
-    'The win condition is to contain ALL stages. The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten.',
+    'The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten. Containing EVERY stage is one way the story reaches its resolution.',
+    '',
+    '## THE WIN CONDITION (a story win, not a score gate)',
+    'The exercise is WON by resolving the STORY, not by reaching a numeric score. Concretely, the story resolves when EITHER:',
+    '  (a) the group works through the final story BEAT \u2014 the arc plays out to its conclusion; OR',
+    '  (b) every stage of the ATTACK CHAIN is contained (the threat is fully neutralized),',
+    'whichever the scenario leans on. Drive toward one of those, within the turn budget.',
+    'Do NOT hold the win hostage to the metrics. A group that resolves the story with ragged numbers still WINS \u2014 it just reads as a costlier, harder-won victory. A group that grinds the numbers up without resolving the story has NOT won; the story keeps biting.',
     '',
     '## ROLL MODIFIERS (defender capabilities)',
     'The group may spend budget to "play" a defender capability (e.g. activate a monitoring playbook, escalate to the board, issue a public statement).',
@@ -232,10 +248,10 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## SESSION LENGTH (sub-60 minutes)',
     'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution within that budget:',
-    '- Drive the story toward the win (goal met) or the narrative loss within roughly 6-8 turns. Do not stretch the conflict out or add filler beats that drag the session past the hour.',
+    '- Drive the story toward its RESOLUTION within roughly 6-8 turns \u2014 either the final beat reached or the attack chain fully contained \u2014 or toward the narrative collapse loss. Do not stretch the conflict out or add filler beats that drag the session past the hour.',
     '- Let a decisive, competent action resolve more than one thing at once (e.g. one strong turn can contain a stage AND recover trust AND move to the next beat). Prefer meaningful forward progress over prolonging a beat.',
     '- Keep each turn’s action dense: address multiple coordinated moves so the group settles things faster rather than one narrow action per turn.',
-    '- If the group resolves the goal early, the session ends then — do not invent extra conflict to fill time.',
+    '- If the group resolves the story early, the session ends then — do not invent extra conflict to fill time.',
     '',
     'Your reply must be STRICT JSON with exactly these fields:',
     '{"narrative": "<what happened, 2-7 sentences, ending on the next development that presses the group>", "state_delta": {"<metric>": <integer change>, ...}, "progress": true|false, "reveal_stage": "<stage id>|null", "contain_stage": "<stage id>|null", "beat": "<next beat id>|null", "beat_quality": "good|mixed|poor|\"\""}',
@@ -761,33 +777,37 @@ export class DMSession {
     // `consecutive` turns in a row, the story has collapsed and the session
     // ends as a narrated LOSS (see _checkNarrativeLoss below).
 
-    // Goal (win condition): all goal thresholds met simultaneously -> the
-    // group has achieved the objective, so the scenario ends successfully.
+    // WIN = a STORY win, not a score gate (Dan's design: the numeric metrics
+    // are advisory texture, never a pass/fail threshold — a five-stat AND-gate
+    // is brittle and turns a story exercise into stat-grinding). The exercise
+    // is won when the narrative arc resolves:
+    //   1. The final story beat is reached (the arc plays out), OR
+    //   2. The attack chain is fully contained (every stage neutralized),
+    // whichever the scenario uses. Either is a genuine story conclusion.
+    // The metrics do NOT gate the win; they only colour how GLORIOUS vs HOW
+    // COSTLY the resolution reads (see _winQuality).
     const goal = this.scenario.goal;
-    if (goal && Array.isArray(goal.win_conditions) && goal.win_conditions.length) {
-      const allMet = goal.win_conditions.every((c) => {
-        const v = this.state[c.stat];
-        if (c.operator === 'lte') return v <= c.value;
-        if (c.operator === 'gte') return v >= c.value;
-        return false;
-      });
-      if (allMet) return { type: 'goal', result: 'success', ending: goal.ending, ...goal };
-    }
+    const hasGoal = !!goal;
 
-    // Attack-chain win: if the scenario defines an attack_chain AND an explicit
-    // goal, containing ALL stages is a success even if the numeric thresholds
-    // are not all met yet (BDB-style "contain all stages" win). This only
-    // fires when the scenario opts into a goal. A scenario with NO goal (e.g.
-    // an executive "deal with the fallout" exercise) must NOT auto-win on
-    // containment — it runs to timeout or a lose condition, and the report is
-    // the debrief.
-    if (goal && this.attackChain.length && this.attackChain.every((s) => s.contained)) {
+    const finalBeatReached = this.beats.length > 0 && this.currentBeatIndex >= this.beats.length - 1;
+    const chainContained = this.attackChain.length > 0 && this.attackChain.every((s) => s.contained);
+
+    if (finalBeatReached || chainContained) {
+      const quality = this._winQuality();
+      const why = finalBeatReached
+        ? 'The story arc reaches its resolution.'
+        : 'Every stage of the attack chain is contained.';
       return {
         type: 'goal',
         result: 'success',
-        ending: (goal && goal.ending) || 'All attack-chain stages contained. The exercise concludes.',
+        success_kind: 'story',
+        win_quality: quality.tier,
+        win_summary: quality.summary,
+        ending: (goal && goal.ending) || 'The exercise reaches its resolution.',
         ...(goal || {}),
-        chain_contained: true,
+        final_beat: finalBeatReached ? this.beats[this.beats.length - 1].id : null,
+        chain_contained: chainContained || undefined,
+        why,
       };
     }
 
@@ -796,6 +816,33 @@ export class DMSession {
     if (loss) return loss;
 
     return null;
+  }
+
+  /**
+   * A soft, non-gating read on how well the group actually did when the story
+   * resolved. The metrics are advisory: they flavour the ending (a clean win
+   * versus a costly one) but NEVER decide win versus lose. Returns a tier plus
+   * a one-line summary for the report/debrief.
+   */
+  _winQuality() {
+    const advisory = (this.scenario.goal && Array.isArray(this.scenario.goal.win_conditions))
+      ? this.scenario.goal.win_conditions
+      : [];
+    if (!advisory.length) return { tier: 'resolved', summary: 'The exercise reached its story resolution.' };
+    const met = advisory.filter((c) => {
+      const v = this.state[c.stat];
+      if (typeof v !== 'number') return false;
+      if (c.operator === 'lte') return v <= c.value;
+      return v >= c.value;
+    }).length;
+    const ratio = met / advisory.length;
+    if (ratio >= 0.999) {
+      return { tier: 'decisive', summary: 'A decisive resolution: the story lands and every objective is comfortably met.' };
+    }
+    if (ratio >= 0.5) {
+      return { tier: 'solid', summary: 'A solid resolution: the story lands, though some objectives were only partly secured.' };
+    }
+    return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the group paid a steep price to get there.' };
   }
 
   /**
@@ -1140,6 +1187,9 @@ export class DMSession {
       generated_at: new Date().toISOString(),
       ending: endCondition ? endCondition.ending : null,
       result: endCondition ? (endCondition.result || null) : null,
+      success_kind: endCondition ? (endCondition.success_kind || null) : null,
+      win_quality: endCondition ? (endCondition.win_quality || null) : null,
+      win_summary: endCondition ? (endCondition.win_summary || null) : null,
       turns: this.turn,
       duration_minutes: minutes,
       final_state: clone(this.state),

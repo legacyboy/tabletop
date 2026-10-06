@@ -86,7 +86,7 @@ async function init() {
   // Cache DOM refs.
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
-   'narrative', 'stateList', 'flags', 'timer', 'reportBody', 'exportReport',
+   'narrative', 'stateList', 'flags', 'objectivePanel', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'companyNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
   ].forEach((id) => { el[id] = $(id); });
@@ -479,6 +479,49 @@ async function resolveTurn(action, roll) {
   }
 }
 
+/**
+ * Render the OBJECTIVE panel: the story goal the group is playing toward.
+ *
+ * Dan's design (2026-10-05): the win is a STORY win, not a score gate. So the
+ * panel deliberately shows the narrative objective + the arc of steps, NOT a
+ * checklist of numeric thresholds. The metrics stay as ambient texture in the
+ * State list; the "win" reads as "resolve the story", not "reach 60/55/80".
+ */
+function renderObjective() {
+  if (!el.objectivePanel) return;
+  const session = state.session;
+  if (!session || !session.scenario) { el.objectivePanel.style.display = 'none'; return; }
+  const scenario = session.scenario;
+  const goal = scenario.goal || {};
+  const beats = session.beats || [];
+  const idx = session.currentBeatIndex || 0;
+
+  const desc = goal.description
+    ? `<div class="objDesc">${escapeHtml(goal.description)}</div>`
+    : '';
+
+  // The arc: show the steps, marking the ones already handled as done and the
+  // current step as active. This is the player-facing "win condition": work
+  // through the arc (or fully contain the threat).
+  let arc = '';
+  if (beats.length) {
+    const items = beats.map((b, i) => {
+      const cls = i < idx ? 'done' : i === idx ? 'active' : 'todo';
+      const mark = i < idx ? '✓' : i === idx ? '▸' : '·';
+      return `<li class="arcStep ${cls}"><span class="arcMark">${mark}</span> ${escapeHtml(b.name || b.id)}</li>`;
+    }).join('');
+    arc =
+      `<div class="objLabel">The story arc — resolve it to win</div>` +
+      `<ol class="arcList">${items}</ol>`;
+  }
+
+  const hint = `<div class="objHint">Win by resolving the STORY — work through the arc, or contain every stage of the threat. The metrics below are texture; they colour how costly the win reads, they do not gate it.</div>`;
+
+  el.objectivePanel.style.display = '';
+  el.objectivePanel.innerHTML =
+    `<div class="objTitle">Objective</div>` + desc + arc + hint;
+}
+
 function renderState() {
   const session = state.session;
   if (!session) return;
@@ -545,6 +588,8 @@ function renderState() {
 
   el.stateList.innerHTML = parts.join('');
 
+  renderObjective();
+
   const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
   el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
 }
@@ -604,7 +649,10 @@ function renderReport(report) {
 
   add('Report', report.report_title);
   add('Scenario', report.scenario && !report.report_title.includes(report.scenario) ? report.scenario : (report.scenario_id || undefined));
-  add('Result', report.result === 'success' ? 'Success — goal achieved' : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
+  add('Result', report.result === 'success'
+    ? (report.success_kind === 'story' ? 'Success — the story resolves' : 'Success — goal achieved')
+    : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
+  if (report.win_summary) add('How it reads', report.win_summary);
   add('Ending', report.ending || 'No end condition recorded');
   add('Turns', report.turns);
   add('Duration (min)', report.duration_minutes ?? '—');
