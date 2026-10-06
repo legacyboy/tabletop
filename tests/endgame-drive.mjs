@@ -120,6 +120,48 @@ if (Array.isArray(scen.attack_chain) && scen.attack_chain.length) {
     winEnd ? `${winEnd.win_quality}: ${String(winEnd.win_summary).slice(0, 40)}` : '-');
 }
 
+// ---- LINEAR PACING GUARD: the arc advances on its own if the DM stalls it --
+// Dan's design (2026-10-06): progression is linear and must not drag. If the
+// DM keeps the group on one beat making real progress, the engine advances the
+// arc after BEAT_STALL_MAX turns.
+if (Array.isArray(scen.beats) && scen.beats.length > 1) {
+  const s = new DMSession(makeProgrammable(() => ({ progress: true }), {}), loadScenario());
+  // The provider always says "progress, but no beat" — a stuck DM.
+  let end = null;
+  for (let i = 0; i < 6 && !end; i++) {
+    const r = await s.takeTurn('We make real progress.', 15);
+    if (r.endCondition) end = r.endCondition;
+  }
+  record('the arc ADVANCES on its own when the DM stalls it (linear pacing guard)',
+    s.currentBeatIndex >= s.beats.length - 1 || !!end,
+    `reached beat ${s.currentBeatIndex + 1}/${s.beats.length}`);
+  record('a stalled-but-progressing run still resolves the STORY',
+    !!end && end.result === 'success' && end.success_kind === 'story',
+    end ? `${end.result}/${end.success_kind}/finalBeat=${end.final_beat || '-'}` : 'no end');
+}
+
+// ---- WIN by LINEAR ARC with a stage left OPEN (Dan's design, 2026-10-06) ---
+// Reaching the final story beat wins on its own even when attack-chain stages
+// are still open. Missing something must NOT block the win; it only reads as a
+// costlier ending.
+if (Array.isArray(scen.beats) && scen.beats.length > 1) {
+  const s = new DMSession(makeProgrammable(() => ({}), {}), loadScenario());
+  const lastBeat = scen.beats[scen.beats.length - 1].id;
+  // Park on the final beat but leave every chain stage open.
+  s.currentBeatIndex = scen.beats.length - 1;
+  const openBefore = s.attackChain.filter((x) => !x.contained).length;
+  const end = s._checkEnd();
+  record('final beat WINS even with stages left open (linear progression)',
+    !!end && end.result === 'success' && end.success_kind === 'story',
+    end ? `${end.result}/${end.success_kind}` : 'no end');
+  record('the win names the stages it left open',
+    !!end && Array.isArray(end.open_stages) && end.open_stages.length === openBefore,
+    end ? `open=[${(end.open_stages || []).join(',')}]` : '-');
+  record('a stage-left-open win is not scored as decisive',
+    !!end && end.win_quality !== 'decisive', end ? end.win_quality : '-');
+  void lastBeat;
+}
+
 // ---- ADVISORY METRICS: a story win with terrible metrics is still a win ----
 if (Array.isArray(scen.beats) && scen.beats.length) {
   const lastBeat = scen.beats[scen.beats.length - 1].id;
@@ -143,7 +185,17 @@ const consec = (lossCond && lossCond.consecutive) || 2;
 {
   const collapseDelta = {};
   for (const st of lossStats) collapseDelta[st] = -15; // drive into the failure zone
-  const { end: collapseEnd, s: collapseS } = await drive(makeProgrammable(() => collapseDelta), { turns: 5 });
+  // Arc OFF: this block isolates the collapse behavior. With the pacing guard,
+  // a beat arc would auto-resolve to a story win in ~4 turns and mask the check.
+  const noArc = { ...loadScenario(), beats: undefined };
+  const cS = new DMSession(makeProgrammable(() => collapseDelta), noArc);
+  let collapseEnd = null, cTurn = 0;
+  for (let i = 0; i < 5 && !collapseEnd; i++) {
+    const r = await cS.takeTurn('We do nothing.', 1);
+    cTurn = cS.turn;
+    if (r.endCondition) collapseEnd = r.endCondition;
+  }
+  const collapseS = cS;
   record('all-zero metrics do NOT end the session as a loss', !collapseEnd, collapseEnd ? `ended ${collapseEnd.type}/${collapseEnd.result}` : `still playing after ${collapseS.turn} turns`);
   record('collapse is flagged as in-story pressure', collapseS.isCollapsed() && collapseS.collapsed, `collapsed=${collapseS.collapsed} turn=${collapseS.turn}`);
   record('the run keeps playing past the collapse streak', collapseS.turn > consec, `${collapseS.turn} turns > ${consec}`);
@@ -153,6 +205,7 @@ const consec = (lossCond && lossCond.consecutive) || 2;
   record('a fully-collapsed run can still WIN the story (costliest tier)',
     !!rescue && rescue.result === 'success' && rescue.success_kind === 'story' && rescue.win_quality === 'costly',
     rescue ? `${rescue.result}/${rescue.success_kind}/${rescue.win_quality}` : 'no end');
+  void cTurn;
 }
 
 // ---- TIMEOUT ---------------------------------------------------------------

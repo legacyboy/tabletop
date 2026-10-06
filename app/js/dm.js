@@ -64,6 +64,15 @@ const DM_NUM_CTX = 16384;
 const PER_TURN_MAX_CHANGE = 15;
 
 /**
+ * How many consecutive turns the group may sit on one story beat, making real
+ * progress, before the engine advances the arc on its own (Dan's design,
+ * 2026-10-06: "progression should be linear" and must not drag). The DM
+ * normally advances the beat itself; this is the safety net so the story
+ * always moves. A genuine stall (the group did nothing) does not count.
+ */
+const BEAT_STALL_MAX = 2;
+
+/**
  * Default NARRATIVE-LOSS condition, used when a scenario defines no stat-based
  * loss in its end_conditions. The old "attacker progress" counter is gone:
  * failure is now narrated. The story has collapsed when BOTH public_trust AND
@@ -221,13 +230,13 @@ function buildSystemPrompt(scenario, opts = {}) {
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
     'Your job is to REVEAL a stage when the group\u2019s investigation plausibly uncovers it, and mark it CONTAINED when the group neutralizes it.',
     'The current chain state is fed to you each turn. Reveal stages gradually as the group investigates \u2014 do not dump the whole chain at once.',
-    'The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten. Containing EVERY stage is one way the story reaches its resolution.',
+    'The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten. Containing a stage is good progress, but you do NOT need every stage contained: the story can resolve with stages still open.',
     '',
     '## THE WIN CONDITION (a story win, not a score gate)',
-    'The exercise is WON by resolving the STORY, not by reaching a numeric score. Concretely, the story resolves when EITHER:',
-    '  (a) the group works through the final story BEAT \u2014 the arc plays out to its conclusion; OR',
-    '  (b) every stage of the ATTACK CHAIN is contained (the threat is fully neutralized),',
-    'whichever the scenario leans on. Drive toward one of those, within the turn budget.',
+    'The exercise is WON by resolving the STORY, not by reaching a numeric score. The arc is the SPINE; the attack chain is texture. The story resolves when EITHER:',
+    '  (a) the group reaches the FINAL story BEAT \u2014 the arc plays out to its conclusion. This ALONE is a win, even if some attack-chain stages are still open, OR',
+    '  (b) every stage of the attack chain is contained (the threat is fully neutralized).',
+    'PROGRESSION IS LINEAR: the group wins by working the arc to the end. Containing the chain is a second, alternative way to resolve, not an extra hoop. MISSING SOMETHING IS ALLOWED \u2014 do NOT withhold the final beat because a chain stage was left open or a metric is low. Let the arc complete; what was left open simply makes the ending read as costlier (the engine scores that).',
     'Do NOT hold the win hostage to the metrics. A group that resolves the story with ragged numbers still WINS \u2014 it just reads as a costlier, harder-won victory. A group that grinds the numbers up without resolving the story has NOT won; the story keeps biting.',
     '',
     '## ROLL MODIFIERS (defender capabilities)',
@@ -240,15 +249,17 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## THE STORY BEATS (arc progression)',
     'The scenario is an ordered arc of beats (steps). You are told which beat the group is in and the arc you are running.',
-    'A beat is a stage of the story (e.g. Step 1 public response, Step 2 regulator + fraud, Step 3 eradicate + recover). The group works through beats in order.',
-    'Each turn, decide whether the group has RESOLVED the current beat. A beat is resolved when the group\u2019s actions genuinely close out that stage of the story (not just talk \u2014 the situation at that beat is handled and the story must move on).',
+    'A beat is a stage of the story (e.g. Step 1 public response, Step 2 regulator + fraud, Step 3 eradicate + recover). The group works through beats LINEARLY, in order. Each beat is a step forward \u2014 never hold the group in the same beat turn after turn.',
+    'Each turn, decide whether the group has RESOLVED the current beat. A beat is resolved when the group\u2019s actions genuinely close out that stage of the story (not just talk \u2014 the situation at that beat is handled and the story must move on). Be GENEROUS here: if the group made a real, on-target effort at the current beat, treat it as resolved and move on. A beat should normally take no more than ONE turn \u2014 ADVANCE THE ARC EVERY TURN OR TWO. Do not park in Step 1.',
     'When the current beat is resolved, return the NEXT beat\u2019s id in the `beat` field and narrate the transition: how the group\u2019s handling shaped the incoming step. A group that handled the beat WELL should find the next step softer; one that handled it POORLY should find it worse. A single decisive action can skip forward to a later beat when the story warrants it.',
+    'Do NOT gate the arc on containment or metrics. Reaching the FINAL beat is itself the resolution \u2014 complete the arc even if a chain stage was missed or a metric is low. Never return `beat: null` to stall the group in the same step more than one turn unless they truly did nothing.',
     'Report how the group handled the beat they just completed in `beat_quality`: "good" (strong, on-target), "mixed" (partial, messy), or "poor" (failed, backfired). The engine carries this into the next turn so you can adjust the tone of the incoming beat accordingly.',
     'If the scenario has no beats, ignore this section and simply keep the story advancing turn to turn as described in HOW TO PLAY.',
     '',
     '## SESSION LENGTH (sub-60 minutes)',
     'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution within that budget:',
-    '- Drive the story toward its RESOLUTION within roughly 6-8 turns \u2014 either the final beat reached or the attack chain fully contained \u2014 or toward the narrative collapse loss. Do not stretch the conflict out or add filler beats that drag the session past the hour.',
+    '- Drive the story toward its RESOLUTION within roughly 4-6 turns \u2014 the final beat reached (or the attack chain fully contained) \u2014 or toward the narrative collapse loss. Do not stretch the conflict out or add filler beats that drag the session past the hour. Erring on the side of FASTER progress is better than slower.',
+    '- ADVANCE THE ARC EVERY TURN OR TWO. If the group is still on the same beat they were on last turn, move them forward unless they genuinely did nothing. Do NOT re-run Step 1 three or four times.',
     '- Let a decisive, competent action resolve more than one thing at once (e.g. one strong turn can contain a stage AND recover trust AND move to the next beat). Prefer meaningful forward progress over prolonging a beat.',
     '- Keep each turn’s action dense: address multiple coordinated moves so the group settles things faster rather than one narrow action per turn.',
     '- If the group resolves the story early, the session ends then — do not invent extra conflict to fill time.',
@@ -339,6 +350,8 @@ export class DMSession {
     // advances the current beat when the group resolves it (see takeTurn).
     this.beats = Array.isArray(scenario.beats) ? scenario.beats : [];
     this.currentBeatIndex = 0;       // index into beats the group is in
+    this.beatStall = 0;              // consecutive in-progress turns stuck on the current beat
+    this.beatAutoAdvanced = false;   // set true the turn the engine advanced the arc itself
     this.lastBeatQuality = '';       // 'good' | 'mixed' | 'poor' | '' (persisted)
 
     // Roll modifier: a defender capability the group "played" (spent budget)
@@ -657,19 +670,44 @@ export class DMSession {
       this.lastBeatQuality = '';
       return;
     }
+    this.beatAutoAdvanced = false;   // reset each turn; set below only on an engine-forced move
     if (parsed.beat_quality === 'good' || parsed.beat_quality === 'mixed' || parsed.beat_quality === 'poor') {
       this.lastBeatQuality = parsed.beat_quality;
     } else if (parsed.beat) {
       // A beat transition without an explicit quality: infer from progress.
       this.lastBeatQuality = parsed.progress === false ? 'poor' : 'mixed';
     }
-    if (!parsed.beat) return;
-    const next = this.beats.findIndex((b) => b.id === parsed.beat);
-    // Only advance forward (or stay); never go backwards. A beat id that is
-    // not in the arc is ignored. If the target index is <= current, treat as
-    // "stay in the current beat" (no valid forward move).
-    if (next > this.currentBeatIndex) {
-      this.currentBeatIndex = next;
+
+    let advanced = false;
+    if (parsed.beat) {
+      const next = this.beats.findIndex((b) => b.id === parsed.beat);
+      // Only advance forward (or stay); never go backwards. A beat id that is
+      // not in the arc is ignored. If the target index is <= current, treat as
+      // "stay in the current beat" (no valid forward move).
+      if (next > this.currentBeatIndex) {
+        this.currentBeatIndex = next;
+        advanced = true;
+      }
+    }
+
+    // Linear pacing guard (Dan's design, 2026-10-06): the arc is the SPINE and
+    // must not drag. The DM sometimes parks the group in Step 1 while playing
+    // whack-a-mole on the attack chain. If the group made real progress
+    // (progress !== false) and the DM did NOT advance the beat, count it; after
+    // BEAT_STALL_MAX turns of a stuck beat, advance the arc ourselves so the
+    // story always moves. The final beat is never auto-skipped PAST — once the
+    // group is on the last beat we leave it there (reaching it is the win).
+    if (advanced) {
+      this.beatStall = 0;
+    } else if (parsed.progress === false) {
+      // A genuine stall (the group did nothing) does not burn the guard.
+    } else {
+      this.beatStall = (this.beatStall || 0) + 1;
+      if (this.beatStall >= BEAT_STALL_MAX && this.currentBeatIndex < this.beats.length - 1) {
+        this.currentBeatIndex += 1;
+        this.beatStall = 0;
+        this.beatAutoAdvanced = true; // flag for the DM/report: the arc moved on
+      }
     }
   }
 
@@ -800,11 +838,20 @@ export class DMSession {
     const finalBeatReached = this.beats.length > 0 && this.currentBeatIndex >= this.beats.length - 1;
     const chainContained = this.attackChain.length > 0 && this.attackChain.every((s) => s.contained);
 
+    // Linear progression (Dan's design, 2026-10-06): reaching the final story
+    // beat WINS on its own, even if some attack-chain stages are still open.
+    // The arc is the spine; the chain is texture. Leaving a stage uncontained
+    // does not block the win — it just reads as costlier (see _winQuality).
+    // Fully containing the chain is an ALTERNATIVE win path (the threat is
+    // neutralized), not a requirement layered on top of the arc.
     if (finalBeatReached || chainContained) {
       const quality = this._winQuality();
       const why = finalBeatReached
-        ? 'The story arc reaches its resolution.'
+        ? (chainContained
+            ? 'The story arc reaches its resolution with the whole attack chain contained.'
+            : 'The story arc reaches its resolution.')
         : 'Every stage of the attack chain is contained.';
+      const openStages = this.attackChain.filter((s) => !s.contained).map((s) => s.id);
       return {
         type: 'goal',
         result: 'success',
@@ -815,6 +862,7 @@ export class DMSession {
         ...(goal || {}),
         final_beat: finalBeatReached ? this.beats[this.beats.length - 1].id : null,
         chain_contained: chainContained || undefined,
+        open_stages: openStages.length ? openStages : undefined,
         why,
       };
     }
@@ -874,7 +922,13 @@ export class DMSession {
         summary: 'A desperate resolution: the story concludes, but the situation had already collapsed \u2014 this reads as a comeback won against the odds.',
       };
     }
-    if (!advisory.length) return { tier: 'resolved', summary: 'The exercise reached its story resolution.' };
+    if (!advisory.length) {
+      // No advisory metrics: base the read on how much of the chain was left open.
+      const open = this.attackChain.filter((s) => !s.contained).length;
+      if (open === 0) return { tier: 'decisive', summary: 'A decisive resolution: the story lands with the whole attack chain contained.' };
+      if (open < this.attackChain.length) return { tier: 'solid', summary: `A solid resolution: the story lands, though ${open} stage${open > 1 ? 's' : ''} of the attack chain were left open.` };
+      return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the attack chain was never contained.' };
+    }
     const met = advisory.filter((c) => {
       const v = this.state[c.stat];
       if (typeof v !== 'number') return false;
@@ -1249,6 +1303,7 @@ export class DMSession {
       success_kind: endCondition ? (endCondition.success_kind || null) : null,
       win_quality: endCondition ? (endCondition.win_quality || null) : null,
       win_summary: endCondition ? (endCondition.win_summary || null) : null,
+      open_stages: endCondition && endCondition.open_stages ? endCondition.open_stages : null,
       collapsed: !!this.collapsed,
       collapse_record: clone(this.collapseRecord),
       turns: this.turn,

@@ -502,7 +502,8 @@ function renderObjective() {
 
   // The arc: show the steps, marking the ones already handled as done and the
   // current step as active. This is the player-facing "win condition": work
-  // through the arc (or fully contain the threat).
+  // through the arc LINEARLY to the end. Containing the threat is an
+  // alternative resolution, not an extra requirement.
   let arc = '';
   if (beats.length) {
     const items = beats.map((b, i) => {
@@ -511,11 +512,11 @@ function renderObjective() {
       return `<li class="arcStep ${cls}"><span class="arcMark">${mark}</span> ${escapeHtml(b.name || b.id)}</li>`;
     }).join('');
     arc =
-      `<div class="objLabel">The story arc — resolve it to win</div>` +
+      `<div class="objLabel">The story arc — reach the final step to win</div>` +
       `<ol class="arcList">${items}</ol>`;
   }
 
-  const hint = `<div class="objHint">Win by resolving the STORY — work through the arc, or contain every stage of the threat. The metrics below are texture; they colour how costly the win reads, they do not gate it.</div>`;
+  const hint = `<div class="objHint">Win by working the arc to its end — the steps go in order, one after another. Containing the whole threat is an alternative way to close it out, but you do NOT need to contain everything: missing a stage just makes the ending read as costlier. The metrics are texture; they never gate the win.</div>`;
 
   // Collapse pressure banner: the situation is critical but the story is STILL
   // playable — make that explicit so nobody reads a red metric as "game over".
@@ -660,6 +661,8 @@ function renderReport(report) {
     ? (report.success_kind === 'story' ? 'Success — the story resolves' : 'Success — goal achieved')
     : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
   if (report.win_summary) add('How it reads', report.win_summary);
+  if (Array.isArray(report.open_stages) && report.open_stages.length)
+    add('Left open', `This resolution went through with ${report.open_stages.length} attack-chain stage(s) never contained: ${report.open_stages.join(', ')}.`);
   if (report.collapsed) add('Critical state', 'The situation collapsed into crisis during the run (not a loss — the story was still resolved).');
   add('Ending', report.ending || 'No end condition recorded');
   add('Turns', report.turns);

@@ -75,7 +75,9 @@ check('public_trust dropped on 1', s3.state.public_trust < scenario.opening_stat
 //    COLLAPSE end it (Dan's design, 2026-10-05): even with every metric at 0 the
 //    group must still be able to play the story to its resolution, so the
 //    collapse is in-story pressure that only downgrades the win quality.
-const s4 = new DMSession(new MockProvider(), scenario);
+//    NOTE: beats are stripped here so the arc cannot auto-advance to a story
+//    win mid-loop — this block is about the METRICS, not the arc.
+const s4 = new DMSession(new MockProvider(), { ...scenario, beats: undefined });
 let endHit = false;
 for (let i = 0; i < 10 && !endHit; i++) {
   const res = await s4.takeTurn('Escalate aggressively', 11); // fate chips public_trust each turn
@@ -164,6 +166,32 @@ for (let i = 0; i < 5 && !chainEnd; i++) {
   else s4d2.attackChain.forEach((s) => { s.contained = true; s.revealed = true; });
 }
 check('story win fires on full attack-chain containment (metrics do NOT gate)', chainEnd && chainEnd.result === 'success' && chainEnd.success_kind === 'story');
+
+// 4d-iii. LINEAR PROGRESSION + PARTIAL CONTAINMENT (Dan's design, 2026-10-06):
+//   reaching the FINAL beat wins even if attack-chain stages are still OPEN.
+//   Leaving a stage uncontained must NOT block the win; it only reads costlier.
+const partialScenario = {
+  ...scenario,
+  goal: { ending: 'Story resolved with a loose end.' },
+  attack_chain: [
+    { id: 'p1', name: 'Hook', symptom: 'probe' },
+    { id: 'p2', name: 'Spread', symptom: 'wave' },
+    { id: 'p3', name: 'Take', symptom: 'cash-out' },
+  ],
+};
+{
+  const s = new DMSession(new MockProvider({}), partialScenario);
+  // Reach the final beat, but only contain ONE of three chain stages.
+  s.currentBeatIndex = s.beats.length - 1;
+  s.attackChain[0].contained = true;
+  s.attackChain[0].revealed = true;
+  const open = s.attackChain.filter((x) => !x.contained).map((x) => x.id);
+  const end = s._checkEnd();
+  check('final beat wins with chain stages still open (linear win)', !!end && end.result === 'success' && end.success_kind === 'story');
+  check('the win reports which stages were left open', !!end && Array.isArray(end.open_stages) && end.open_stages.length === 2);
+  check('open stages are exactly the uncontained ones', !!end && end.open_stages.join(',') === open.join(','));
+  check('a partial-containment win reads as costlier (not decisive)', !!end && end.win_quality !== 'decisive');
+}
 
 // 4e. The metrics are ADVISORY: a story win with ragged numbers is still a win
 //     (it just reads as more costly). It must NEVER be blocked by low metrics.
@@ -400,6 +428,7 @@ check('per-turn containment rise capped at 15', containAfter18 - capScenario.ope
 //     endCondition fires — the streak itself is what we assert.
 const streakScenario = {
   ...scenario,
+  beats: undefined,   // arc off: this block tests the collapse streak, not the arc
   end_conditions: [
     { type: 'stat', stat: 'public_trust', operator: 'lte', value: 15, consecutive: 2, ending: 'collapse' },
   ],
