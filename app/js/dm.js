@@ -229,6 +229,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '## THE ATTACK CHAIN (kill chain)',
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
     'Your job is to REVEAL a stage when the group\u2019s investigation plausibly uncovers it, and mark it CONTAINED when the group neutralizes it.',
+    'Be GENEROUS with containment: when the group takes a genuine, on-target action against a stage, mark it contained. You do not need to wait for a perfect, total fix \u2014 a real step that neutralizes the stage\u2019s effect counts. A stage the group clearly dealt with should NOT be left open just because the story is wrapping up.',
     'The current chain state is fed to you each turn. Reveal stages gradually as the group investigates \u2014 do not dump the whole chain at once.',
     'The breach state (contained \u2192 active \u2192 escalated \u2192 exfiltrated) reflects how far the attack has gotten. Containing a stage is good progress, but you do NOT need every stage contained: the story can resolve with stages still open.',
     '',
@@ -815,6 +816,36 @@ export class DMSession {
     return next;
   }
 
+  /**
+   * When the story ARC resolves (final beat reached), the resolution implies the
+   * situation was brought under control. Tidy the attack chain accordingly so a
+   * strong run can read as a clean, decisive win rather than always "costly":
+   *   - Every REVEALED stage is treated as contained by the resolution (the group
+   *     found it and the story closed it out).
+   *   - If the group had clear command of the situation (not collapsed, and the
+   *     key confidence/containment metrics are healthy), the remaining unrevealed
+   *     stage is closed too \u2014 the resolution swept it up.
+   * A collapsed or struggling run keeps its open stages, so its win still reads
+   * as costly. This never blocks the win; it only affects how the ending reads.
+   */
+  _tidyChainOnResolution() {
+    if (!this.attackChain.length) return;
+    // Revealed stages: the story resolved around them, so they end contained.
+    for (const s of this.attackChain) {
+      if (s.revealed) s.contained = true;
+    }
+    // Command-of-the-situation bonus: a run that was never in crisis and kept
+    // confidence/containment solid sweeps up the last hidden stage too.
+    const trust = this.state.public_trust || 0;
+    const reg = this.state.regulator_confidence || 0;
+    const contain = this.state.containment || 0;
+    const inCommand = !this.collapsed && trust >= 55 && reg >= 55 && contain >= 50;
+    if (inCommand) {
+      for (const s of this.attackChain) s.contained = true;
+    }
+    this.breachState = deriveBreachState(this.attackChain);
+  }
+
   _checkEnd() {
     // NOTE: a single bad stat does NOT end the game (Dan's design: no instant
     // loss on one metric hitting a threshold). But the NARRATIVE COLLAPSE does:
@@ -836,6 +867,16 @@ export class DMSession {
     const hasGoal = !!goal;
 
     const finalBeatReached = this.beats.length > 0 && this.currentBeatIndex >= this.beats.length - 1;
+
+    // When the ARC resolves, the story itself has reached its conclusion \u2014 the
+    // threat is dealt with as part of that resolution. So on the final beat we
+    // TIDY UP the chain: any stage that was REVEALED (the group found it) is
+    // treated as contained by the resolution UNLESS the run is in crisis, and
+    // if the group clearly had command of the situation, the last unrevealed
+    // stage is closed too. This makes a clean, decisive win REACHABLE for strong
+    // play instead of near-impossible (Dan's design, 2026-10-06, option 2).
+    if (finalBeatReached) this._tidyChainOnResolution();
+
     const chainContained = this.attackChain.length > 0 && this.attackChain.every((s) => s.contained);
 
     // Linear progression (Dan's design, 2026-10-06): reaching the final story
@@ -922,27 +963,36 @@ export class DMSession {
         summary: 'A desperate resolution: the story concludes, but the situation had already collapsed \u2014 this reads as a comeback won against the odds.',
       };
     }
-    if (!advisory.length) {
-      // No advisory metrics: base the read on how much of the chain was left open.
-      const open = this.attackChain.filter((s) => !s.contained).length;
-      if (open === 0) return { tier: 'decisive', summary: 'A decisive resolution: the story lands with the whole attack chain contained.' };
-      if (open < this.attackChain.length) return { tier: 'solid', summary: `A solid resolution: the story lands, though ${open} stage${open > 1 ? 's' : ''} of the attack chain were left open.` };
-      return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the attack chain was never contained.' };
+    // Chain-driven read (Dan's design, 2026-10-06): how the ending reads turns on
+    // how much of the attack chain was closed out AND how healthy the key
+    // metrics are. After _tidyChainOnResolution a strong run can reach `decisive`.
+    const open = this.attackChain.filter((s) => !s.contained).length;
+    const trust = this.state.public_trust || 0;
+    const reg = this.state.regulator_confidence || 0;
+    if (advisory.length) {
+      const met = advisory.filter((c) => {
+        const v = this.state[c.stat];
+        if (typeof v !== 'number') return false;
+        if (c.operator === 'lte') return v <= c.value;
+        return v >= c.value;
+      }).length;
+      const ratio = met / advisory.length;
+      if (open === 0 && ratio >= 0.999) {
+        return { tier: 'decisive', summary: 'A decisive resolution: the story lands, the whole attack chain is contained, and every objective is comfortably met.' };
+      }
+      if (open === 0 || ratio >= 0.5) {
+        return { tier: 'solid', summary: open === 0
+          ? 'A clean resolution: the story lands and the whole attack chain is contained.'
+          : 'A solid resolution: the story lands, though some objectives were only partly secured.' };
+      }
+      return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the group paid a steep price to get there.' };
     }
-    const met = advisory.filter((c) => {
-      const v = this.state[c.stat];
-      if (typeof v !== 'number') return false;
-      if (c.operator === 'lte') return v <= c.value;
-      return v >= c.value;
-    }).length;
-    const ratio = met / advisory.length;
-    if (ratio >= 0.999) {
-      return { tier: 'decisive', summary: 'A decisive resolution: the story lands and every objective is comfortably met.' };
+    if (open === 0 && trust >= 55 && reg >= 55) {
+      return { tier: 'decisive', summary: 'A decisive resolution: the story lands with the whole attack chain contained and confidence intact.' };
     }
-    if (ratio >= 0.5) {
-      return { tier: 'solid', summary: 'A solid resolution: the story lands, though some objectives were only partly secured.' };
-    }
-    return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the group paid a steep price to get there.' };
+    if (open === 0) return { tier: 'solid', summary: 'A clean resolution: the story lands with the whole attack chain contained.' };
+    if (open < this.attackChain.length) return { tier: 'solid', summary: `A solid resolution: the story lands, though ${open} stage${open > 1 ? 's' : ''} of the attack chain were left open.` };
+    return { tier: 'costly', summary: 'A hard-won resolution: the story concludes, but the attack chain was never contained.' };
   }
 
   /**
