@@ -71,9 +71,10 @@ check('fate on 1', s3.history[0].fate !== null);
 check('public_trust dropped on 1', s3.state.public_trust < scenario.opening_state.public_trust);
 
 // 4. End conditions: a single bad stat does NOT end the game (Dan's design:
-//    no instant loss on one metric hitting a threshold), but the NARRATIVE
-//    COLLAPSE does: public_trust AND regulator_confidence both critically low
-//    for consecutive turns ends the session as a narrated LOSS.
+//    no instant loss on one metric hitting a threshold). NOR does the NARRATIVE
+//    COLLAPSE end it (Dan's design, 2026-10-05): even with every metric at 0 the
+//    group must still be able to play the story to its resolution, so the
+//    collapse is in-story pressure that only downgrades the win quality.
 const s4 = new DMSession(new MockProvider(), scenario);
 let endHit = false;
 for (let i = 0; i < 10 && !endHit; i++) {
@@ -84,7 +85,8 @@ for (let i = 0; i < 10 && !endHit; i++) {
 check('single stat at 100 does NOT end the game (no instant loss)', !endHit);
 
 // 4b. Narrative collapse: BOTH confidence stats critically low for
-//     `consecutive` turns ends the session as a narrated loss.
+//     `consecutive` turns flags a collapse but does NOT end the session — the
+//     story must stay playable to its resolution.
 const s4L = new DMSession(new MockProvider(), scenario);
 s4L.state.public_trust = 12;
 s4L.state.regulator_confidence = 15;
@@ -92,8 +94,13 @@ const r4La = await s4L.takeTurn('Act', 10);   // collapse turn 1: streak 1
 check('collapse does NOT end on the first low turn', !r4La.endCondition);
 s4L.state.public_trust = 12;                   // still collapsed
 const r4Lb = await s4L.takeTurn('Act', 10);   // collapse turn 2: streak 2
-check('collapse ends the session as a loss', r4Lb.endCondition && r4Lb.endCondition.type === 'loss' && r4Lb.endCondition.result === 'loss');
-check('loss ending is the narrated collapse', r4Lb.endCondition && r4Lb.endCondition.ending === scenario.end_conditions[0].ending);
+check('collapse does NOT end the session as a loss (story stays playable)', !r4Lb.endCondition);
+check('collapse is recorded as in-story pressure, not a terminal end', s4L.isCollapsed() && s4L.collapsed);
+check('a collapsed session can still WIN the story (costliest tier)', (() => {
+  s4L.attackChain.forEach((st) => { st.contained = true; st.revealed = true; });
+  const end = s4L._checkEnd();
+  return !!end && end.result === 'success' && end.success_kind === 'story' && end.win_quality === 'costly';
+})());
 
 // 4c. ONE confidence metric recovering breaks the collapse: no loss.
 const s4R = new DMSession(new MockProvider(), scenario);
@@ -386,10 +393,11 @@ check('per-turn public_trust drop capped at 15', drop18 <= 15);
 const containAfter18 = s18.state.containment;   // +12 +10 from fate + event, capped at 15
 check('per-turn containment rise capped at 15', containAfter18 - capScenario.opening_state.containment <= 15);
 
-// 23. Stat-based LOSS end conditions are enforced with consecutive-turn
-//     streaks: a single-stat loss condition (public_trust <= 15) fires after
-//     2 consecutive turns in the zone, and the streak persists across
-//     serialize/restore.
+// 23. Stat-based collapse conditions are tracked with consecutive-turn
+//     streaks: a single-stat condition (public_trust <= 15) flags the collapse
+//     after 2 consecutive turns in the zone, and the streak persists across
+//     serialize/restore. The collapse is NOT terminal (Dan's design), so no
+//     endCondition fires — the streak itself is what we assert.
 const streakScenario = {
   ...scenario,
   end_conditions: [
@@ -399,29 +407,29 @@ const streakScenario = {
 const s19 = new DMSession(new MockProvider(), streakScenario);
 s19.state.public_trust = 10;  // in the failure zone
 const res19a = await s19.takeTurn('Act', 10);  // turn 1: streak 1
-check('loss does NOT fire on the first bad turn', !res19a.endCondition);
+check('collapse does NOT fire on the first bad turn', !res19a.endCondition && !s19.isCollapsed());
 const snap19 = s19.serialize();
 check('serialize includes statStreaks', typeof snap19.statStreaks === 'object');
 const restored19 = DMSession.restore(new MockProvider(), streakScenario, snap19);
 restored19.state.public_trust = 10;  // still in the zone
-const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2 -> loss
-check('stat loss fires after 2 consecutive bad turns (streak survives restore)', res19.endCondition && res19.endCondition.result === 'loss');
-check('stat loss ending is the authored collapse', res19.endCondition && res19.endCondition.ending === 'collapse');
+const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2 -> collapse
+check('collapse flags after 2 consecutive bad turns (streak survives restore)', !res19.endCondition && restored19.isCollapsed());
+check('the streak survives serialize/restore (count carried)', (restored19.statStreaks[0] || {}).count >= 2);
 
-// 24. The loss streak RESETS when the stat leaves the zone: leaving and
-//     re-entering starts the streak over, so the loss fires only after 2
+// 24. The collapse streak RESETS when the stat leaves the zone: leaving and
+//     re-entering starts the streak over, so the collapse flags only after 2
 //     CONSECUTIVE turns back in the zone.
 const s20 = new DMSession(new MockProvider(), streakScenario);
 s20.state.public_trust = 10;  // in zone
 await s20.takeTurn('Act', 10);  // streak 1
 s20.state.public_trust = 50;   // leaves zone
 const res20a = await s20.takeTurn('Act', 10);  // streak resets
-check('no loss after leaving the zone', !res20a.endCondition);
+check('no collapse after leaving the zone', !res20a.endCondition && !s20.isCollapsed());
 s20.state.public_trust = 10;   // back in zone
 const res20m = await s20.takeTurn('Act', 10);  // streak 1 again
-check('no loss on the first turn back in the zone (streak was reset)', !res20m.endCondition);
-const res20b = await s20.takeTurn('Act', 10);  // streak 2 -> loss
-check('loss fires after 2 consecutive turns back in the zone', res20b.endCondition && res20b.endCondition.result === 'loss');
+check('no collapse on the first turn back in the zone (streak was reset)', !res20m.endCondition && !s20.isCollapsed());
+const res20b = await s20.takeTurn('Act', 10);  // streak 2 -> collapse
+check('collapse flags after 2 consecutive turns back in the zone', !res20b.endCondition && s20.isCollapsed());
 
 // ===== NEW: roll-modifier mechanic (targeted) =====
 // 25. A granted roll modifier is fed to the DM as an adjusted roll and is
@@ -466,17 +474,16 @@ for (const stage of noGoalScenario.attack_chain) {
 check('no-goal scenario WINS by story once the chain is fully contained', s23.attackChain.every((s) => s.contained) && !!ended23 && ended23.result === 'success');
 check('no-goal story win still carries a fallback ending', !!ended23 && typeof ended23.ending === 'string' && ended23.ending.length > 0);
 
-// 28. A no-goal scenario still ends on the NARRATIVE COLLAPSE (loss) — the
-//     collapse is a story conclusion, not a win condition, so it applies with
-//     or without a goal. The session runs to the narrated loss, the timeout,
-//     or a manual end.
+// 28. A no-goal scenario does NOT end on the narrative collapse either (Dan's
+//     design): the collapse is in-story pressure, so the session keeps playing
+//     to the timeout or a manual end — never a score-driven game over.
 const s24 = new DMSession(new MockProvider(), noGoalScenario);
 s24.state.public_trust = 8;            // collapsed
 s24.state.regulator_confidence = 9;    // collapsed
 const r24a = await s24.takeTurn('Act', 10);  // collapse turn 1: streak 1
 check('no-goal scenario does not end on the first collapse turn', !r24a.endCondition);
-const r24b = await s24.takeTurn('Act', 10);  // collapse turn 2: streak 2 -> loss
-check('no-goal scenario ends in the narrative collapse loss', r24b.endCondition && r24b.endCondition.result === 'loss');
+const r24b = await s24.takeTurn('Act', 10);  // collapse turn 2: streak 2
+check('no-goal scenario does NOT end in a collapse loss (story stays playable)', !r24b.endCondition && s24.isCollapsed());
 
 // 29. A no-goal scenario with a timeout ends cleanly on timeout.
 check('no-goal scenario keeps its timeout end condition', noGoalScenario.end_conditions.some((c) => c.type === 'timeout'));

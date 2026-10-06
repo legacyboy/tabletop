@@ -151,6 +151,7 @@ export function buildReport(session, opts = {}) {
     success_kind: opts.ending ? (opts.ending.success_kind || null) : null,
     win_quality: opts.ending ? (opts.ending.win_quality || null) : null,
     win_summary: opts.ending ? (opts.ending.win_summary || null) : null,
+    collapsed: !!session.collapsed,
     final_state: session.state,
     fingerprint: fp,
     integrity_note:
@@ -338,6 +339,7 @@ export function renderReportHtml(report) {
         <tr><td style="padding:6px;border:1px solid #ddd"><b>End condition</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.end_condition || 'None (session ended manually)')}</td></tr>
         ${proof.result ? `<tr><td style="padding:6px;border:1px solid #ddd"><b>Outcome</b></td><td style="padding:6px;border:1px solid #ddd">${proof.result === 'success' ? (proof.success_kind === 'story' ? 'Success — the story resolves' : 'Success — goal achieved') : proof.result === 'loss' ? 'Loss — the collapse' : esc(proof.result)}</td></tr>` : ''}
         ${proof.win_summary ? `<tr><td style="padding:6px;border:1px solid #ddd"><b>How it reads</b></td><td style="padding:6px;border:1px solid #ddd">${esc(proof.win_summary)}</td></tr>` : ''}
+        ${proof.collapsed ? `<tr><td style="padding:6px;border:1px solid #ddd"><b>Critical state</b></td><td style="padding:6px;border:1px solid #ddd">The situation collapsed into crisis during the run (not a loss \u2014 the story was still resolved).</td></tr>` : ''}
         <tr><td style="padding:6px;border:1px solid #ddd"><b>Session fingerprint</b></td><td style="padding:6px;border:1px solid #ddd;font-family:monospace;font-size:12px">${esc(proof.fingerprint)}</td></tr>
       </tbody>
     </table>

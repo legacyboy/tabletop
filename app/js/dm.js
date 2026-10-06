@@ -16,12 +16,12 @@
  *
  * End conditions: the session ends on a STORY WIN — the narrative arc resolves
  * (the final story beat is reached, or the attack chain is fully contained) —
- * the timeout firing, a manual end, or the NARRATIVE COLLAPSE (loss): when the
- * scenario's stat loss conditions (public_trust AND regulator_confidence both
- * critically low, by default) hold for consecutive turns, the story has
- * collapsed and the session concludes as a narrated loss. A single bad stat
- * does NOT end the game — no instant loss on one metric hitting a threshold
- * (Dan's design).
+ * the timeout firing, or a manual end. The NARRATIVE COLLAPSE is NOT a terminal
+ * loss (Dan's design, 2026-10-05): even when every metric is at 0 the group must
+ * still be able to play the story to its resolution, so the collapse is in-story
+ * pressure the DM narrates and it only downgrades the win quality (a fully
+ * collapsed run that still resolves reads as the costliest win). A single bad
+ * stat never ends the game either.
  *
  * NOTE on scoring (Dan's design, 2026-10-05): the numeric metrics are advisory
  * texture, NOT a win gate. A five-stat threshold AND-gate is brittle and turns
@@ -215,7 +215,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- A bad roll (roughly 1-5) is where real damage happens. Reserve large negative deltas for genuinely bad outcomes, not for competent actions.',
     '- The session should be winnable: the group must be able to recover. Do not make it a foregone loss by turn 4-5.',
     '- The complete response arc is CONTAIN \u2192 ERADICATE \u2192 RECOVER. A group that only does public relations and containment but never eradicates the root cause or restores operations should keep struggling — the story keeps biting, the regulator stays unsatisfied — until it closes out the full arc. Reflect this in outcomes: eradication and recovery efforts should be rewarded when the group attempts them.',
-    '- THE NARRATIVE COLLAPSE (loss): if the situation has GENUINELY collapsed — public_trust AND regulator_confidence both critically low (20 or below) for consecutive turns — the session ends as a LOSS with a narrated collapse ending. When both confidence metrics are in that zone, do not soften the world: narrate the strain realistically (members lose faith, the regulator escalates, the board wavers). The engine concludes the session when the collapse holds; until then, the group can still fight its way back, so give competent recovery room to work.',
+    '- THE NARRATIVE COLLAPSE (in-story pressure, NOT a game over): if the situation has GENUINELY collapsed — public_trust AND regulator_confidence both critically low (20 or below) — do NOT soften the world: narrate the strain realistically (members lose faith, the regulator escalates, the board wavers). BUT the session does NOT end here. Even with every metric at 0, the group must still be able to play the STORY to its resolution. Keep the situation grim and costly, yet leave a plausible path to resolving the arc/containing the threat \u2014 a comeback won against the odds is the costliest, most memorable win. Never refuse the resolution just because the numbers are bad.',
     '',
     '## THE ATTACK CHAIN (kill chain)',
     'The scenario has a hidden, ordered attack chain. Each stage has a name and a symptom (what the group observes).',
@@ -354,6 +354,14 @@ export class DMSession {
     // stay at/below (or at/above) a threshold for N turns before failing.
     // Keyed by end-condition index; reset when the stat leaves the zone.
     this.statStreaks = {};
+
+    // Narrative-collapse state. Collapse is NOT a terminal loss (Dan's design,
+    // 2026-10-05): it is in-story pressure the DM narrates, and it only colours
+    // the win quality. `collapsed` latches true once the failure zone is
+    // reached; `collapseRecord` captures the turn + note for the report.
+    this.collapsed = false;
+    this.lastCollapseTurn = -1;
+    this.collapseRecord = null;
 
     // Timer
     this.startedAt = null;
@@ -811,11 +819,40 @@ export class DMSession {
       };
     }
 
-    // Narrative loss: the story has collapsed (see _checkNarrativeLoss).
-    const loss = this._checkNarrativeLoss();
-    if (loss) return loss;
+    // Loss: the NARRATIVE COLLAPSE does NOT end the session (Dan's design,
+    // 2026-10-05). Even if EVERY metric is at 0, the group must still be able
+    // to play the story to its resolution \u2014 a score must never strangle the
+    // narrative. When the collapse condition holds, we flag it as in-story
+    // pressure (the DM narrates the strain) and keep playing; the session ends
+    // only when the STORY resolves (win, above), the timer runs out, or the
+    // group ends it. The collapse instead downgrades the win quality (a fully
+    // collapsed run that still resolves the story reads as the costliest win).
+    const collapse = this._checkNarrativeLoss();
+    if (collapse) {
+      // Record (once per turn) that the situation has collapsed, for the DM +
+      // report; NEVER return it as a terminal loss.
+      if (this.lastCollapseTurn !== this.turn) {
+        this.lastCollapseTurn = this.turn;
+        this.collapsed = true;
+        this.collapseRecord = {
+          turn: this.turn,
+          stats: collapse.stats || [{ stat: collapse.stat, operator: collapse.operator, value: collapse.value }],
+          note: collapse.ending || 'The situation has collapsed into crisis.',
+        };
+      }
+    }
 
     return null;
+  }
+
+  /**
+   * The session is in NARRATIVE COLLAPSE: the failure-zone condition holds (e.g.
+   * trust AND regulator both critically low). This is NOT a terminal loss \u2014 it
+   * is in-story pressure the DM should narrate. Exposed so the UI/report can
+   * flag the state, and so the win can be scored as the costliest tier.
+   */
+  isCollapsed() {
+    return this._checkNarrativeLoss() !== null;
   }
 
   /**
@@ -828,6 +865,15 @@ export class DMSession {
     const advisory = (this.scenario.goal && Array.isArray(this.scenario.goal.win_conditions))
       ? this.scenario.goal.win_conditions
       : [];
+    // A run that fell into the narrative collapse still WINS if it resolves the
+    // story \u2014 but it reads as the costliest possible win.
+    if (this.collapsed) {
+      return {
+        tier: 'costly',
+        collapsed: true,
+        summary: 'A desperate resolution: the story concludes, but the situation had already collapsed \u2014 this reads as a comeback won against the odds.',
+      };
+    }
     if (!advisory.length) return { tier: 'resolved', summary: 'The exercise reached its story resolution.' };
     const met = advisory.filter((c) => {
       const v = this.state[c.stat];
@@ -885,6 +931,18 @@ export class DMSession {
    * double-count. The streak resets to 0 the turn the condition stops
    * holding (e.g. one confidence metric recovers above the threshold).
    */
+  /**
+   * Detect the NARRATIVE COLLAPSE condition. IMPORTANT: this is NO LONGER a
+   * terminal loss (Dan's design, 2026-10-05). It returns a descriptor of the
+   * collapse (which stats, the streak, a note) so the engine can flag the run
+   * as collapsed and the DM can narrate the strain — but the session keeps
+   * playing so the story can still resolve. The collapse only downgrades the
+   * win quality (see _winQuality). The name is retained for continuity.
+   * The consecutive-turn streak is tracked in this.statStreaks keyed by
+   * condition index and is updated at most once per turn (guarded by
+   * lastTurn), so repeated calls within one turn never double-count. The streak
+   * resets to 0 the turn the condition stops holding.
+   */
   _checkNarrativeLoss() {
     const conds = this._lossConditions();
     for (let i = 0; i < conds.length; i++) {
@@ -900,8 +958,9 @@ export class DMSession {
       if (met && streak.count >= need) {
         return {
           ...cond,
-          type: 'loss',
-          result: 'loss',
+          type: 'collapse',
+          result: 'collapse',
+          note: cond.ending || DEFAULT_LOSS_CONDITION.ending,
           ending: cond.ending || DEFAULT_LOSS_CONDITION.ending,
         };
       }
@@ -1190,6 +1249,8 @@ export class DMSession {
       success_kind: endCondition ? (endCondition.success_kind || null) : null,
       win_quality: endCondition ? (endCondition.win_quality || null) : null,
       win_summary: endCondition ? (endCondition.win_summary || null) : null,
+      collapsed: !!this.collapsed,
+      collapse_record: clone(this.collapseRecord),
       turns: this.turn,
       duration_minutes: minutes,
       final_state: clone(this.state),
@@ -1236,6 +1297,9 @@ export class DMSession {
       lastBudgetSpend: this.lastBudgetSpend,
       budgetSpend: this.budgetSpend,
       tokenUsage: clone(this.tokenUsage),
+      collapsed: this.collapsed || false,
+      lastCollapseTurn: this.lastCollapseTurn ?? -1,
+      collapseRecord: clone(this.collapseRecord),
     };
   }
 
@@ -1262,6 +1326,9 @@ export class DMSession {
     session.lastBeatQuality = snapshot.lastBeatQuality || '';
     session.lastBudgetSpend = snapshot.lastBudgetSpend || 0;
     session.budgetSpend = snapshot.budgetSpend || 0;
+    session.collapsed = snapshot.collapsed || false;
+    session.lastCollapseTurn = snapshot.lastCollapseTurn ?? -1;
+    session.collapseRecord = clone(snapshot.collapseRecord || null);
     session.tokenUsage = snapshot.tokenUsage
       ? clone(snapshot.tokenUsage)
       : { prompt_tokens: 0, completion_tokens: 0, prompt_estimated: false, completion_estimated: false, calls: 0 };

@@ -517,17 +517,24 @@ function renderObjective() {
 
   const hint = `<div class="objHint">Win by resolving the STORY — work through the arc, or contain every stage of the threat. The metrics below are texture; they colour how costly the win reads, they do not gate it.</div>`;
 
+  // Collapse pressure banner: the situation is critical but the story is STILL
+  // playable — make that explicit so nobody reads a red metric as "game over".
+  const collapseBanner = (session.collapsed || (session.isCollapsed && session.isCollapsed()))
+    ? `<div class="objCollapse">⚠️ The situation has turned critical. The story is still yours to resolve — push through the arc or contain the threat. A comeback here is the costliest, best kind of win.</div>`
+    : '';
+
   el.objectivePanel.style.display = '';
   el.objectivePanel.innerHTML =
-    `<div class="objTitle">Objective</div>` + desc + arc + hint;
+    `<div class="objTitle">Objective</div>` + desc + arc + collapseBanner + hint;
 }
 
 function renderState() {
   const session = state.session;
   if (!session) return;
-  // Danger zone: a stat inside a loss condition's failure zone (the narrative
-  // collapse) is flagged visually (red) — the team sees they are sliding into
-  // the collapse and must manage their way out before it concludes the story.
+  // Collapse pressure: a stat inside the failure zone is flagged visually (red)
+  // so the team sees the situation has turned critical — but the collapse is NOT
+  // a game over (Dan's design, 2026-10-05). Even at 0 the story is still
+  // playable to its resolution; the pressure only makes the win costlier.
   const dangerStats = {};
   for (const c of (session.scenario.end_conditions || [])) {
     if (c.type !== 'stat' || (c.result && c.result !== 'loss')) continue;
@@ -582,7 +589,7 @@ function renderState() {
     const v = s[k];
     const danger = dangerStats[k] ? ' danger' : '';
     const note = dangerStats[k]
-      ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'In the danger zone')}">⚠️ danger</span>` : '';
+      ? ` <span class="dangerNote" title="${escapeHtml(dangerStats[k].ending || 'The situation has turned critical')}">⚠️ critical</span>` : '';
     parts.push(`<div class="stateItem${danger}"><b>${humanize(k)}</b>: ${v}${note}</div>`);
   }
 
@@ -614,7 +621,7 @@ function renderTimer() {
     el.timer.textContent = '—';
     if (!window.__timeUpNoticed) {
       window.__timeUpNoticed = true;
-      el.narrative.textContent += '\n\n⏱️ Recommended wrap-up: 60 minutes have passed. If your team isn\u2019t done, that\u2019s fine — keep going until you reach a resolution (win, collapse, or you decide to stop).';
+      el.narrative.textContent += '\n\n⏱️ Recommended wrap-up: 60 minutes have passed. If your team isn\u2019t done, that\u2019s fine — keep going until you resolve the story (or you decide to stop).';
     }
   }
 }
@@ -653,6 +660,7 @@ function renderReport(report) {
     ? (report.success_kind === 'story' ? 'Success — the story resolves' : 'Success — goal achieved')
     : report.result === 'loss' ? 'Loss — the collapse' : report.result || undefined);
   if (report.win_summary) add('How it reads', report.win_summary);
+  if (report.collapsed) add('Critical state', 'The situation collapsed into crisis during the run (not a loss — the story was still resolved).');
   add('Ending', report.ending || 'No end condition recorded');
   add('Turns', report.turns);
   add('Duration (min)', report.duration_minutes ?? '—');

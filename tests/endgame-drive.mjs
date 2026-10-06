@@ -133,19 +133,26 @@ if (Array.isArray(scen.beats) && scen.beats.length) {
     advEnd ? `${advEnd.result} (quality=${advEnd.win_quality || '-'})` : 'no end');
 }
 
-// ---- LOSS: narrative collapse ----------------------------------------------
+// ---- COLLAPSE (NOT a loss): all-zero metrics must still play the story -----
+// Dan's design (2026-10-05): the narrative collapse is in-story pressure, not a
+// terminal loss. Even with every metric at 0 the session must keep playing so
+// the story can resolve.
 const lossCond = (scen.end_conditions || []).find((c) => c.type === 'stat' && (c.result === undefined || c.result === 'loss'));
 const lossStats = lossCond ? (lossCond.stats || [lossCond]).map((x) => x.stat) : ['public_trust', 'regulator_confidence'];
 const consec = (lossCond && lossCond.consecutive) || 2;
 {
-  const lossDelta = {};
-  for (const st of lossStats) lossDelta[st] = -15; // drive into the <=20 failure zone
-  const { end: lossEnd, s: lossS } = await drive(makeProgrammable(() => lossDelta));
-  record('LOSS reached (narrative collapse)', !!lossEnd && lossEnd.result === 'loss', lossEnd ? lossEnd.type : 'no end');
-  if (lossEnd) {
-    record('loss ending is the authored collapse text', lossEnd.ending === (lossCond && lossCond.ending), lossEnd.ending ? String(lossEnd.ending).slice(0, 50) + '...' : '-');
-    record('collapse fired only after the consecutive streak', lossS.turn >= consec, `ended turn ${lossS.turn}`);
-  }
+  const collapseDelta = {};
+  for (const st of lossStats) collapseDelta[st] = -15; // drive into the failure zone
+  const { end: collapseEnd, s: collapseS } = await drive(makeProgrammable(() => collapseDelta), { turns: 5 });
+  record('all-zero metrics do NOT end the session as a loss', !collapseEnd, collapseEnd ? `ended ${collapseEnd.type}/${collapseEnd.result}` : `still playing after ${collapseS.turn} turns`);
+  record('collapse is flagged as in-story pressure', collapseS.isCollapsed() && collapseS.collapsed, `collapsed=${collapseS.collapsed} turn=${collapseS.turn}`);
+  record('the run keeps playing past the collapse streak', collapseS.turn > consec, `${collapseS.turn} turns > ${consec}`);
+  // And it can still WIN the story from that fully-collapsed state.
+  collapseS.attackChain.forEach((st) => { st.contained = true; st.revealed = true; });
+  const rescue = collapseS._checkEnd();
+  record('a fully-collapsed run can still WIN the story (costliest tier)',
+    !!rescue && rescue.result === 'success' && rescue.success_kind === 'story' && rescue.win_quality === 'costly',
+    rescue ? `${rescue.result}/${rescue.success_kind}/${rescue.win_quality}` : 'no end');
 }
 
 // ---- TIMEOUT ---------------------------------------------------------------

@@ -185,6 +185,11 @@ video {
 .arcStep.active .arcMark { color: #7ea2ff; }
 .arcStep.todo { color: #6b7690; }
 .objHint { font-size: 11px; color: #7f8aa3; line-height: 1.4; border-top: 1px solid #ffffff11; padding-top: 8px; }
+.objCollapse {
+  font-size: 12px; line-height: 1.45; color: #ffd9a0;
+  background: #3a2a1044; border: 1px solid #f5c54255; border-radius: 8px;
+  padding: 8px 10px; margin: 4px 0 10px;
+}
 
 #log { max-height: 240px; overflow-y: auto; }
 .logItem { font-size: 13px; padding: 8px 10px; margin: 5px 0; }
