@@ -779,7 +779,7 @@ function renderTimer() {
     el.timer.textContent = '—';
     if (!window.__timeUpNoticed) {
       window.__timeUpNoticed = true;
-      el.narrative.textContent += '\n\n⏱️ Recommended wrap-up: 60 minutes have passed. If your team isn\u2019t done, that\u2019s fine — keep going until you resolve the story (or you decide to stop).';
+      el.narrative.textContent += '\n\n⏱️ Recommended wrap-up: 60 minutes have passed. If your team isn\u2019t done, that\u2019s fine — keep going until you resolve the story, or click \u201cEnd exercise\u201d to close it out now.';
     }
   }
 }
@@ -800,6 +800,71 @@ function finish(endCondition) {
   // Session is over: drop the resumable snapshot so a refresh doesn't offer to
   // resume a finished game.
   clearSessionSnapshot();
+
+  // Dan (2026-10-07): end with a splash. A story WIN gets a proper victory
+  // splash; every other terminal outcome (ended / loss / timeout) gets a
+  // quieter "session ended" splash so no run just dumps the group onto a
+  // utilitarian report page. The full report is one click away.
+  showSplash(endCondition, report);
+}
+
+/**
+ * Show the terminal splash overlay. Victory (success) gets the celebratory
+ * treatment; ended/loss/timeout get the muted "session ended" treatment.
+ * Dan's design (2026-10-05): a stat collapse is NOT a loss, so the only
+ * non-success terminal states are the group ending it, or the clock running out.
+ */
+function showSplash(endCondition, report) {
+  const splash = $('splash');
+  if (!splash) return;
+  const result = (endCondition && endCondition.result) || 'ended';
+  const isWin = result === 'success';
+  const isLoss = result === 'loss';
+
+  splash.classList.toggle('ended', !isWin && !isLoss);
+  splash.classList.toggle('loss', isLoss);
+
+  $('splashGlyph').textContent = isWin ? '🏆' : isLoss ? '⛔' : '🏁';
+  $('splashTitle').textContent = isWin ? 'Victory' : isLoss ? 'Defeat' : 'Session ended';
+
+  const scenarioName = (state.scenario && state.scenario.title) || report.scenario || '';
+  $('splashSub').textContent = scenarioName ? `${scenarioName} — complete` : 'Complete';
+
+  // Win quality tier (decisive / solid / costly) or the reason it ended.
+  const tier = (endCondition && endCondition.win_quality) || null;
+  const tierEl = $('splashTier');
+  if (isWin && tier) {
+    tierEl.textContent = tier === 'decisive' ? 'Decisive win'
+      : tier === 'solid' ? 'Solid win' : 'Hard-won win';
+    tierEl.style.display = '';
+  } else if (!isWin) {
+    const reason = (endCondition && endCondition.type) === 'timeout' ? 'Time expired'
+      : isLoss ? 'The collapse' : 'Concluded by the group';
+    tierEl.textContent = reason;
+    tierEl.style.display = '';
+  } else {
+    tierEl.style.display = 'none';
+  }
+
+  $('splashSummary').textContent = report.win_summary || report.ending || '';
+
+  // Final state at a glance: show the metric values with traffic-light colour.
+  const statsEl = $('splashStats');
+  statsEl.innerHTML = '';
+  const labels = { public_trust: 'Trust', regulator_confidence: 'Regulator', containment: 'Containment', eradication: 'Eradication', recovery: 'Recovery', security_posture: 'Security' };
+  const finalState = report.final_state || {};
+  for (const [k, v] of Object.entries(finalState)) {
+    if (typeof v !== 'number') continue;
+    const d = document.createElement('div');
+    d.className = 'splashStat ' + trafficLight(v);
+    d.innerHTML = `<div class="v">${v}</div><div class="k">${escapeHtml(labels[k] || k)}</div>`;
+    statsEl.appendChild(d);
+  }
+
+  $('splashContinue').onclick = () => { splash.style.display = 'none'; };
+  $('splashNew').onclick = () => { splash.style.display = 'none'; showScenarioSelect(); };
+
+  splash.style.display = 'flex';
 }
 
 function renderReport(report) {

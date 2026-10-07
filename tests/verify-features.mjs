@@ -326,6 +326,9 @@ const playUI = await page.evaluate(() => ({
   capGone: !document.getElementById('playCapability'),
   modGone: !document.getElementById('rollModifier'),
   d20CardGone: !document.getElementById('roll') && !document.getElementById('useManual'),
+  splash: !!document.getElementById('splash'),
+  splashTitle: !!document.getElementById('splashTitle'),
+  splashContinue: !!document.getElementById('splashContinue'),
 }));
 check('play phase has a timer', playUI.timer);
 check('play phase has an action textarea', playUI.actionText);
@@ -337,6 +340,7 @@ check('play phase has an end-exercise (manual conclude) button', playUI.endBtn);
 check('play phase has a manual roll input beside Submit', playUI.manualRoll);
 check('Breach Status section is removed', playUI.breachGone && playUI.chainGone && playUI.capGone && playUI.modGone);
 check('D20 roll/useManual buttons removed (merged into Submit)', playUI.d20CardGone);
+check('Victory/ending splash overlay is present', playUI.splash && playUI.splashTitle && playUI.splashContinue);
 
 console.log('ERRORS:', errors.length ? errors : 'none');
 console.log(`\n${passed} passed, ${failed} failed`);

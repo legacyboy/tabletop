@@ -242,3 +242,74 @@ code { color: #8be9fd; }
   .wide { grid-column: auto; }
   header { flex-direction: column; align-items: flex-start; }
 }
+
+/* ===== Victory / ending splash ===== */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 30%, #12224a 0%, #060a15 70%);
+  backdrop-filter: blur(3px);
+  animation: splashFade 0.35s ease-out;
+}
+@keyframes splashFade { from { opacity: 0; } to { opacity: 1; } }
+.splashCard {
+  width: min(680px, 100%);
+  text-align: center;
+  padding: 36px 32px 28px;
+  border-radius: 18px;
+  border: 1px solid #ffffff26;
+  background: linear-gradient(180deg, #16233d 0%, #0e1729 100%);
+  box-shadow: 0 24px 80px #000a, 0 0 0 1px #ffffff10 inset;
+  animation: splashRise 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+@keyframes splashRise { from { transform: translateY(18px) scale(0.97); opacity: 0; } to { transform: none; opacity: 1; } }
+.splashGlyph { font-size: 64px; line-height: 1; margin-bottom: 6px; animation: splashPop 0.5s 0.05s backwards; }
+@keyframes splashPop { from { transform: scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }
+.splashTitle {
+  font-size: 42px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin: 4px 0 2px;
+  color: #7dfcb0;
+  text-shadow: 0 0 24px #35e18a66;
+}
+.splashSub { color: #cfe0f5; font-size: 15px; margin-bottom: 10px; }
+.splashTier {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  border: 1px solid #7dfcb055;
+  color: #7dfcb0;
+  background: #7dfcb012;
+}
+.splashSummary { color: #c8d4e6; max-width: 52ch; margin: 0 auto 18px; }
+.splashStats { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.splashStat {
+  min-width: 88px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #ffffff0a;
+  border: 1px solid #ffffff14;
+}
+.splashStat .v { font-size: 22px; font-weight: 700; }
+.splashStat .k { font-size: 11px; color: #93a4bd; text-transform: uppercase; letter-spacing: 0.5px; }
+.splashStat.green .v { color: #7dfcb0; }
+.splashStat.yellow .v { color: #ffd76e; }
+.splashStat.red .v { color: #ff8a8a; }
+.splashRow { justify-content: center; }
+
+/* Loss / ended variants: muted, no confetti energy. */
+.splash.ended .splashTitle { color: #ffb4a2; text-shadow: 0 0 22px #ff8a6e55; }
+.splash.ended .splashTier { color: #ffb4a2; border-color: #ffb4a255; background: #ffb4a212; }
+.splash.ended .splashCard { border-color: #ff8a6e33; }
+.splash.loss .splashTitle { color: #ff8a8a; text-shadow: 0 0 22px #ff555555; }
+.splash.loss .splashTier { color: #ff8a8a; border-color: #ff8a8a55; background: #ff8a8a12; }
