@@ -69,10 +69,13 @@ const ACTIONS = {
 };
 
 const ROSTER = [
-  { key: 'blitz', label: 'BLITZ (~5-6 actions/turn)', max: 5, rolls: [12, 13, 14, 15, 16] },
-  { key: 'normal', label: 'NORMAL (2-3 actions/turn)', max: 6, rolls: [12, 13, 14, 15, 16, 17] },
-  { key: 'slow', label: 'SLOW (1 action/turn)', max: 8, rolls: [13, 14, 15, 16, 17, 18, 13, 14] },
-  { key: 'really_slow', label: 'REALLY SLOW (1 action + dithering)', max: 10, rolls: [13, 14, 15, 16, 17, 18, 13, 14, 15] },
+  // Rolls deliberately span the WHOLE D20 - crit fails, failures, mixed, and
+  // crit successes - so the fate table's bad AND good branches are exercised
+  // (Dan, 2026-10-07: "are you rolling failure and success when testing?").
+  { key: 'blitz', label: 'BLITZ (~5-6 actions/turn)', max: 5, rolls: [3, 14, 20, 7, 11] },
+  { key: 'normal', label: 'NORMAL (2-3 actions/turn)', max: 6, rolls: [1, 12, 17, 5, 20, 9] },
+  { key: 'slow', label: 'SLOW (1 action/turn)', max: 8, rolls: [1, 7, 14, 5, 20, 11, 17, 9] },
+  { key: 'really_slow', label: 'REALLY SLOW (1 action + dithering)', max: 10, rolls: [5, 11, 1, 14, 7, 20, 9, 17, 5] },
 ];
 
 const countActions = (t) => {
@@ -103,12 +106,15 @@ for (const run of ROSTER) {
     const beat = s.beats[s.currentBeatIndex]?.id || '-';
     rows.push({
       turn: s.turn,
+      roll,
       actions: countActions(action),
       narrativeChars: (res.narrative || '').length,
       metricsMoved: changed,
       beat,
       verdict,
       fate: res.event?.fate ? true : false,
+      // Did the ENGINE move the arc itself this turn (BEAT_STALL_MAX guard)?
+      autoAdvanced: s.beatAutoAdvanced === true,
     });
     if (res.endCondition) end = res.endCondition;
   }
@@ -116,7 +122,7 @@ for (const run of ROSTER) {
   results.push({ run: run.label, key: run.key, rows, end, turns: s.turn, session: s });
   console.log(`\n=== ${run.label} — ${s.turn} turns, ended=${end ? end.result : 'no'} ===`);
   for (const r of rows) {
-    console.log(`  t${r.turn} actions~${r.actions} narrative=${r.narrativeChars}ch metricsMoved=${r.metricsMoved} beat=${r.beat} fate=${r.fate ? 'Y' : 'n'} verdict=${r.verdict}`);
+    console.log(`  t${r.turn} roll=${String(r.roll).padStart(2)} actions~${r.actions} narrative=${r.narrativeChars}ch metricsMoved=${r.metricsMoved} beat=${r.beat} fate=${r.fate ? 'Y' : 'n'} autoAdv=${r.autoAdvanced ? 'Y' : 'n'} verdict=${r.verdict}`);
   }
 }
 
@@ -142,6 +148,30 @@ for (const r of all) { num += (r.actions - mx) * (r.narrativeChars - my); dx += 
 const corr = num / Math.sqrt(dx * dy);
 console.log(`\n  Pearson r (action count vs narrative length), all ${all.length} turns: ${corr.toFixed(3)}`);
 console.log(`  ${corr > 0.3 ? 'PASS' : corr > 0 ? 'weak' : 'FAIL'} — the world's response ${corr > 0.3 ? 'scales with' : 'does NOT clearly scale with'} the group's effort.`);
+
+// ---- Roll coverage: did we actually test failure AND success? ----
+console.log('\n  ---- ROLL COVERAGE ----');
+const rolls = all.map((r) => r.roll).sort((a, b) => a - b);
+const bad = rolls.filter((r) => r <= 5).length;
+const mid = rolls.filter((r) => r > 5 && r < 17).length;
+const good = rolls.filter((r) => r >= 17).length;
+console.log(`  rolls used: [${rolls.join(', ')}]`);
+console.log(`  bad (<=5): ${bad}   mid (6-16): ${mid}   good (>=17): ${good}`);
+console.log(`  ${bad > 0 && good > 0 ? 'PASS' : 'FAIL'} — failure and success were BOTH exercised.`);
+const fates = all.filter((r) => r.fate).length;
+console.log(`  fate events fired: ${fates} of ${all.length} turns`);
+const autoAdv = all.filter((r) => r.autoAdvanced).length;
+console.log(`  engine auto-advanced the arc (BEAT_STALL_MAX guard): ${autoAdv} of ${all.length} turns`);
+
+// ---- Did bad rolls actually hurt, and good rolls actually help? ----
+console.log('\n  ---- DOES THE ROLL MATTER? (avg narrative length + metrics moved by roll band) ----');
+for (const [band, pred] of [['bad (<=5)', (r) => r.roll <= 5], ['mid (6-16)', (r) => r.roll > 5 && r.roll < 17], ['good (>=17)', (r) => r.roll >= 17]]) {
+  const set = all.filter(pred);
+  if (!set.length) { console.log(`  ${band}: (no turns)`); continue; }
+  const avgN = Math.round(mean(set.map((r) => r.narrativeChars)));
+  const avgM = mean(set.map((r) => r.metricsMoved)).toFixed(1);
+  console.log(`  ${band.padEnd(12)} turns=${set.length}  avgNarrative=${avgN}ch  avgMetricsMoved=${avgM}`);
+}
 
 // Does the dithering (no-progress) run still reach resolution rather than stalling out?
 const rs = results.find((r) => r.key === 'really_slow');
