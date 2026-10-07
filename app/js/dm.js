@@ -232,7 +232,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '- NEVER RETURN A NO-OP NARRATIVE. The narrative MUST concretely respond to the group\u2019s action: acknowledge and address each coordinated action they took and its immediate consequence. It MUST introduce at least one NEW, concrete development (new information, an actor/regulator/media reaction, a complication, a deadline) that leaves the group facing something specific to react to. Every turn the world must measurably move forward or sideways.',
     '- A no-op narrative is FORBIDDEN. The response must NEVER say or imply that "nothing happened", "nothing responded", "the situation is unchanged", "the story continues", "no immediate development/response", "they are still waiting", "didn\u2019t do anything", or any equivalent. If the group did something (anything), the world MUST react to it concretely. Reacting to the action and developing the world with EVENTS is REQUIRED and is NOT the same as prescribing/directing the next action (which stays forbidden).',
     '- Judge the group\u2019s actions fairly and realistically for this organization. Address each of the coordinated actions in your response.',
-    '- The D20 roll you receive reflects the overall outcome quality of the turn. Every roll 1-20 now carries a SCRIPTED fate event, which you are given each turn. Treat that fate as the AUTHORITATIVE outcome of the die: weave its twist into the narrative, and align the tone and the size of the metric change with it (1-5 = the turn goes badly, 6-8 = mixed/partial, 9-14 = a good outcome, 15-19 = strong, 20 = outstanding). Your judgment shapes HOW it plays out and what follows, not WHETHER the die succeeded.',
+    '- The D20 roll you receive reflects the overall outcome quality of the turn. Every roll 1-20 carries SCRIPTED guidance, which you are given each turn. Treat that guidance as the AUTHORITATIVE outcome of the die: weave it into the narrative, and align the tone and the size of the metric change with it (1-5 = the turn goes badly, 6-8 = mixed/partial, 9-14 = a good outcome, 15-19 = strong, 20 = outstanding). Your judgment shapes HOW it plays out and what follows, not WHETHER the die succeeded. Only rolls 1-5 and 20 are FRAMED as dramatic fate events in the fiction (a disaster or a triumph); treat 6-19 as ordinary turns that simply resolve well, badly, or in between — do not make every turn feel like a scripted set-piece.',
     '- Make the world respond concretely: consequences, reactions from actors/regulators/media, resource changes, new complications. Keep it tense and believable.',
     '- Narrative responses should be vivid and forward-driving, roughly 4-7 sentences: what happened, the consequences, AND what now presses on the group as the story moves to its next step.',
     '',
@@ -298,10 +298,24 @@ function buildSystemPrompt(scenario, opts = {}) {
   ].join('\n') + cast;
 }
 
+/**
+ * A fate roll is "notable" (worth announcing as a FATE EVENT) only on the
+ * dramatic faces: the fail band (1-5) and the critical success (20). The
+ * ordinary middle/high rolls (6-19) still carry scripted guidance, but it is
+ * woven in as the normal outcome of the turn — not flagged as a special event.
+ * Dan (2026-10-07): "a fate event every turn is over doing it."
+ */
+export function isNotableFate(roll) {
+  const r = Number(roll);
+  return Number.isFinite(r) && (r <= 5 || r === 20);
+}
+
 /** Build the user turn for the DM. */
 function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
   const fateLine = fate
-    ? `The roll of ${roll} lands on a scripted fate event: "${fate.twist}". Weave this into the outcome.`
+    ? (isNotableFate(roll)
+        ? `The roll of ${roll} lands on a scripted fate event: "${fate.twist}". Weave this into the outcome.`
+        : `The roll of ${roll} resolves ordinarily. Guidance for this outcome (do not announce it as a special event; just let it read as the natural result): "${fate.twist}".`)
     : '';
   const eventLine = firedEvents && firedEvents.length
     ? `A pre-compiled event fires this turn: ${firedEvents.map((e) => `"${e.text}"`).join(' ')} Weave it into the outcome and apply its consequences.`
@@ -720,7 +734,12 @@ export class DMSession {
       // action. Null for the opening scene / unattributed play.
       player: player || null,
       roll,
-      fate: fate ? fate.twist : null,
+      // Only surface a `fate` on the dramatic faces (1-5, 20) so the UI/log
+      // headlines a FATE EVENT for those turns only. Middle rolls still had
+      // scripted guidance (already woven into the narrative) but are not
+      // announced as special events. Dan (2026-10-07).
+      fate: fate && isNotableFate(roll) ? fate.twist : null,
+      fate_notable: !!(fate && isNotableFate(roll)),
       events: firedEvents.map((e) => e.id),
       narrative,
       state: clone(this.state),
