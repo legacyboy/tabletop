@@ -5,11 +5,7 @@
  * conveniences:
  *
  *   1. Static file serving (dev convenience) -> http://localhost:8000
- *   2. GET /api/company?url=<url>   A CORS workaround for the optional company
- *      info feature. Browsers block cross-origin fetches to many sites, so
- *      this proxy fetches the page server-side and returns a small readable
- *      summary. This endpoint is optional and only used when a scenario sets
- *      a company_url AND the browser-side fetch is blocked.
+ *   2. The /api/* routes backed by ./api.js (session persistence, report export).
  *
  * Run:  npm start   (or)   node server/serve.js [port]
  */
@@ -57,36 +53,6 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
-async function companyProxy(req, res, url) {
-  const target = new URL(url);
-  if (!/^https?:$/.test(target.protocol)) {
-    res.writeHead(400, { 'Content-Type': 'text/plain' });
-    return res.end('Only http/https URLs are allowed.');
-  }
-
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 12000);
-  try {
-    const upstream = await fetch(target, { signal: ctrl.signal, headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0' } });
-    clearTimeout(t);
-    const html = await upstream.text();
-    const title = (html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '';
-    const desc =
-      (html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i) || [])[1] ||
-      (html.match(/<meta\s+content=["']([^"']*)["']\s+name=["']description["']/i) || [])[1] || '';
-    const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
-    const summary = [clean(title) && `Title: ${clean(title)}`, clean(desc) && `Description: ${clean(desc)}`]
-      .filter(Boolean)
-      .join('\n');
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
-    res.end(summary || `Fetched ${target} but found no readable summary.`);
-  } catch {
-    clearTimeout(t);
-    res.writeHead(502, { 'Content-Type': 'text/plain' });
-    res.end('Could not fetch that URL (blocked, unreachable, or timed out).');
-  }
-}
-
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = decodeURIComponent(url.pathname);
@@ -97,10 +63,6 @@ const server = createServer(async (req, res) => {
     if (handled) return;
   }
 
-  if (pathname === '/api/company') {
-    return companyProxy(req, res, url.searchParams.get('url') || '');
-  }
-
   serveStatic(req, res, pathname);
 });
 
@@ -108,6 +70,6 @@ server.listen(PORT, async () => {
   const restored = await restoreSessions();
   console.log(`Executive Tabletop D20 -> http://localhost:${PORT}`);
   console.log(`Restored ${restored} persisted session(s).`);
-  console.log('Company-info proxy available at /api/company?url=<url> (optional)');
+  console.log('Serving the tabletop app (static + /api).');
   console.log('API: /api/scenarios, /api/session, /api/session/:id/turn, /api/session/:id/report');
 });

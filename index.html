@@ -39,9 +39,15 @@
       </section>
       <aside class="card">
         <h2>Setup</h2>
+        <p class="muted small">
+          Fill in the names and details below, then start. Anything you enter is
+          woven into the case as it plays — leave a field blank to keep the
+          scenario's own default.
+        </p>
+        <div id="castFields"></div>
         <button id="startButton" class="primary">Start the session</button>
         <button id="changeScenario" class="ghost">Change scenario</button>
-        <div id="companyNote" class="muted small"></div>
+        <div id="castNote" class="muted small"></div>
       </aside>
       <section class="card full">
         <h2>The case</h2>
@@ -160,15 +166,6 @@
           When unchecked, your key is kept only in memory and is forgotten when you
           close this tab. It is never sent to this app's host either way.
         </p>
-
-        <label class="check">
-          <input id="allowCompanyFetch" type="checkbox" checked />
-          Allow the DM to fetch public info about the company URL below (best-effort)
-        </label>
-
-        <label id="companyUrlWrap">Company URL (for DM context)
-          <input id="companyUrl" type="text" placeholder="https://example.com" />
-        </label>
 
         <div class="row">
           <button id="saveSettings" class="primary">Save</button>

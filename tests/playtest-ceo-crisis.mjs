@@ -23,7 +23,7 @@ mkdirSync(OUT, { recursive: true });
 const scenario = JSON.parse(readFileSync(ROOT + 'scenarios/bramble-badger-deepfake/scenario.json', 'utf8'));
 const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
 const s = new DMSession(provider, scenario);
-s.companyInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
+s.castInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
 
 // A realistic, coordinated-but-imperfect run: strong comms early, but the group
 // is a little slow to eradicate and never quite closes the "spread" stage —

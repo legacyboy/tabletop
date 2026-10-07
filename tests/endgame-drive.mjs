@@ -74,7 +74,7 @@ function makeProgrammable(plan) {
 
 async function drive(provider, { turns = 12 } = {}) {
   const s = new DMSession(provider, loadScenario());
-  s.companyInfo = 'A mid-sized member-owned credit union.';
+  s.castInfo = 'A mid-sized member-owned credit union.';
   await s.openScene();
   let end = null;
   for (let i = 0; i < turns && !end; i++) {
@@ -247,7 +247,7 @@ try {
   const { OpenAICompatibleProvider } = await import('../app/js/providers/openai-compatible.js');
   const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
   const s = new DMSession(provider, loadScenario());
-  s.companyInfo = 'A mid-sized member-owned credit union.';
+  s.castInfo = 'A mid-sized member-owned credit union.';
   const open = await s.openScene();
   record('real model opening ok', !!open && open.trim().length > 100, `${open.length} chars`);
   // Play deliberately BADLY to try to reach a loss/collapse with the real model.

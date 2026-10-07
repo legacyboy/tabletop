@@ -89,7 +89,7 @@ const results = [];
 
 for (const run of ROSTER) {
   const s = new DMSession(provider, scenario);
-  s.companyInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
+  s.castInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
   await s.openScene();
 
   const rows = [];

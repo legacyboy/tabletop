@@ -24,7 +24,7 @@ for (const [dir, title] of SCENARIOS) {
   const scenario = JSON.parse(readFileSync(ROOT + 'scenarios/' + dir + '/scenario.json', 'utf8'));
   const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
   const s = new DMSession(provider, scenario);
-  s.companyInfo = 'A mid-sized member-owned credit union.';
+  s.castInfo = 'A mid-sized member-owned credit union.';
 
   console.log(`\n${line('#')}\n#  ${title}  (${dir})\n${line('#')}\n`);
   const open = await s.openScene();

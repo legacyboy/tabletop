@@ -43,7 +43,7 @@ function hideBaseUrl() {
 }
 
 export function initSettings() {
-  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'modelSelect', 'allowCompanyFetch', 'companyUrl', 'rememberKey',
+  ['providerSelect', 'preset', 'apiKey', 'baseUrl', 'baseUrlWrap', 'model', 'modelSelect', 'rememberKey',
    'saveSettings', 'testConnection', 'settingsStatus', 'settingsSummary',
    'settingsBack', 'companyFetchHint',
   ].forEach((id) => { el[id] = $(id); });
@@ -97,8 +97,6 @@ export function initSettings() {
     current.apiKey = sanitizeApiKey(el.apiKey.value);
     current.baseUrl = el.baseUrl.value.trim();
     current.model = el.model.value.trim();
-    current.allowCompanyFetch = el.allowCompanyFetch.checked;
-    current.companyUrl = el.companyUrl.value.trim();
     current.rememberKey = el.rememberKey.checked;
 
     // The selected preset is the source of truth for routing (the DeepSeek
@@ -211,8 +209,6 @@ function renderDynamic() {
     el.baseUrl.value = current.baseUrl;
     el.model.value = current.model;
     el.apiKey.value = current.apiKey;
-    el.allowCompanyFetch.checked = current.allowCompanyFetch;
-    el.companyUrl.value = current.companyUrl;
     el.rememberKey.checked = current.rememberKey;
     el.baseUrl.dataset.touched = '1';
   }

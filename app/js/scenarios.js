@@ -1,17 +1,10 @@
 /**
- * Scenario loading + optional live company-info enrichment.
+ * Scenario loading + pre-scenario cast substitution.
  *
  * Scenarios are listed in scenarios/registry.json and stored as standalone
- * JSON files. The loader fetches them, validates their v2 shape, and can pull
- * public company information when a scenario provides a company_url.
- *
- * Company fetch is best-effort: cross-origin requests to arbitrary sites are
- * often blocked by CORS in the browser. When that happens we fall back to any
- * static company_info in the scenario, and surface a gentle notice so the
- * moderator can paste info manually if they want.
+ * JSON files. The loader fetches them, validates their v2/v3/v4 shape, and lets
+ * the moderator fill in names/details up front (see applyCast / castBrief).
  */
-
-import { loadSettings } from './providers/registry.js';
 
 const REGISTRY_PATH = 'scenarios/registry.json';
 
@@ -89,8 +82,6 @@ export function randomScenarioShell() {
     intro: {
       video: '',
       narrative: 'The DM will generate the opening scene for this session.',
-      company_url: '',
-      company_info: '',
     },
     opening_state: {
       budget: 70,
@@ -145,66 +136,74 @@ export async function loadScenario(path) {
 }
 
 /**
- * Best-effort fetch of public info about the organization, to enrich the DM's
- * context with real company details. Returns a string on success, or null when
- * blocked/bypassed. Never throws.
+ * Pre-scenario cast & detail substitution.
  *
- * The URL comes from the user-entered companyUrl in settings when set
- * (overriding the scenario's own intro.company_url), else from
- * scenario.intro.company_url. When neither is present, or when
- * allowCompanyFetch is disabled, returns null without fetching.
+ * Dan: instead of fetching public info, the moderator enters names and details
+ * up front (e.g. the CIO is "Jeff"). Those values are woven into the scenario
+ * before play: any text field containing a {{token}} placeholder is filled in,
+ * and the whole cast is handed to the DM as context so it can refer to people
+ * and the org by name naturally.
  *
- * Tries a direct browser fetch first (some sites allow CORS); if that fails
- * (blocked), falls back to the optional local proxy at /api/company (the tiny
- * Node server), which fetches server-side and avoids CORS entirely.
+ * Placeholder syntax: {{key}} (also accepts {{key|fallback}}). Unknown or
+ * blank values fall back to the scenario's authored default, or the fallback
+ * text after a pipe, or are left as an empty string.
  */
-export async function fetchCompanyInfo(scenario, opts = {}) {
-  const settings = loadSettings();
-  if (!settings.allowCompanyFetch) return null;
 
-  // Prefer the user-entered URL (explicit opt-in), else the scenario's.
-  const userUrl = opts.companyUrl || settings.companyUrl || '';
-  const url = (userUrl || '').trim() || (scenario.intro && scenario.intro.company_url);
-  if (!url) return null;
-
-  return (await directFetch(url)) || (await proxyFetch(url));
+/** Deep-clone a JSON value (scenario trees are plain data). */
+function clone(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-async function directFetch(url) {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 8000);
-    const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'text/html' } });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    return summarize(await res.text());
-  } catch {
-    return null;
-  }
+/**
+ * Replace {{key}} / {{key|fallback}} tokens in a string using the supplied
+ * values map. Blank or missing values use the fallback, else ''.
+ */
+export function fillTemplate(text, values = {}) {
+  if (typeof text !== 'string' || text.indexOf('{{') === -1) return text;
+  return text.replace(/\{\{\s*([\w.-]+)\s*(?:\|([^}]*))?\}\}/g, (m, key, fallback) => {
+    const v = values[key];
+    if (v !== undefined && v !== null && String(v).trim() !== '') return String(v);
+    if (fallback !== undefined) return fallback.trim();
+    return '';
+  });
 }
 
-async function proxyFetch(url) {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 12000);
-    const res = await fetch('/api/company?url=' + encodeURIComponent(url), { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    const text = (await res.text()).trim();
-    return text || null;
-  } catch {
-    return null;
-  }
+/** Recursively fill every string in a scenario tree. Returns a new object. */
+export function applyCast(scenario, values = {}) {
+  const walk = (node) => {
+    if (typeof node === 'string') return fillTemplate(node, values);
+    if (Array.isArray(node)) return node.map(walk);
+    if (node && typeof node === 'object') {
+      const out = {};
+      for (const k of Object.keys(node)) out[k] = walk(node[k]);
+      return out;
+    }
+    return node;
+  };
+  return walk(clone(scenario));
 }
 
-function summarize(html) {
-  const title = (html.match(/<title[^>]*>([^<]*)<\/title>/i) || [])[1] || '';
-  const desc =
-    (html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i) || [])[1] ||
-    (html.match(/<meta\s+content=["']([^"']*)["']\s+name=["']description["']/i) || [])[1] || '';
-  const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
-  const info = [clean(title) && `Title: ${clean(title)}`, clean(desc) && `Description: ${clean(desc)}`]
-    .filter(Boolean)
-    .join('\n');
-  return info || null;
+/**
+ * Build a short "who's who" block from the cast, for the DM's context. Only
+ * entries with a label and a value are included. Returns '' when empty.
+ */
+export function castBrief(cast = {}, labels = {}) {
+  const lines = Object.entries(cast)
+    .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '')
+    .map(([k, v]) => `- ${labels[k] || labelFor(k)}: ${String(v).trim()}`);
+  if (!lines.length) return '';
+  return [
+    '## THE CAST (use these names and details exactly)',
+    'The moderator has set these for this session. Refer to people and the organization by these names throughout. Do not invent conflicting names.',
+    ...lines,
+  ].join('\n');
+}
+
+/** Human-readable label for a cast key (camelCase/snake_case -> Title Case). */
+function labelFor(key) {
+  return String(key)
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .trim();
 }

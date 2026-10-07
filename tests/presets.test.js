@@ -93,11 +93,10 @@ check('server-local labeled "Server (local Ollama)"', localDesc.label === 'Serve
 check('server-local detail notes "via server"', localDesc.detail.includes('(via server)'));
 check('remote ollama (no URL) detail notes it is server-routed', remoteDesc.detail.includes('via server (Ollama)'));
 
-// 7. Company URL field is persisted in defaultSettings (for DM context fetch).
+// 7. Company-fetch settings have been removed (replaced by pre-scenario cast).
 const def = defaultSettings();
-check('defaultSettings includes companyUrl', 'companyUrl' in def);
-check('defaultSettings companyUrl defaults to empty string', def.companyUrl === '');
-check('defaultSettings allowCompanyFetch defaults true', def.allowCompanyFetch === true);
+check('defaultSettings no longer includes companyUrl', !('companyUrl' in def));
+check('defaultSettings no longer includes allowCompanyFetch', !('allowCompanyFetch' in def));
 check('defaultSettings rememberKey defaults true (key persisted)', def.rememberKey === true);
 
 // 8. OLLAMA_MODELS dropdown list is exported and well-formed.

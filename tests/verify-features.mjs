@@ -191,27 +191,15 @@ const nonRemote = await page.evaluate(() => ({
 check('non-remote preset HIDES the model dropdown', nonRemote.selectDisplay === 'none');
 check('non-remote preset SHOWS the free-text model input', nonRemote.modelDisplay !== 'none');
 
-// --- Feature 3: company URL field in settings ---
+// --- Feature 3: company-fetch UI has been REMOVED (replaced by pre-scenario cast) ---
 const companyField = await page.evaluate(() => ({
-  hasInput: !!document.getElementById('companyUrl'),
-  placeholder: (document.getElementById('companyUrl') || {}).placeholder || '',
-  checkLabel: (document.getElementById('allowCompanyFetch') || {}).parentElement.textContent || '',
+  hasUrlInput: !!document.getElementById('companyUrl'),
+  hasFetchCheckbox: !!document.getElementById('allowCompanyFetch'),
+  hasCastHost: !!document.getElementById('castFields'),
 }));
-check('settings has a companyUrl input', companyField.hasInput);
-check('companyUrl input placeholder suggests example.com', companyField.placeholder === 'https://example.com');
-check('company fetch checkbox label references the URL field', /company URL below/i.test(companyField.checkLabel));
-
-// The companyUrl field persists across a save + reopen of settings.
-await page.evaluate(() => {
-  document.getElementById('companyUrl').value = 'https://example.org/acme';
-  document.getElementById('allowCompanyFetch').checked = true;
-  document.getElementById('saveSettings').click();
-});
-await new Promise((r) => setTimeout(r, 300));
-await page.evaluate(() => window.dispatchEvent(new CustomEvent('tabletop:refreshsettings')));
-await new Promise((r) => setTimeout(r, 300));
-const persisted = await page.evaluate(() => document.getElementById('companyUrl').value);
-check('companyUrl persists across settings refresh', persisted === 'https://example.org/acme');
+check('settings no longer has a companyUrl input', !companyField.hasUrlInput);
+check('settings no longer has an allowCompanyFetch checkbox', !companyField.hasFetchCheckbox);
+check('intro screen has a cast-fields host for pre-scenario variables', companyField.hasCastHost);
 
 // --- Feature 4: session-only API key ("Don't remember my key") ---
 // The rememberKey checkbox must exist and be checked by default.

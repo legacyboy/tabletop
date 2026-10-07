@@ -187,8 +187,8 @@ function buildSystemPrompt(scenario, opts = {}) {
   const actors = (brief.key_actors || [])
     .map((a) => `- ${a.name} (${a.role}): ${a.interests || ''} ${a.knowledge ? 'Knows: ' + a.knowledge : ''}`)
     .join('\n');
-  const company = opts.companyInfo
-    ? `\n\n## Public company information (from a live source)\n${opts.companyInfo}`
+  const cast = opts.castInfo
+    ? `\n\n${opts.castInfo}`
     : '';
 
   // RANDOM MODE: when the scenario is a generated shell (no pre-authored
@@ -295,7 +295,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '"beat": when the current beat is resolved, the id of the beat the story now moves to (next in the arc, or a later id if the group skipped ahead). null to stay in the current beat.',
     '"beat_quality": how the group handled the beat they just completed ("good", "mixed", "poor"). Only meaningful when a beat just ended; otherwise omit or null.',
     'Only include metrics you actually changed. Return valid JSON and nothing else.',
-  ].join('\n') + company;
+  ].join('\n') + cast;
 }
 
 /** Build the user turn for the DM. */
@@ -359,7 +359,7 @@ export class DMSession {
     }
     this.provider = provider;
     this.scenario = scenario;
-    this.companyInfo = null;  // optional enrichment appended to the DM brief
+    this.castInfo = '';  // optional cast block appended to the DM brief
     this.random = false;       // random mode: DM generates the scenario on the fly
 
     this.state = clone(scenario.opening_state || {});
@@ -492,7 +492,7 @@ export class DMSession {
    * @returns {Promise<string>}
    */
   async openScene() {
-    const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
+    const system = buildSystemPrompt(this.scenario, { castInfo: this.castInfo, random: this.random });
     const user =
       'The session is about to begin. NO group action has been taken yet (this is the opening scene, turn 0).\n' +
       'Narrate the opening scene in vivid, forward-driving prose (4-7 sentences): what has just happened, what the group\n' +
@@ -626,7 +626,7 @@ export class DMSession {
     // Capture the exact system + user prompt sent to the DM and the model's raw
     // reply (before parsing), so the closing report can show the full
     // DM<->player conversation for an auditor. See the event object below.
-    const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
+    const system = buildSystemPrompt(this.scenario, { castInfo: this.castInfo, random: this.random });
     const user = buildUserTurn(this.scenario, this, action, roll, fate, preFired);
     this._paceNote = ''; // consumed by the brief above; cleared so it fires once
 
@@ -1490,8 +1490,7 @@ export class DMSession {
   serialize() {
     return {
       scenario_id: this.scenario.scenario_id,
-      state: clone(this.state),
-      turn: this.turn,
+      state: clone(this.state),      turn: this.turn,
       history: clone(this.history),
       startedAt: this.startedAt,
       durationSeconds: this.durationSeconds,
@@ -1513,6 +1512,7 @@ export class DMSession {
       collapseRecord: clone(this.collapseRecord),
       targetTurn: this.targetTurn,
       totalTurn: this.totalTurn,
+      castInfo: this.castInfo || '',
     };
   }
 
@@ -1546,6 +1546,7 @@ export class DMSession {
     session.collapsed = snapshot.collapsed || false;
     session.lastCollapseTurn = snapshot.lastCollapseTurn ?? -1;
     session.collapseRecord = clone(snapshot.collapseRecord || null);
+    session.castInfo = snapshot.castInfo || '';
     session.tokenUsage = snapshot.tokenUsage
       ? clone(snapshot.tokenUsage)
       : { prompt_tokens: 0, completion_tokens: 0, prompt_estimated: false, completion_estimated: false, calls: 0 };

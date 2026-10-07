@@ -14,7 +14,7 @@
  * before any roll, and the DM receives that action verbatim.
  */
 
-import { loadRegistry, loadScenario, fetchCompanyInfo, isRandomEntry, randomScenarioShell } from './scenarios.js';
+import { loadRegistry, loadScenario, isRandomEntry, randomScenarioShell, applyCast, castBrief } from './scenarios.js';
 import { buildProvider, loadSettings, describeProvider } from './providers/registry.js';
 import { DMSession } from './dm.js';
 
@@ -26,7 +26,8 @@ const state = {
   session: null,
   phase: 'select', // 'select' | 'intro' | 'play' | 'report'
   selectReturn: 'select', // phase the Back button on the select screen returns to
-  companyInfo: null,
+  cast: null,
+  castLabels: {},
   tabId: null, // unique per browser tab, for two-tab detection
   readOnly: false, // true when another tab owns the live session
   arcHidden: false, // true = story arc is fuzzed in the Objective panel (Dan, 2026-10-06)
@@ -88,7 +89,7 @@ async function init() {
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'objectivePanel', 'arcToggle', 'timer', 'reportBody', 'exportReport',
-   'progress', 'moderatorRead', 'companyNote', 'settingsButton',
+   'progress', 'moderatorRead', 'castFields', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
   ].forEach((id) => { el[id] = $(id); });
 
@@ -230,6 +231,73 @@ async function showScenarioSelect() {
   setPhase('select');
 }
 
+/**
+ * Render the pre-scenario cast form on the intro screen. Fields come from the
+ * scenario's optional `cast` array (each { key, label, placeholder }); if the
+ * scenario declares none, nothing is shown. Values are remembered per scenario
+ * in localStorage so a moderator only types them once.
+ */
+function renderCastFields(scenario) {
+  const host = el.castFields;
+  if (!host) return;
+  host.innerHTML = '';
+
+  const fields = Array.isArray(scenario.cast) ? scenario.cast : [];
+  if (!fields.length) {
+    state.cast = {};
+    state.castLabels = {};
+    return;
+  }
+
+  state.cast = loadCast(scenario.scenario_id);
+  state.castLabels = {};
+
+  for (const f of fields) {
+    if (!f || !f.key) continue;
+    state.castLabels[f.key] = f.label || f.key;
+    const wrap = document.createElement('label');
+    wrap.className = 'cast-field';
+    wrap.textContent = f.label || f.key;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'cast_' + f.key;
+    input.placeholder = f.placeholder || '';
+    input.value = state.cast[f.key] || '';
+    input.oninput = () => {
+      state.cast[f.key] = input.value.trim();
+      saveCast(scenario.scenario_id, state.cast);
+      refreshIntroBrief();
+    };
+    wrap.appendChild(input);
+    host.appendChild(wrap);
+  }
+}
+
+/** Re-render the intro case brief with current cast values filled in. */
+function refreshIntroBrief() {
+  if (!state.scenario) return;
+  const filled = applyCast(state.scenario, state.cast || {}).intro || {};
+  el.moderatorRead.textContent = filled.narrative || '';
+}
+
+function castStorageKey(id) {
+  return 'tabletop.dm.cast.v1.' + (id || 'default');
+}
+
+function loadCast(id) {
+  try {
+    return JSON.parse(localStorage.getItem(castStorageKey(id)) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function saveCast(id, cast) {
+  try {
+    localStorage.setItem(castStorageKey(id), JSON.stringify(cast || {}));
+  } catch {}
+}
+
 async function selectScenario(index) {
   const desc = state.registry[index];
   // Random mode: no pre-authored scenario.json — the DM generates the
@@ -257,9 +325,10 @@ async function selectScenario(index) {
     el.introVideo.style.display = 'none';
   }
 
-  // Fresh-company note.
-  el.companyNote.textContent = '';
-  state.companyInfo = null;
+  // Fresh cast note.
+  el.castNote.textContent = '';
+  renderCastFields(scenario);
+  refreshIntroBrief(); // show the case brief with any remembered cast filled in
 
   // Buttons.
   el.startButton.onclick = () => beginSession();
@@ -324,22 +393,20 @@ async function beginSession() {
       return;
     }
 
-    const scenario = state.scenario;
+    const baseScenario = state.scenario;
 
-    // Best-effort company enrichment (does not block play). Uses the
-    // user-entered company URL from settings when present, else the
-    // scenario's intro.company_url. Gated by allowCompanyFetch.
-    const companyUrl = (settings.companyUrl || '').trim() || (scenario.intro.company_url || '');
-    if (companyUrl) {
-      fetchCompanyInfo(scenario, { companyUrl }).then((info) => {
-        state.companyInfo = info;
-        if (state.session) state.session.companyInfo = info;
-        if (info) el.companyNote.textContent = 'Company info fetched: added to DM context.';
-      }).catch(() => {});
-    }
+    // Apply the moderator's pre-scenario cast: fill {{placeholders}} and hand
+    // the names to the DM as context. Non-destructive: builds a new scenario.
+    const cast = state.cast || {};
+    const scenario = applyCast(baseScenario, cast);
+    state.scenario = scenario;
 
     state.session = new DMSession(provider, scenario);
     state.session.onTimerTick = renderTimer;
+    state.session.castInfo = castBrief(cast, state.castLabels || {});
+    if (state.session.castInfo) {
+      el.castNote.textContent = 'Cast applied to this session.';
+    }
     // Random mode: tell the DM to generate the scenario.
     if (state.isRandom) state.session.random = true;
     // A brand-new session supersedes any saved (resumable) snapshot.

@@ -30,7 +30,7 @@ try {
 }
 
 const session = new DMSession(provider, scenario);
-session.companyInfo = 'Bramble Badger Credit Union is a mid-sized member-owned cooperative.';
+session.castInfo = 'Bramble Badger Credit Union is a mid-sized member-owned cooperative.';
 session.start();
 
 const res = await session.takeTurn(

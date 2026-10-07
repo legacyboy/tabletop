@@ -101,7 +101,7 @@ if (BROWSER) {
   // can read max_tokens directly (Ollama path is covered by S1 static checks).
   await page.evaluate(() => {
     localStorage.setItem('tabletop.dm.settings.v1', JSON.stringify({
-      provider: 'openai-compatible', apiKey: '', baseUrl: 'http://localhost:9999/v1', model: 'mock', allowCompanyFetch: false,
+      provider: 'openai-compatible', apiKey: '', baseUrl: 'http://localhost:9999/v1', model: 'mock',
     }));
   });
   await page.reload({ waitUntil: 'networkidle0' });

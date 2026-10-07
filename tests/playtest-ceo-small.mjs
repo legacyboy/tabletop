@@ -20,7 +20,7 @@ const MAX = parseInt(process.argv[2] || '7', 10);
 const scenario = JSON.parse(readFileSync(new URL('../scenarios/bramble-badger-deepfake/scenario.json', import.meta.url), 'utf8'));
 const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
 const s = new DMSession(provider, scenario);
-s.companyInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
+s.castInfo = 'First Meridian Credit Union — a mid-sized member-owned credit union, ~$4B in assets.';
 
 // Deliberately SMALL: one modest move per turn. If the DM behaves, each turn
 // should get roughly one proportionate development, not a cascade.

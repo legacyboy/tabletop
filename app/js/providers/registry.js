@@ -112,9 +112,6 @@ export function defaultSettings() {
     // Key persistence: when true the API key is written to localStorage;
     // when false it is kept only in memory for the current session.
     rememberKey: true,
-    // Company fetch controls
-    allowCompanyFetch: true,
-    companyUrl: '',          // user-provided company URL (overrides scenario intro.company_url)
   };
 }
 

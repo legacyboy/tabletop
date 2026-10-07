@@ -28,7 +28,6 @@ await page.evaluate((mock) => {
     apiKey: '',
     baseUrl: mock,
     model: 'mock',
-    allowCompanyFetch: false,
   }));
 }, MOCK);
 await page.reload({ waitUntil: 'networkidle0' });

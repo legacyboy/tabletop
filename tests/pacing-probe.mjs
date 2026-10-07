@@ -23,7 +23,7 @@ const provider = new OpenAICompatibleProvider({
   baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL,
 });
 const s = new DMSession(provider, loadScenarioLocal());
-s.companyInfo = 'A mid-sized member-owned credit union.';
+s.castInfo = 'A mid-sized member-owned credit union.';
 
 console.log(`\n############ PACING PROBE — ${MODEL} (max ${MAX_TURNS} turns) ############\n`);
 const open = await s.openScene();

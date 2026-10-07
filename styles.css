@@ -233,6 +233,10 @@ label.manual-roll input {
 .option.sel { outline: 2px solid #4bd5ff; }
 code { color: #8be9fd; }
 
+#castFields { display: flex; flex-direction: column; gap: 10px; margin: 7px 0 7px; }
+.cast-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; }
+.cast-field input { width: 100%; padding: 8px 10px; }
+
 @media (max-width: 1000px) {
   .grid { grid-template-columns: 1fr; }
   .wide { grid-column: auto; }

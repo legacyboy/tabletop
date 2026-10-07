@@ -49,7 +49,7 @@ function checkNarrative(tag, n, minLen = 200) {
 function newSession(scenario, opts = {}) {
   const provider = new OpenAICompatibleProvider({ baseUrl: BASE, apiKey: '', model: MODEL });
   const s = new DMSession(provider, scenario);
-  s.companyInfo = opts.companyInfo || 'A mid-sized member-owned credit union.';
+  s.castInfo = opts.companyInfo || 'A mid-sized member-owned credit union.';
   if (opts.random) s.random = true;
   return s;
 }

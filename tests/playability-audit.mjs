@@ -55,7 +55,7 @@ const PLAYBOOK = [
 
 const provider = new OpenAICompatibleProvider({ baseUrl: BASE, apiKey: '', model: MODEL });
 const session = new DMSession(provider, scenario);
-session.companyInfo = 'A mid-sized member-owned credit union.';
+session.castInfo = 'A mid-sized member-owned credit union.';
 
 console.log(`\n############ PLAYABILITY + AUDIT — ${MODEL} / ${SCENARIO_ID} ############\n`);
 

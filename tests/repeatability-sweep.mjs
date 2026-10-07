@@ -26,7 +26,7 @@ for (const entry of registry) {
   for (let i = 0; i < N; i++) {
     const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
     const s = new DMSession(provider, scenario);
-    s.companyInfo = 'A mid-sized member-owned credit union.';
+    s.castInfo = 'A mid-sized member-owned credit union.';
     const opening = await s.openScene();
     totalRuns++;
     if (!endsClean(opening)) {
