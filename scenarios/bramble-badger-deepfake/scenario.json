@@ -268,38 +268,38 @@
       "kind": "crit_fail",
       "twist": "Your first response is a disaster - a rushed holding statement goes out with a line that reads like an insolvency admission, and an internal chat screenshot showing visible panic contradicts it within minutes. The clip's spread rate doubles and members start pulling deposits in earnest.",
       "state_delta": {
-        "public_trust": -12,
-        "containment": -8
+        "public_trust": -9,
+        "containment": -5
       }
     },
     "2": {
       "kind": "fail",
       "twist": "The statement goes out late and defensive, and by the time it lands a bank-run meme is circulating with the fake's 'pause on withdrawals' line attached - deposits are moving faster than anyone can reassure.",
       "state_delta": {
-        "public_trust": -9,
-        "containment": -4
+        "public_trust": -6,
+        "containment": -3
       }
     },
     "3": {
       "kind": "fail",
       "twist": "Your message is drowned out - the fake is now being repeated by a local councillor, and a screenshot of your own holding statement is being read as an admission.",
       "state_delta": {
-        "public_trust": -8,
-        "containment": -3
+        "public_trust": -5,
+        "containment": -2
       }
     },
     "4": {
       "kind": "fail",
       "twist": "The response reads as legalistic and cold; a member's angry post about being 'fobbed off' by the call centre outpaces your statement.",
       "state_delta": {
-        "public_trust": -7
+        "public_trust": -4
       }
     },
     "5": {
       "kind": "fail",
       "twist": "Your move lands badly: the statement reads as cold and legalistic, and a local forum thread pins it as 'corporate non-answer'. Engagement on the fake climbs while yours stalls.",
       "state_delta": {
-        "public_trust": -6
+        "public_trust": -4
       }
     },
     "6": {

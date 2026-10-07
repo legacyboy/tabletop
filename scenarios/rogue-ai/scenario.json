@@ -269,39 +269,38 @@
       "kind": "crit_fail",
       "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature', a screenshot shows the AI generating the very bad advice it was told not to, and the vendor distances itself in public. Trust craters.",
       "state_delta": {
-        "public_trust": -12,
-        "containment": -8
+        "public_trust": -9,
+        "containment": -5
       }
     },
     "2": {
       "kind": "fail",
       "twist": "The response backfires: a defensive statement that the AI is 'working as designed' is screenshotted and read as a confession, and the reporter's story gets a damning headline.",
       "state_delta": {
-        "public_trust": -9,
-        "containment": -4
+        "public_trust": -6,
+        "containment": -3
       }
     },
     "3": {
       "kind": "fail",
       "twist": "A rushed fix breaks something else - the assistant starts refusing legitimate member questions - and both the outage and the original failures make the morning news.",
       "state_delta": {
-        "public_trust": -8,
-        "containment": -3
+        "public_trust": -5,
+        "containment": -2
       }
     },
     "4": {
       "kind": "fail",
       "twist": "The statement reads as corporate and evasive; affected members' stories outpace it, and the bias evidence is now a segment on a national broadcast.",
       "state_delta": {
-        "public_trust": -7
+        "public_trust": -4
       }
     },
     "5": {
       "kind": "fail",
       "twist": "The statement is vague and the AI stays online 'under review', so a fresh batch of wrong outputs surfaces on social media within the hour.",
       "state_delta": {
-        "public_trust": -6,
-        "containment": -3
+        "public_trust": -4
       }
     },
     "6": {

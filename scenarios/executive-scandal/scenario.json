@@ -268,38 +268,38 @@
       "kind": "crit_fail",
       "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board splits openly, and a reporter obtains the leaked complaint the same afternoon. Trust collapses.",
       "state_delta": {
-        "public_trust": -12,
-        "regulator_confidence": -8
+        "public_trust": -9,
+        "regulator_confidence": -5
       }
     },
     "2": {
       "kind": "fail",
       "twist": "The vacuum widens: with no line agreed, two directors give conflicting quotes to the same reporter and the story metastasizes into 'leadership in disarray'.",
       "state_delta": {
-        "public_trust": -9,
-        "regulator_confidence": -4
+        "public_trust": -6,
+        "regulator_confidence": -3
       }
     },
     "3": {
       "kind": "fail",
       "twist": "A procedural misstep - treating the executive as guilty in an internal email that surfaces - hands his lawyer a grievance and hands the press a quote.",
       "state_delta": {
-        "public_trust": -8,
-        "regulator_confidence": -3
+        "public_trust": -5,
+        "regulator_confidence": -2
       }
     },
     "4": {
       "kind": "fail",
       "twist": "The statement lands as bureaucratic and self-protective, and staff start leaking their own hot takes to fill the gap.",
       "state_delta": {
-        "public_trust": -7
+        "public_trust": -4
       }
     },
     "5": {
       "kind": "fail",
       "twist": "The statement leans too hard on 'due process' and reads as cold to staff and the public; a survivor-advocacy group calls it out by name.",
       "state_delta": {
-        "public_trust": -6
+        "public_trust": -4
       }
     },
     "6": {
