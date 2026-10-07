@@ -32,7 +32,6 @@ await page.evaluate(() => {
   document.getElementById('loadScenarioBtn').click();
 });
 await new Promise((r) => setTimeout(r, 800));
-
 // 3. Cast inputs render on the intro screen.
 const cast = await page.evaluate(() => ({
   count: document.querySelectorAll('#castFields input').length,
@@ -70,6 +69,38 @@ await page.evaluate(() => {
 await new Promise((r) => setTimeout(r, 800));
 const remembered = await page.evaluate(() => (document.getElementById('cast_ceo_name') || {}).value || '');
 check('cast value is remembered across reloads', remembered === 'Dana Whitfield');
+
+// 6. Every authored scenario offers cast fields and fills its brief.
+const SCENARIOS = ['rogue-ai', 'whistleblower', 'executive-scandal', 'toxic', 'deepfake'];
+const LABEL = { 'rogue-ai': /rogue ai/i, whistleblower: /whistleblower/i, 'executive-scandal': /executive scandal/i, toxic: /toxic workplace/i, deepfake: /deepfake/i };
+for (const key of SCENARIOS) {
+  await page.evaluate((re) => {
+    const rx = new RegExp(re, 'i');
+    const sel = document.getElementById('scenarioSelect');
+    const idx = [...sel.options].findIndex((o) => rx.test(o.textContent));
+    sel.value = String(idx);
+    document.getElementById('loadScenarioBtn').click();
+  }, LABEL[key].source);
+  await new Promise((r) => setTimeout(r, 600));
+  const info = await page.evaluate(() => ({
+    fields: document.querySelectorAll('#castFields input').length,
+    hasOrg: !!document.getElementById('cast_org_name'),
+    brief: document.getElementById('moderatorRead').textContent,
+  }));
+  check(`${key}: has cast fields`, info.fields >= 4);
+  check(`${key}: has org_name field`, info.hasOrg);
+}
+
+// Fill org_name on the last-loaded scenario and confirm the brief updates.
+await page.evaluate(() => {
+  const el = document.getElementById('cast_org_name');
+  el.value = 'Northgate Credit Union';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+});
+await new Promise((r) => setTimeout(r, 200));
+const brief2 = await page.evaluate(() => document.getElementById('moderatorRead').textContent);
+check('brief reflects org_name on a second scenario', brief2.includes('Northgate Credit Union'));
+check('brief has no leftover tokens', !brief2.includes('{{'));
 
 await browser.close();
 console.log(`\ncast-check: ${pass} passed, ${fail} failed`);

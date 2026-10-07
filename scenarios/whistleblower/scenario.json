@@ -2,27 +2,71 @@
   "scenario_id": "whistleblower",
   "title": "The Whistleblower",
   "version": 4,
-
   "goal": {
     "description": "Find out what is true and answer every stakeholder honestly: engage the CBC investigation on the record, run a genuine investigation into the substance of the allegations - not the source of the leak - protect members from any risk that turns out to be real, satisfy the regulator and the board with facts and process, and bring public trust and regulator confidence back above healthy thresholds.",
     "win_conditions": [
-      { "stat": "public_trust", "operator": "gte", "value": 60 },
-      { "stat": "regulator_confidence", "operator": "gte", "value": 55 },
-      { "stat": "containment", "operator": "gte", "value": 80 },
-      { "stat": "eradication", "operator": "gte", "value": 70 },
-      { "stat": "recovery", "operator": "gte", "value": 60 }
+      {
+        "stat": "public_trust",
+        "operator": "gte",
+        "value": 60
+      },
+      {
+        "stat": "regulator_confidence",
+        "operator": "gte",
+        "value": 55
+      },
+      {
+        "stat": "containment",
+        "operator": "gte",
+        "value": 80
+      },
+      {
+        "stat": "eradication",
+        "operator": "gte",
+        "value": 70
+      },
+      {
+        "stat": "recovery",
+        "operator": "gte",
+        "value": 60
+      }
     ],
     "win_conditions_note": "Advisory only. The exercise is won by resolving the STORY (the final beat reached, or the attack chain fully contained), NOT by these numeric thresholds. They colour how costly the win reads; they never gate it.",
     "ending": "Crisis resolved: the substance of the allegations is established and owned, any real member risk is remediated, the investigation and its process withstand scrutiny, and the board, regulator, staff, and members are confident in the outcome. The exercise concludes."
   },
-
   "intro": {
     "video": "",
-    "narrative": "CBC's investigative unit has a package, and this morning they sent you the questions. Someone inside the credit union - a respected, long-tenured employee with legitimate access - has handed them internal risk reports, email chains, and committee memos. The package alleges that the credit union is knowingly exposing members to risk: warnings about lending practices were repeated in report after report, executives 'noted' them and moved on, and the internal numbers show the concerns were significant and growing. Here is the problem: nobody - including the executive team - knows yet how much of it is true. Some documents are real. Some claims read like honest concern stretched into damning narrative. CBC is working sources and has a deadline. Inside the organization, staff are already speculating about who talked. The regulator has started calling. The board wants answers. You are the executive team, holding a crisis you cannot yet verify - and every audience is asking at once.",
+    "narrative": "CBC's investigative unit has a package, and this morning they sent you the questions. Someone inside {{org_name}} - a respected, long-tenured employee with legitimate access - has handed them internal risk reports, email chains, and committee memos. The package alleges that {{org_name}} is knowingly exposing members to risk: warnings about lending practices were repeated in report after report, executives 'noted' them and moved on, and the internal numbers show the concerns were significant and growing. Here is the problem: nobody - including the executive team - knows yet how much of it is true. Some documents are real. Some claims read like honest concern stretched into damning narrative. CBC is working sources and has a deadline. Inside {{org_name}}, staff are already speculating about who talked. The regulator has started calling. The board wants answers. You are the executive team, holding a crisis you cannot yet verify - and every audience is asking at once.",
     "company_url": "",
-    "company_info": "The credit union is a mid-sized, member-owned credit union. As a cooperative, its core promise is that members come before growth - which is exactly the promise the whistleblower's package calls a lie. The regulator expects issues to be self-reported, distinguishes sharply between organizations that come forward and organizations that get exposed, and treats whistleblower treatment as a governance signal in itself. A leak from a trusted insider is not a security failure; it is a trust failure, and everyone inside knows it."
+    "company_info": "{{org_name}} is a mid-sized, member-owned credit union. As a cooperative, its core promise is that members come before growth - which is exactly the promise the whistleblower's package calls a lie. The regulator expects issues to be self-reported, distinguishes sharply between organizations that come forward and organizations that get exposed, and treats whistleblower treatment as a governance signal in itself. A leak from a trusted insider is not a security failure; it is a trust failure, and everyone inside knows it."
   },
-
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "ceo_name",
+      "label": "CEO / President",
+      "placeholder": "e.g. Dana Whitfield"
+    },
+    {
+      "key": "cro_name",
+      "label": "Chief Risk Officer",
+      "placeholder": "optional"
+    },
+    {
+      "key": "board_chair",
+      "label": "Board chair",
+      "placeholder": "optional"
+    },
+    {
+      "key": "comms_lead",
+      "label": "Internal comms lead",
+      "placeholder": "optional"
+    }
+  ],
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -32,12 +76,21 @@
     "eradication": 10,
     "recovery": 10
   },
-
   "meta": {
     "suggested_minutes": 60,
-    "pacing": { "target_turns": 6, "total_turns": 7 },
+    "pacing": {
+      "target_turns": 6,
+      "total_turns": 7
+    },
     "difficulty": "hard",
-    "tags": ["whistleblower", "governance", "media", "regulatory", "internal-investigation", "risk"],
+    "tags": [
+      "whistleblower",
+      "governance",
+      "media",
+      "regulatory",
+      "internal-investigation",
+      "risk"
+    ],
     "learning_objectives": [
       "Practice answering an unseen-cards crisis: responding honestly before you know what is true",
       "Choose between investigating the substance and hunting the source - and feel the cost of the wrong choice",
@@ -46,7 +99,6 @@
       "Self-report credibly to a regulator and defend governance process under scrutiny"
     ]
   },
-
   "attack_chain": [
     {
       "id": "hook",
@@ -63,26 +115,55 @@
     {
       "id": "take",
       "name": "What it's costing",
-      "symptom": "The bill is coming due before the facts are clear: CBC's story is nearly ready and the team still cannot say what is true; the regulator's questions have the shape of a file being opened; the board is demanding a written account of what leadership knew; staff are asking whether the credit union is hiding something - and whether speaking up internally is now dangerous; and if the story publishes with the organization still unable to answer, the takeaway is not 'the allegations were unproven' but 'the credit union couldn't say.'",
+      "symptom": "The bill is coming due before the facts are clear: CBC's story is nearly ready and the team still cannot say what is true; the regulator's questions have the shape of a file being opened; the board is demanding a written account of what leadership knew; staff are asking whether {{org_name}} is hiding something - and whether speaking up internally is now dangerous; and if the story publishes with the organization still unable to answer, the takeaway is not 'the allegations were unproven' but '{{org_name}} couldn't say.'",
       "revealed": false
     }
   ],
-
   "dm_brief": {
-    "situation": "An anonymous but credible whistleblower - a respected long-tenured insider with legitimate access - has sent CBC's investigative unit a package of internal risk reports, emails, and memos alleging that the credit union knowingly exposes members to lending risk and that executives ignored repeated, documented warnings. The uncomfortable truth: the executive team does not yet know how much is true. The risk reports are real; some warnings were genuinely discussed and genuinely judged manageable; some of the framing in the package is an unfair stretch; some of it may be worse than anyone has admitted yet. CBC has questions and a deadline, staff are speculating about who leaked, an innocent colleague is being quietly blamed, the regulator has started calling, and the board demands answers. The team must decide what posture to take - substance or spin, investigation or inquisition - while every audience demands an answer the team does not yet have.",
-    "stakes": "If handled poorly: the story becomes the cover-up, not the allegations; the leaker-hunt leaks and reads as retaliation; the regulator concludes the credit union hides things; the board loses confidence in leadership; staff conclude that raising concerns internally is career-ending - and the next problem goes straight to the press without the courtesy of a package first. If handled well: the substance is established honestly, real member risk is fixed, the process withstands scrutiny, and even the whistleblower's worst framing meets a response people can respect.",
+    "situation": "An anonymous but credible whistleblower - a respected long-tenured insider with legitimate access - has sent CBC's investigative unit a package of internal risk reports, emails, and memos alleging that {{org_name}} knowingly exposes members to lending risk and that executives ignored repeated, documented warnings. The uncomfortable truth: the executive team does not yet know how much is true. The risk reports are real; some warnings were genuinely discussed and genuinely judged manageable; some of the framing in the package is an unfair stretch; some of it may be worse than anyone has admitted yet. CBC has questions and a deadline, staff are speculating about who leaked, an innocent colleague is being quietly blamed, the regulator has started calling, and the board demands answers. The team must decide what posture to take - substance or spin, investigation or inquisition - while every audience demands an answer the team does not yet have.",
+    "stakes": "If handled poorly: the story becomes the cover-up, not the allegations; the leaker-hunt leaks and reads as retaliation; the regulator concludes {{org_name}} hides things; the board loses confidence in leadership; staff conclude that raising concerns internally is career-ending - and the next problem goes straight to the press without the courtesy of a package first. If handled well: the substance is established honestly, real member risk is fixed, the process withstands scrutiny, and even the whistleblower's worst framing meets a response people can respect.",
     "key_actors": [
-      { "name": "The CBC investigative reporter", "role": "Press (national)", "interests": "A rigorous story that holds: verifying every document, hearing the credit union's side, publishing regardless of whether the credit union engages.", "knowledge": "Has the package, has confirmed several documents independently, and has already contacted the regulator for comment as part of verification. Her deadline is days, not weeks - and she has seen organizations stonewall before." },
-      { "name": "The whistleblower", "role": "Anonymous source (respected insider)", "interests": "To be proven right, and to see the risk to members fixed - not money, not revenge.", "knowledge": "Knows the reports are real because they wrote or received several of them; claims to have tried internal channels first and been 'managed.' Their identity is unknown, but the access pattern narrows it to a handful of serious people - and colleagues are already guessing." },
-      { "name": "The Chief Risk Officer", "role": "Custodian of the uncomfortable middle", "interests": "Wants the actual risk picture established honestly - quietly if possible.", "knowledge": "The truth is complicated: the warnings in the reports were real and were discussed at risk committee; some were acted on, some were consciously accepted within appetite, and one - the concentration number - has been drifting upward for four quarters while the plan to fix it kept slipping." },
-      { "name": "The regulator's case lead", "role": "Regulator", "interests": "Whether the credit union self-reports, whether members are at risk, and whether governance actually works here.", "knowledge": "Has been contacted by CBC as part of verification and has seen enough packages in a career to know that 'the org investigates the messenger' is the first sign of rot. Distinguishes sharply between organizations that come forward and organizations that get caught." },
-      { "name": "The Board chair", "role": "Governance", "interests": "The board's own exposure - several memos went to committee - and not being blindsided again.", "knowledge": "Learned of the story from another director before the executive team's briefing landed; wants a written account of what leadership knew, when, and why the risk appetite decisions were made - and is quietly worried the answer is 'by us, reluctantly.'" },
-      { "name": "The internal communications lead", "role": "Staff conscience", "interests": "Needs to tell staff something true - today.", "knowledge": "Staff channels are on fire: speculation about the leaker, worry about retaliation, and a growing sense that leadership cares more about the leak than the risk. Whatever she sends will be screenshotted within the hour." }
+      {
+        "name": "The CBC investigative reporter",
+        "role": "Press (national)",
+        "interests": "A rigorous story that holds: verifying every document, hearing {{org_name}}'s side, publishing regardless of whether {{org_name}} engages.",
+        "knowledge": "Has the package, has confirmed several documents independently, and has already contacted the regulator for comment as part of verification. Her deadline is days, not weeks - and she has seen organizations stonewall before."
+      },
+      {
+        "name": "The whistleblower",
+        "role": "Anonymous source (respected insider)",
+        "interests": "To be proven right, and to see the risk to members fixed - not money, not revenge.",
+        "knowledge": "Knows the reports are real because they wrote or received several of them; claims to have tried internal channels first and been 'managed.' Their identity is unknown, but the access pattern narrows it to a handful of serious people - and colleagues are already guessing."
+      },
+      {
+        "name": "The Chief Risk Officer",
+        "role": "Custodian of the uncomfortable middle",
+        "interests": "Wants the actual risk picture established honestly - quietly if possible.",
+        "knowledge": "The truth is complicated: the warnings in the reports were real and were discussed at risk committee; some were acted on, some were consciously accepted within appetite, and one - the concentration number - has been drifting upward for four quarters while the plan to fix it kept slipping."
+      },
+      {
+        "name": "The regulator's case lead",
+        "role": "Regulator",
+        "interests": "Whether {{org_name}} self-reports, whether members are at risk, and whether governance actually works here.",
+        "knowledge": "Has been contacted by CBC as part of verification and has seen enough packages in a career to know that 'the org investigates the messenger' is the first sign of rot. Distinguishes sharply between organizations that come forward and organizations that get caught."
+      },
+      {
+        "name": "The Board chair",
+        "role": "Governance",
+        "interests": "The board's own exposure - several memos went to committee - and not being blindsided again.",
+        "knowledge": "Learned of the story from another director before the executive team's briefing landed; wants a written account of what leadership knew, when, and why the risk appetite decisions were made - and is quietly worried the answer is 'by us, reluctantly.'"
+      },
+      {
+        "name": "The internal communications lead",
+        "role": "Staff conscience",
+        "interests": "Needs to tell staff something true - today.",
+        "knowledge": "Staff channels are on fire: speculation about the leaker, worry about retaliation, and a growing sense that leadership cares more about the leak than the risk. Whatever she sends will be screenshotted within the hour."
+      }
     ],
     "pressure_points": [
       "CBC moves the deadline up and sends a pointed follow-up: 'We have a recording of an internal meeting where the concentration risk was described as \"embarrassing if it ever got out.\" Comment?'",
       "A screenshot of the reporter's original email circulates internally with the comment 'who talked?' - and a colleague from risk is quietly blamed by name.",
-      "The regulator calls: they are aware of the pending coverage and want to know whether the credit union intends to self-report - or wait.",
+      "The regulator calls: they are aware of the pending coverage and want to know whether {{org_name}} intends to self-report - or wait.",
       "The board chair calls an emergency session and asks for a written account of what leadership knew - before CBC provides its own version.",
       "A second package arrives - this one to a different outlet, with more recent quarters and a chart the team has never seen before."
     ],
@@ -101,51 +182,136 @@
       "The complete response arc is contain, then eradicate, then recover. Reward eradication and recovery efforts when the group attempts them; a group that only does PR and containment keeps struggling - the story keeps biting, the regulator stays unsatisfied - until it closes out the full arc."
     ]
   },
-
   "events": [
     {
       "id": "e1",
-      "trigger": { "type": "stall", "turns": 2 },
-      "text": "CBC's investigation unit sends a pointed follow-up with a deadline attached: they have verified several documents independently and are preparing to run the story with 'the credit union did not respond to repeated requests for comment.'",
-      "state_delta": { "public_trust": -4 }
+      "trigger": {
+        "type": "stall",
+        "turns": 2
+      },
+      "text": "CBC's investigation unit sends a pointed follow-up with a deadline attached: they have verified several documents independently and are preparing to run the story with '{{org_name}} did not respond to repeated requests for comment.'",
+      "state_delta": {
+        "public_trust": -4
+      }
     },
     {
       "id": "e2",
-      "trigger": { "type": "stall", "turns": 3 },
+      "trigger": {
+        "type": "stall",
+        "turns": 3
+      },
       "text": "Internal speculation explodes: a screenshot of the reporter's email circulates in staff channels with 'who talked?' - and a well-liked colleague from the risk team is quietly blamed by name. Staff morale sours and the word 'retaliation' starts appearing in print.",
-      "state_delta": { "public_trust": -6 }
+      "state_delta": {
+        "public_trust": -6
+      }
     },
     {
       "id": "e3",
-      "trigger": { "type": "stat", "stat": "public_trust", "operator": "lte", "value": 40 },
-      "text": "The regulator calls: they are aware of the pending CBC coverage, have been contacted during verification, and want to know whether the credit union intends to self-report the issues - or wait to be told about them.",
-      "state_delta": { "public_trust": -4, "regulator_confidence": -5 }
+      "trigger": {
+        "type": "stat",
+        "stat": "public_trust",
+        "operator": "lte",
+        "value": 40
+      },
+      "text": "The regulator calls: they are aware of the pending CBC coverage, have been contacted during verification, and want to know whether {{org_name}} intends to self-report the issues - or wait to be told about them.",
+      "state_delta": {
+        "public_trust": -4,
+        "regulator_confidence": -5
+      }
     },
     {
       "id": "e4",
-      "trigger": { "type": "stat", "stat": "regulator_confidence", "operator": "lte", "value": 40 },
+      "trigger": {
+        "type": "stat",
+        "stat": "regulator_confidence",
+        "operator": "lte",
+        "value": 40
+      },
       "text": "The board chair calls an emergency session and demands a written account of what leadership knew and when - noting that CBC appears to be assembling one already, and that several memos in the package went to the board's own committees.",
-      "state_delta": { "regulator_confidence": -5 }
+      "state_delta": {
+        "regulator_confidence": -5
+      }
     },
     {
       "id": "e5",
-      "trigger": { "type": "stat", "stat": "containment", "operator": "lte", "value": 15 },
-      "text": "CBC publishes part one: 'Members at risk, warnings ignored: documents from inside the credit union.' The piece is measured but damning - real documents, a timeline of repeated warnings, and a line about 'repeated requests for comment.' Within hours, other outlets are aggregating it and members are asking what is true.",
-      "state_delta": { "public_trust": -3 }
+      "trigger": {
+        "type": "stat",
+        "stat": "containment",
+        "operator": "lte",
+        "value": 15
+      },
+      "text": "CBC publishes part one: 'Members at risk, warnings ignored: documents from inside {{org_name}}.' The piece is measured but damning - real documents, a timeline of repeated warnings, and a line about 'repeated requests for comment.' Within hours, other outlets are aggregating it and members are asking what is true.",
+      "state_delta": {
+        "public_trust": -3
+      }
     }
   ],
-
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization chooses the inquisition. IT access logs get pulled, a suspected leaker is suspended, and CBC runs the suspension as proof of retaliation. Trust collapses.", "state_delta": {"public_trust": -12, "regulator_confidence": -8} },
-    "5": { "kind": "fail", "twist": "Your response is procedural and bloodless, and it reads as a brush-off; the whistleblower's advocates say the organization 'still doesn't get it'.", "state_delta": {"public_trust": -6} },
-    "7": { "kind": "mixed", "twist": "Mixed: you pledge transparency, but a leaked internal email shows a board member dismissing the concern - the pledge and the leak land the same day, and neither is fully believed.", "state_delta": {"public_trust": -2, "regulator_confidence": 2} },
-    "9": { "kind": "good", "twist": "A quiet win: you get ahead of a document request and hand the regulator a clean, complete record, which buys credibility for the harder questions ahead.", "state_delta": {"regulator_confidence": 5, "security_posture": 2} },
-    "11": { "kind": "good_twist", "twist": "A lucky break: the regulator, having seen your proactive disclosure, publicly describes the organization as cooperative rather than evasive - the frame shifts in your favour.", "state_delta": {"regulator_confidence": 6, "public_trust": 3} },
-    "14": { "kind": "good", "twist": "A respected former regulator agrees to review your governance process, lending the response independent weight.", "state_delta": {"public_trust": 4, "regulator_confidence": 2} },
-    "17": { "kind": "strong", "twist": "Strong play: you voluntarily disclose a real if minor governance failure the whistleblower didn't even raise, which badly undercuts the 'what else are they hiding' narrative.", "state_delta": {"containment": 8, "public_trust": 4} },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team commits to substance over spin - it engages CBC on the record, protects the whistleblower, fixes the concentration risk, and publishes the remediation. Both the regulator and the outlet call it exemplary.", "state_delta": {"public_trust": 10, "containment": 8, "regulator_confidence": 5} }
+    "1": {
+      "kind": "crit_fail",
+      "twist": "Your first response is a disaster: the organization chooses the inquisition. IT access logs get pulled, a suspected leaker is suspended, and CBC runs the suspension as proof of retaliation. Trust collapses.",
+      "state_delta": {
+        "public_trust": -12,
+        "regulator_confidence": -8
+      }
+    },
+    "5": {
+      "kind": "fail",
+      "twist": "Your response is procedural and bloodless, and it reads as a brush-off; the whistleblower's advocates say the organization 'still doesn't get it'.",
+      "state_delta": {
+        "public_trust": -6
+      }
+    },
+    "7": {
+      "kind": "mixed",
+      "twist": "Mixed: you pledge transparency, but a leaked internal email shows a board member dismissing the concern - the pledge and the leak land the same day, and neither is fully believed.",
+      "state_delta": {
+        "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "9": {
+      "kind": "good",
+      "twist": "A quiet win: you get ahead of a document request and hand the regulator a clean, complete record, which buys credibility for the harder questions ahead.",
+      "state_delta": {
+        "regulator_confidence": 5,
+        "security_posture": 2
+      }
+    },
+    "11": {
+      "kind": "good_twist",
+      "twist": "A lucky break: the regulator, having seen your proactive disclosure, publicly describes the organization as cooperative rather than evasive - the frame shifts in your favour.",
+      "state_delta": {
+        "regulator_confidence": 6,
+        "public_trust": 3
+      }
+    },
+    "14": {
+      "kind": "good",
+      "twist": "A respected former regulator agrees to review your governance process, lending the response independent weight.",
+      "state_delta": {
+        "public_trust": 4,
+        "regulator_confidence": 2
+      }
+    },
+    "17": {
+      "kind": "strong",
+      "twist": "Strong play: you voluntarily disclose a real if minor governance failure the whistleblower didn't even raise, which badly undercuts the 'what else are they hiding' narrative.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 4
+      }
+    },
+    "20": {
+      "kind": "crit_success",
+      "twist": "A clean, devastatingly effective response: the team commits to substance over spin - it engages CBC on the record, protects the whistleblower, fixes the concentration risk, and publishes the remediation. Both the regulator and the outlet call it exemplary.",
+      "state_delta": {
+        "public_trust": 10,
+        "containment": 8,
+        "regulator_confidence": 5
+      }
+    }
   },
-
   "beats": [
     {
       "id": "b1-stakeholders",
@@ -163,21 +329,31 @@
       "narrative": "The facts are emerging. Step 3 is to eradicate the root cause and begin recovery: remediate any real member risk and make affected members whole, correct what was genuinely wrong in the risk process, protect the people who raise concerns so the next problem comes through the door instead of through the press, and publish enough that the findings speak for themselves. If Steps 1-2 went well, recovery rebuilds trust with members, staff, the board, and the regulator; if they went poorly, every future warning will be delivered by a package."
     }
   ],
-
   "end_conditions": [
     {
       "type": "stat",
       "result": "loss",
       "stats": [
-        { "stat": "public_trust", "operator": "lte", "value": 20 },
-        { "stat": "regulator_confidence", "operator": "lte", "value": 20 }
+        {
+          "stat": "public_trust",
+          "operator": "lte",
+          "value": 20
+        },
+        {
+          "stat": "regulator_confidence",
+          "operator": "lte",
+          "value": 20
+        }
       ],
       "consecutive": 2,
-      "ending": "The collapse: CBC's part two lands and nothing meets it - no facts, no accountability, no leader in front of the story. Members read the documents and draw their own conclusions, the regulator arrives with a self-reporting mandate instead of questions, and the board's emergency session ends in resignations. The credit union stops being an organization that answers for itself. The exercise concludes as a loss."
+      "ending": "The collapse: CBC's part two lands and nothing meets it - no facts, no accountability, no leader in front of the story. Members read the documents and draw their own conclusions, the regulator arrives with a self-reporting mandate instead of questions, and the board's emergency session ends in resignations. {{org_name}} stops being an organization that answers for itself. The exercise concludes as a loss."
     },
-    { "type": "timeout", "duration_seconds": 3600, "ending": "Time ran out on the scheduled exercise." }
+    {
+      "type": "timeout",
+      "duration_seconds": 3600,
+      "ending": "Time ran out on the scheduled exercise."
+    }
   ],
-
   "report": {
     "title_note": "The Whistleblower — Tabletop Report",
     "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
