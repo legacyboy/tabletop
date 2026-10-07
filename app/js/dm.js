@@ -142,6 +142,28 @@ function deriveBreachState(chain) {
 }
 
 /**
+ * Resolve the turn budget for a scenario.
+ *
+ * A scenario may declare `pacing: { target_turns, total_turns }`. Otherwise the
+ * budget is derived from the wall-clock timeout: with a sub-60-minute exercise
+ * and ~8 minutes per turn (intro + discussion + decision), an hour supports
+ * roughly 7 turns; the arc should resolve around 5-6 so the group has room to
+ * discuss the ending rather than hitting the clock. `targetTurns` is the "on
+ * pace" mark; `totalTurns` is the ceiling past which the run is overlong.
+ *
+ * @returns {{targetTurn:number, totalTurn:number}}
+ */
+function resolvePacing(scenario) {
+  const p = (scenario && scenario.pacing) || {};
+  const t = (scenario && scenario.end_conditions || []).find((c) => c.type === 'timeout');
+  const durationMin = t && t.duration_seconds ? t.duration_seconds / 60 : 60;
+  const perTurn = p.minutes_per_turn || 8;
+  const total = p.total_turns || Math.max(4, Math.floor(durationMin / perTurn));
+  const target = p.target_turns || Math.min(total, Math.max(3, Math.round(total - 1)));
+  return { targetTurn: target, totalTurn: total };
+}
+
+/**
  * Build the DM's view of the attack chain: the hidden stages (name + symptom)
  * plus which are revealed and which are contained. This is fed to the DM each
  * turn so it can reveal/contain stages and narrate the breach.
@@ -201,7 +223,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## HOW TO PLAY (critical)',
     '- The group types a free-form action. Do NOT present them with a menu of options.',
-    '- A single turn can contain MULTIPLE coordinated actions across different departments (e.g. comms issues a statement AND the fraud team freezes accounts AND legal contacts the regulator). Realistic turns are 2-3 coordinated actions, not one narrow action.',
+    '- A turn covers ONE or TWO committed moves, not a laundry list. Realistic groups pick a focus: e.g. comms issues a statement, OR the fraud team freezes accounts and legal calls the regulator. Five-or-more scattershot actions in one turn is NOT realistic and should not be uniformly rewarded \u2014 if the group tries to do everything at once, judge it honestly and let part of it slip.',
     '- NEVER present a menu or list of choices, and do not prescribe a specific next action. But DO advance the world: every turn should move the situation forward into its next natural beat.',
     '- KEEP THE MOMENTUM. A turn must NOT end as a flat dead end. The group acted; the world reacts AND moves on. End each response by introducing a NEW DEVELOPMENT: new information, a reaction from an actor/regulator/media, a complication that sharpens the situation. Leave the group facing something concrete.',
     '- A NEW DEVELOPMENT must NOT re-punish a metric the group just competently addressed. If the group issued a clear public statement, do NOT invent a fresh "internal leak" or "confused staff reply" that undercuts it the same turn. Escalation is for when the group FAILS, stalls, or rolls badly (1-5) — not as a reward for good play. Vary the development; never repeat the same setback (e.g. the same leaked screenshot) turn after turn.',
@@ -258,11 +280,12 @@ function buildSystemPrompt(scenario, opts = {}) {
     'If the scenario has no beats, ignore this section and simply keep the story advancing turn to turn as described in HOW TO PLAY.',
     '',
     '## SESSION LENGTH (sub-60 minutes)',
-    'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution within that budget:',
-    '- Drive the story toward its RESOLUTION within roughly 4-6 turns \u2014 the final beat reached (or the attack chain fully contained) \u2014 or toward the narrative collapse loss. Do not stretch the conflict out or add filler beats that drag the session past the hour. Erring on the side of FASTER progress is better than slower.',
+    'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution well inside that budget \u2014 a tabletop exercise needs enough turns to get interesting, not a sprint to the exit.',
+    '- Drive the story toward its RESOLUTION within roughly 5-7 turns \u2014 the final beat reached (or the attack chain fully contained). A run that resolves in 4 turns is usually too abrupt: let the situation develop for a beat or two before the group closes it out. Do not pad past 7 or drag the session over the hour either.',
+    '- USE THE PACE BRIEF. Each turn you are told the current turn number, the target resolution turn, how many beats remain, and how many minutes are left on the clock, plus a pacing verdict. The verdict is a DECISION, not decoration \u2014 it tells you whether this turn must push hard or can afford to breathe. Follow it: SPEED UP = advance the arc now and cut a complication; SLOW DOWN = let the turn develop, allow a setback or a stalled plan, do not rush to resolve; ON THE FINAL BEAT = resolve the story this turn.',
     '- ADVANCE THE ARC EVERY TURN OR TWO. If the group is still on the same beat they were on last turn, move them forward unless they genuinely did nothing. Do NOT re-run Step 1 three or four times.',
     '- Let a decisive, competent action resolve more than one thing at once (e.g. one strong turn can contain a stage AND recover trust AND move to the next beat). Prefer meaningful forward progress over prolonging a beat.',
-    '- Keep each turn’s action dense: address multiple coordinated moves so the group settles things faster rather than one narrow action per turn.',
+    '- Keep each turn\u2019s action FOCUSED: one or two concrete moves, not five or six. A narrow committed action is easier to adjudicate honestly and leaves room for a turn to FAIL \u2014 and failure is what builds suspense. Do not treat a scattershot of everything-at-once as automatically successful.',
     '- If the group resolves the story early, the session ends then — do not invent extra conflict to fill time.',
     '',
     'Your reply must be STRICT JSON with exactly these fields:',
@@ -303,10 +326,17 @@ function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
     }
   }
 
+  // PACE: tell the DM exactly what turn it is, how much wall-clock time is left,
+  // and whether the group is on pace for the arc. Without this the DM has no
+  // sense of turn count or elapsed time and guesses, which is why runs drifted.
+  // Also gives the engine a place to carry the auto-advance note to the DM.
+  const paceLine = typeof run._paceBrief === 'function' ? run._paceBrief() : '';
+
   return [
     `Turn ${run.turn + 1}. Current state: ${JSON.stringify(run.state)}`,
     chainLine ? chainLine : '',
     beatLine ? beatLine : '',
+    paceLine ? paceLine : '',
     '',
     `The group has decided to do this: "${action}"`,
     `They rolled a D20 and got: ${roll}`,
@@ -335,6 +365,21 @@ export class DMSession {
     this.state = clone(scenario.opening_state || {});
     this.turn = 0;
     this.history = [];   // transcript of turns for the closing report
+
+    // PACING BUDGET (Dan, 2026-10-07). A session must start AND finish inside its
+    // time limit, so the DM needs to know the turn budget to pace the arc. Two
+    // numbers are resolved once, at construction:
+    //   targetTurn  - the turn by which the arc SHOULD resolve (the "on pace" mark)
+    //   totalTurn   - the hard turn ceiling (past which the session is overlong)
+    // A scenario may override via `pacing: { target_turns, total_turns }`; otherwise
+    // they are derived from the wall-clock limit at ~7-10 min/turn, the same
+    // assumption the DM prompt already uses.
+    const p = resolvePacing(scenario);
+    this.targetTurn = p.targetTurn;
+    this.totalTurn = p.totalTurn;
+    // Note from the engine's own arc auto-advance (BEAT_STALL_MAX guard), consumed
+    // by _paceBrief() on the next turn so the DM knows why the arc moved.
+    this._paceNote = '';
 
     // Pre-compiled conditional events (v3 schema). Each fires at most once.
     this.events = Array.isArray(scenario.events) ? scenario.events : [];
@@ -504,6 +549,63 @@ export class DMSession {
   }
 
   /**
+   * Build the per-turn PACE brief for the DM: the turn the group is ON, the turn
+   * budget, the wall-clock time left, and whether the arc is ahead of, on, or
+   * behind pace. This is what lets the DM speed up or slow down instead of
+   * guessing. Also surfaces any note left by the engine's own arc auto-advance.
+   *
+   * @returns {string} a line block (or '' when there is nothing to say)
+   */
+  _paceBrief() {
+    if (!this.beats.length) {
+      // No arc to pace against; still report the clock so the DM lands the story
+      // inside the hour.
+      const mins = this._minutesLeft();
+      return mins == null ? '' : `\nTIME: about ${mins} minute${mins === 1 ? '' : 's'} left on the clock. Land the story comfortably within it.`;
+    }
+
+    const onTurn = this.turn + 1;          // the turn being resolved now
+    const target = this.targetTurn;
+    const total = this.totalTurn;
+    const reachedFinal = this.currentBeatIndex >= this.beats.length - 1;
+    const mins = this._minutesLeft();
+
+    // How many turns the group has to work with, and whether the arc is behind.
+    const beatNo = this.currentBeatIndex + 1;
+    const beatsLeft = this.beats.length - this.currentBeatIndex - 1;
+
+    let verdict;
+    if (reachedFinal) {
+      verdict = 'ON THE FINAL BEAT \u2014 resolve the story this turn; do not open new complications.';
+    } else if (onTurn > total) {
+      verdict = `OVER BUDGET \u2014 past the turn ceiling. Resolve the story this turn; let a strong action skip straight to the final beat.`;
+    } else if (beatsLeft > 0 && onTurn + beatsLeft > total) {
+      // More beats left than turns to play them in: the arc cannot finish on
+      // schedule, so the group is genuinely behind. SPEED UP.
+      verdict = `SPEED UP \u2014 ${beatsLeft} beats remain with only ${Math.max(0, total - onTurn + 1)} turn(s) of budget left. Move the arc forward decisively this turn; a strong action should skip a beat.`;
+    } else if (onTurn >= target && beatsLeft > 0) {
+      verdict = `SLOW DOWN A LITTLE \u2014 you are at the ${target}-turn mark with ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, so there is room to let this turn breathe. You may introduce a complication or let a plan partly fail; just keep the arc creeping forward.`;
+    } else if (beatsLeft > 0 && onTurn + beatsLeft <= target) {
+      // Comfortably on or ahead of schedule: the DM is free to slow down.
+      verdict = `SLOW DOWN \u2014 there is room to spare (turn ${onTurn}, ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, target ${target}). Let this turn develop: allow a setback, a stalled plan, or a hard choice. Suspense needs room to fail, so do NOT rush to resolve.`;
+    } else {
+      verdict = 'ON PACE \u2014 advance the arc every turn or two.';
+    }
+
+    const clock = mins == null ? '' : ` About ${mins} minute${mins === 1 ? '' : 's'} left on the clock.`;
+    const budget = `Turn ${onTurn} of about ${total} (target: resolve by turn ${target}). Story beat ${beatNo} of ${this.beats.length}${beatsLeft > 0 ? `, ${beatsLeft} to go` : ''}.${clock}`;
+    const note = this._paceNote ? `\n${this._paceNote}` : '';
+
+    return `\nPACE: ${budget}\nPACING VERDICT: ${verdict}${note}`;
+  }
+
+  /** Minutes left on the clock, or null when there is no time limit. */
+  _minutesLeft() {
+    const s = this.secondsLeft();
+    return s == null ? null : Math.max(0, Math.round(s / 60));
+  }
+
+  /**
    * Resolve one turn: action text + roll -> narrative, state update, end check.
    * @returns {Promise<{narrative, state, event, endCondition, roll}>}
    */
@@ -526,6 +628,7 @@ export class DMSession {
     // DM<->player conversation for an auditor. See the event object below.
     const system = buildSystemPrompt(this.scenario, { companyInfo: this.companyInfo, random: this.random });
     const user = buildUserTurn(this.scenario, this, action, roll, fate, preFired);
+    this._paceNote = ''; // consumed by the brief above; cleared so it fires once
 
     const dmResult = await this.provider.chat(
       [
@@ -708,6 +811,9 @@ export class DMSession {
         this.currentBeatIndex += 1;
         this.beatStall = 0;
         this.beatAutoAdvanced = true; // flag for the DM/report: the arc moved on
+        // Tell the DM next turn that the engine moved the arc for them, so it
+        // narrates the transition instead of silently contradicting the beats.
+        this._paceNote = `NOTE: the engine advanced the story arc for you last turn because the group was stalled on a beat while still making progress \u2014 narrate the transition naturally and keep the new beat moving.`;
       }
     }
   }
@@ -1405,6 +1511,8 @@ export class DMSession {
       collapsed: this.collapsed || false,
       lastCollapseTurn: this.lastCollapseTurn ?? -1,
       collapseRecord: clone(this.collapseRecord),
+      targetTurn: this.targetTurn,
+      totalTurn: this.totalTurn,
     };
   }
 
@@ -1428,6 +1536,10 @@ export class DMSession {
     session.rollModifier = snapshot.rollModifier || 0;
     session.statStreaks = clone(snapshot.statStreaks || {});
     session.currentBeatIndex = snapshot.currentBeatIndex || 0;
+    // Pacing budget: prefer the snapshot; otherwise the constructor-derived value
+    // (so an older snapshot without these fields still paces sensibly).
+    session.targetTurn = snapshot.targetTurn || session.targetTurn;
+    session.totalTurn = snapshot.totalTurn || session.totalTurn;
     session.lastBeatQuality = snapshot.lastBeatQuality || '';
     session.lastBudgetSpend = snapshot.lastBudgetSpend || 0;
     session.budgetSpend = snapshot.budgetSpend || 0;

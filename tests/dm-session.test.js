@@ -58,11 +58,36 @@ check('turn incremented', s1.turn === 1);
 check('state is object', typeof r1.state === 'object');
 check('history length', s1.history.length === 1);
 
-// 2. Fate table fires on roll 11
+// 2. Fate table fires on roll 11 (a GOOD twist now - Dan's design, 2026-10-07)
 const s2 = new DMSession(new MockProvider(), scenario);
 await s2.takeTurn('Reassure members', 11);
 check('fate event recorded on 11', s2.history[0].fate !== null);
-check('fate delta applied on 11 (public_trust dropped)', s2.state.public_trust < scenario.opening_state.public_trust);
+check('fate delta applied on 11 (public_trust rose - good twist)', s2.state.public_trust > scenario.opening_state.public_trust);
+
+// 2b. Fate table fires on roll 5 (a BAD one), so both directions exist.
+const s2b = new DMSession(new MockProvider(), scenario);
+await s2b.takeTurn('Stumble through the response', 5);
+check('fate event recorded on 5', s2b.history[0].fate !== null);
+check('fate delta applied on 5 (public_trust dropped - bad fate)', s2b.state.public_trust < scenario.opening_state.public_trust);
+
+// 2c. The fate table has a real SPREAD and both good and bad outcomes, so a roll
+// can plausibly land either way (Dan's design, 2026-10-07).
+{
+  const ft = scenario.fate_table || {};
+  const keys = Object.keys(ft).map(Number).sort((a, b) => a - b);
+  const sums = keys.map((k) => Object.values(ft[k].state_delta || {}).reduce((a, b) => a + b, 0));
+  check('fate table spans at least 6 D20 slots', keys.length >= 6, `keys=${keys.join(',')}`);
+  check('fate table includes BAD outcomes (net-negative deltas)', sums.some((v) => v < 0));
+  check('fate table includes GOOD outcomes (net-positive deltas)', sums.some((v) => v > 0));
+  check('fate table has both a low failure and a high success', !!ft['1'] && !!ft['20']);
+  // Every scenario must carry this spread, not just the deepfake one.
+  for (const name of ['executive-scandal', 'rogue-ai', 'toxic-workplace-viral-post', 'whistleblower']) {
+    const sc = JSON.parse(readFileSync(`scenarios/${name}/scenario.json`, 'utf8'));
+    const t = sc.fate_table || {};
+    const s = Object.keys(t).map((k) => Object.values(t[k].state_delta || {}).reduce((a, b) => a + b, 0));
+    check(`scenario '${name}' fate table is spread with good and bad`, Object.keys(t).length >= 6 && s.some((v) => v > 0) && s.some((v) => v < 0));
+  }
+}
 
 // 3. Fate on 1 (crit fail)
 const s3 = new DMSession(new MockProvider(), scenario);
@@ -80,7 +105,7 @@ check('public_trust dropped on 1', s3.state.public_trust < scenario.opening_stat
 const s4 = new DMSession(new MockProvider(), { ...scenario, beats: undefined });
 let endHit = false;
 for (let i = 0; i < 10 && !endHit; i++) {
-  const res = await s4.takeTurn('Escalate aggressively', 11); // fate chips public_trust each turn
+  const res = await s4.takeTurn('Escalate aggressively', 5); // fate 5 chips public_trust each turn
   s4.state.containment = Math.min(100, s4.state.containment + 20); // force ONE metric to the ceiling
   if (res.endCondition) endHit = true;
 }
@@ -745,6 +770,102 @@ const reportFull = sFull.buildReport({ result: 'ended', ending: 'The group concl
 const turn0 = reportFull.log[0];
 check('report log entry has the group action', typeof turn0 && ('action' in turn0) && String(turn0.action).length > 0 && String(turn0.action).includes('public apology'));
 check('report log entry has the DM narrative', typeof turn0 && typeof turn0.narrative === 'string' && String(turn0.narrative).trim().length > 0);
+
+// ===== PACE AWARENESS (Dan, 2026-10-07) =====
+// The DM must be told the turn number, the turn budget, the minutes left, and a
+// pacing verdict every turn — otherwise it guesses and runs drift off the hour.
+
+// 49. Scenario pacing block is read; defaults derive from the 60-minute limit.
+const paceScenario = { ...scenario };
+const paceS = new DMSession(new MockProvider(), paceScenario);
+check('pacing block gives target/total turns (6/7 from scenario)', paceS.targetTurn === 6 && paceS.totalTurn === 7);
+
+// 49b. A scenario WITHOUT a pacing block derives a sane budget from the timeout.
+const noPace = { ...scenario };
+delete noPace.pacing;
+const noPaceS = new DMSession(new MockProvider(), noPace);
+check('pacing defaults derive from the 60-min timeout (7 total, 6 target)',
+  noPaceS.totalTurn === 7 && noPaceS.targetTurn === 6, `${noPaceS.targetTurn}/${noPaceS.totalTurn}`);
+
+// 50. The per-turn user prompt carries the PACE block: turn number, budget,
+// beats remaining, and a verdict.
+const paceProv = (() => {
+  let p;
+  class P { constructor() { this.lastUser = ''; } async chat(m) { this.lastUser = m[1].content;
+    return JSON.stringify({ narrative: 'Things develop concretely on the ground.', state_delta: { public_trust: 1 }, progress: true }); } }
+  p = new P(); return p;
+})();
+const paceRun = new DMSession(paceProv, scenario);
+paceRun.start(); // starts the clock so minutes-left is real
+await paceRun.takeTurn('We act.', 12);
+check('user prompt includes a PACE block', /PACE:/.test(paceProv.lastUser));
+check('PACE block names the turn and the budget', /Turn 1 of about 7/.test(paceProv.lastUser) && /target: resolve by turn 6/.test(paceProv.lastUser));
+check('PACE block names the story-beat position', /Story beat 1 of \d+/.test(paceProv.lastUser));
+check('PACE block reports minutes left on the clock', /minutes? left on the clock/.test(paceProv.lastUser));
+check('PACE block carries a pacing verdict', /PACING VERDICT:/.test(paceProv.lastUser));
+
+// 51. Ahead-of-pace verdict: deep into the turn budget with beats still to go.
+const paceProv2 = (() => {
+  class P { constructor() { this.lastUser = ''; } async chat(m) { this.lastUser = m[1].content;
+    return JSON.stringify({ narrative: 'The situation develops further.', state_delta: {}, progress: true }); } }
+  return new P();
+})();
+const pacedScenario = {
+  ...scenario,
+  pacing: { target_turns: 6, total_turns: 7 },
+  beats: [
+    { id: 'b1', name: 'First', narrative: 'First beat.' },
+    { id: 'b2', name: 'Second', narrative: 'Second beat.' },
+    { id: 'b3', name: 'Third', narrative: 'Third beat.' },
+    { id: 'b4', name: 'Fourth', narrative: 'Fourth beat.' },
+    { id: 'b5', name: 'Fifth', narrative: 'Fifth beat.' },
+  ],
+};
+const pacedRun = new DMSession(paceProv2, pacedScenario);
+pacedRun.turn = 5;              // turn 6 of 7, still on beat 1 of 5
+pacedRun.currentBeatIndex = 0;
+const brief = pacedRun._paceBrief();
+check('pace brief flags SPEED UP late in the budget with beats remaining', /SPEED UP/.test(brief), brief.split('\n')[1]);
+check('pace brief reports beats to go', /4 to go/.test(brief));
+
+// 52. On the final beat the verdict tells the DM to resolve now.
+const finalRun = new DMSession(new MockProvider(), pacedScenario);
+finalRun.currentBeatIndex = pacedScenario.beats.length - 1;
+const finalBrief = finalRun._paceBrief();
+check('pace brief tells the DM to resolve on the final beat', /FINAL BEAT/.test(finalBrief));
+
+// 52b. The verdict must be an actionable DECISION, not just a status: early with
+// room to spare it must say SLOW DOWN so a turn can fail and build suspense
+// (Dan's refinement, 2026-10-07).
+const earlyRun = new DMSession(new MockProvider(), pacedScenario);
+earlyRun.turn = 0;
+earlyRun.currentBeatIndex = 0;
+const earlyBrief = earlyRun._paceBrief();
+check('pace brief tells the DM it can SLOW DOWN when there is room', /SLOW DOWN/.test(earlyBrief), earlyBrief.split('\n')[1]);
+const behindRun = new DMSession(new MockProvider(), pacedScenario);
+behindRun.turn = 5; behindRun.currentBeatIndex = 0;
+check('pace brief says SPEED UP when the arc cannot finish on schedule', /SPEED UP/.test(behindRun._paceBrief()));
+
+// 53. Action density: the prompt tells the DM a turn is 1-2 committed moves, not
+// five+ (Dan's refinement, 2026-10-07).
+const densityRun = new DMSession(new MockProvider(), scenario);
+const densitySys = densityRun.constructor && (() => {
+  class P { constructor() { this.lastSystem = ''; } async chat(m) { this.lastSystem = m[0].content; return JSON.stringify({ narrative: 'It develops.', state_delta: {} }); } }
+  return new P();
+})();
+await densityRun.takeTurn('We act.', 12);
+// Rebuild the system prompt via a fresh session so we can read it.
+const dprov = (() => { class P { constructor() { this.lastSystem = ''; } async chat(m) { this.lastSystem = m[0].content; return JSON.stringify({ narrative: 'It develops concretely.', state_delta: {} }); } } return new P(); })();
+const drun = new DMSession(dprov, scenario);
+await drun.takeTurn('We act.', 12);
+check('system prompt caps a turn at one or two moves, not five', /ONE or TWO committed moves/i.test(dprov.lastSystem) && /not a laundry list/i.test(dprov.lastSystem));
+check('system prompt says too-many actions should partly slip', /should not be uniformly rewarded|part of it slip/i.test(dprov.lastSystem));
+
+// 53. Pacing survives serialize/restore (a resumed run keeps its budget).
+const paceSnap = pacedRun.serialize();
+check('serialize carries the pacing budget', paceSnap.targetTurn === 6 && paceSnap.totalTurn === 7);
+const restoredRun = DMSession.restore(new MockProvider(), pacedScenario, paceSnap);
+check('restore preserves the pacing budget', restoredRun.targetTurn === 6 && restoredRun.totalTurn === 7);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

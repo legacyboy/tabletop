@@ -86,14 +86,23 @@ of the free-form action:
 
 ```json
 "fate_table": {
-  "1":  { "kind": "crit_fail",    "twist": "Roll 1 catastrophe.",     "state_delta": { "morale": -8, "risk": 10 } },
-  "11": { "kind": "twist",        "twist": "The building catches fire.", "state_delta": { "budget": -15, "risk": 8 } },
-  "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "reputation": 8 } }
+  "1":  { "kind": "crit_fail",    "twist": "Roll 1 catastrophe.",     "state_delta": { "morale": -12, "risk": 10 } },
+  "5":  { "kind": "fail",         "twist": "Roll 5 lands badly.",     "state_delta": { "morale": -6 } },
+  "7":  { "kind": "mixed",        "twist": "Roll 7 wins and loses.",  "state_delta": { "morale": -2, "risk": 2 } },
+  "11": { "kind": "good_twist",   "twist": "Roll 11 lucky break.",    "state_delta": { "reputation": 6 } },
+  "17": { "kind": "strong",       "twist": "Roll 17 strong play.",     "state_delta": { "risk": -8, "reputation": 4 } },
+  "20": { "kind": "crit_success", "twist": "Roll 20 outstanding win.", "state_delta": { "reputation": 10 } }
 }
 ```
 
 Numbers not listed are adjudicated purely by the DM. Use the fate table for
 flavorful, authored moments ("an 11 means X") on top of the DM's open judgment.
+
+**Cover a spread of rolls.** A table with only 1/11/20 leaves 17 of 20 rolls to
+plain DM judgment, which flattens the dice and removes the swing that builds
+suspense. List roughly six slots from low to high, and make sure the set includes
+both **bad** twists (a low roll can genuinely hurt) and **good** ones (a high roll
+can genuinely help). A roll should be able to land either way.
 
 ### Story beats (optional ordered arc)
 

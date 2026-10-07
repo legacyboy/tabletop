@@ -35,6 +35,7 @@
 
   "meta": {
     "suggested_minutes": 60,
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "medium",
     "tags": ["deepfake", "misinformation", "fraud", "social-engineering", "governance", "media"],
     "learning_objectives": [
@@ -136,7 +137,12 @@
 
   "fate_table": {
     "1": { "kind": "crit_fail", "twist": "Your first response is a disaster - a rushed holding statement goes out with a line that reads like an insolvency admission, and an internal chat screenshot showing visible panic contradicts it within minutes. The clip's spread rate doubles and members start pulling deposits in earnest.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: the deepfake spawns remixes and duets, a doctored 'internal memo' screenshot starts circulating, and a rumor claims withdrawals over $500 are already frozen. A second wave of frightened members calls at once.", "state_delta": { "public_trust": -6 } },
+    "5": { "kind": "fail", "twist": "Your move lands badly: the statement reads as cold and legalistic, and a local forum thread pins it as 'corporate non-answer'. Engagement on the fake climbs while yours stalls.", "state_delta": { "public_trust": -6 } },
+    "7": { "kind": "mixed", "twist": "Mixed result: your response gets picked up, but so does the counter-claim - a screenshot 'proving' the video is real gains traction, and a mid-tier influencer repeats it to a new audience. You gain ground and lose some at the same time.", "state_delta": { "public_trust": -2, "regulator_confidence": 2 } },
+    "9": { "kind": "good", "twist": "A quiet win: the takedown notices are actioned faster than expected and two of the amplifier accounts are suspended outright, thinning the network's reach just as your message lands.", "state_delta": { "containment": 5, "public_trust": 3 } },
+    "11": { "kind": "good_twist", "twist": "A lucky break: a journalist who had been chasing the story finds the provenance trail (stolen agency session token) and runs it as a straight fraud expos\u00e9 - the fake's credibility collapses and member panic eases noticeably.", "state_delta": { "public_trust": 6, "regulator_confidence": 2 } },
+    "14": { "kind": "good", "twist": "The deposit insurer's liaison quietly signals public support for your handling, which steadies branch staff and slows the withdrawal rate.", "state_delta": { "public_trust": 4, "regulator_confidence": 3 } },
+    "17": { "kind": "strong", "twist": "Strong play: the fraud team traces a cluster of 'safe account' calls to a single operator and flags it to law enforcement, who move on the crew same-day - a real dent in the campaign.", "state_delta": { "containment": 8, "public_trust": 4 } },
     "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO goes live from the branch floor with undeniable authenticity, platforms act on the takedown notices within minutes, and a side-by-side forensic breakdown of the fake goes viral for the right reasons. Community voices amplify the correction and member fear visibly drains out of the feeds.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
   },
 

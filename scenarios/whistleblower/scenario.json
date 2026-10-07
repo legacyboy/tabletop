@@ -35,6 +35,7 @@
 
   "meta": {
     "suggested_minutes": 60,
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "hard",
     "tags": ["whistleblower", "governance", "media", "regulatory", "internal-investigation", "risk"],
     "learning_objectives": [
@@ -135,9 +136,14 @@
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization chooses the inquisition. IT access logs get pulled, a suspect is walked off the branch floor in view of members, and a 'zero tolerance for unauthorized disclosure' memo goes out - and lands in CBC's inbox within the hour. The story stops being about the allegations and becomes about the cover-up, and staff close ranks in silence.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: CBC sends a new question - they have a recording of an internal meeting where the concentration risk was described as 'embarrassing if it ever got out' - and a second package lands at another outlet with more recent quarters and a chart the executive team has never seen before. The story's scope just expanded beyond the team's own knowledge.", "state_delta": { "public_trust": -6 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team commits to substance over spin - it engages CBC on the record, opens a genuinely independent review with published scope, self-reports the open questions to the regulator before being asked twice, tells staff the truth about the process, and corrects the one number it can correct immediately. The reporter tells a colleague, 'They're taking it seriously - that changes the story's shape,' and the piece runs with the credit union's cooperation noted rather than its silence.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization chooses the inquisition. IT access logs get pulled, a suspected leaker is suspended, and CBC runs the suspension as proof of retaliation. Trust collapses.", "state_delta": {"public_trust": -12, "regulator_confidence": -8} },
+    "5": { "kind": "fail", "twist": "Your response is procedural and bloodless, and it reads as a brush-off; the whistleblower's advocates say the organization 'still doesn't get it'.", "state_delta": {"public_trust": -6} },
+    "7": { "kind": "mixed", "twist": "Mixed: you pledge transparency, but a leaked internal email shows a board member dismissing the concern - the pledge and the leak land the same day, and neither is fully believed.", "state_delta": {"public_trust": -2, "regulator_confidence": 2} },
+    "9": { "kind": "good", "twist": "A quiet win: you get ahead of a document request and hand the regulator a clean, complete record, which buys credibility for the harder questions ahead.", "state_delta": {"regulator_confidence": 5, "security_posture": 2} },
+    "11": { "kind": "good_twist", "twist": "A lucky break: the regulator, having seen your proactive disclosure, publicly describes the organization as cooperative rather than evasive - the frame shifts in your favour.", "state_delta": {"regulator_confidence": 6, "public_trust": 3} },
+    "14": { "kind": "good", "twist": "A respected former regulator agrees to review your governance process, lending the response independent weight.", "state_delta": {"public_trust": 4, "regulator_confidence": 2} },
+    "17": { "kind": "strong", "twist": "Strong play: you voluntarily disclose a real if minor governance failure the whistleblower didn't even raise, which badly undercuts the 'what else are they hiding' narrative.", "state_delta": {"containment": 8, "public_trust": 4} },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team commits to substance over spin - it engages CBC on the record, protects the whistleblower, fixes the concentration risk, and publishes the remediation. Both the regulator and the outlet call it exemplary.", "state_delta": {"public_trust": 10, "containment": 8, "regulator_confidence": 5} }
   },
 
   "beats": [

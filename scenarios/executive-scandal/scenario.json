@@ -35,6 +35,7 @@
 
   "meta": {
     "suggested_minutes": 60,
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "medium",
     "tags": ["governance", "reputation", "media", "board", "conduct", "crisis-communications"],
     "learning_objectives": [
@@ -135,9 +136,14 @@
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board leaks its own split to a reporter within a day, and then the conflict-of-interest file surfaces showing the borrower friendship was disclosed informally and never recorded. The story stops being about a hotel arrest and becomes about an organization that answers questions before it asks them.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: the police issue a statement that answers nothing - 'the investigation continues, no charges have been laid' - and a national aggregator runs the arrest with the credit union's logo as the thumbnail while a former employee posts a secondhand rumor thread that fills the vacuum with worse. The team is now fighting a story with no facts in it at all.", "state_delta": { "public_trust": -6 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the organization announces a clear, humane process - presumption of innocence, stepped-back lending authority pending outcome, an independent conflict-of-interest review, and a published conduct framework that applies to anyone from teller to executive. Wells accepts with dignity, staff see a single standard, the board unifies behind the process, and the reporter writes that 'for once, an organization has a process.'", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the CEO calls Wells 'a great man and completely innocent' publicly, the board splits openly, and a reporter obtains the leaked complaint the same afternoon. Trust collapses.", "state_delta": {"public_trust": -12, "regulator_confidence": -8} },
+    "5": { "kind": "fail", "twist": "The statement leans too hard on 'due process' and reads as cold to staff and the public; a survivor-advocacy group calls it out by name.", "state_delta": {"public_trust": -6} },
+    "7": { "kind": "mixed", "twist": "Mixed: the announcement is taken seriously, but the police confirm they are reviewing an earlier, similar complaint nobody disclosed - the story widens even as your process earns some credit.", "state_delta": {"public_trust": -2, "regulator_confidence": 2} },
+    "9": { "kind": "good", "twist": "A quiet win: an internal town hall lands well and two board members who were wavering publicly back the independent review, steadying the institution.", "state_delta": {"public_trust": 4, "regulator_confidence": 2} },
+    "11": { "kind": "good_twist", "twist": "A lucky break: the accuser's own lawyer confirms on background that the process is being taken seriously, and the coverage turns from scandal to 'how the institution is handling it'.", "state_delta": {"public_trust": 6, "regulator_confidence": 2} },
+    "14": { "kind": "good", "twist": "The regulator's liaison signals that a transparent, independent process is exactly the right posture, cooling the escalation risk.", "state_delta": {"regulator_confidence": 4, "public_trust": 2} },
+    "17": { "kind": "strong", "twist": "Strong play: you secure an interim agreement with the accuser's counsel that keeps the matter out of court while the review runs, removing the most dangerous near-term threat.", "state_delta": {"containment": 8, "public_trust": 4} },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the organization announces a clear, humane process - presumption of innocence for the accused AND real support for the accuser, an independent chair, and a fixed timeline. Even the accuser's counsel calls it credible, and the story flips to a model of governance.", "state_delta": {"public_trust": 10, "containment": 8, "regulator_confidence": 5} }
   },
 
   "beats": [

@@ -94,6 +94,10 @@ Scenarios are listed in `scenarios/registry.json`.
   // --- facilitator metadata (not fed to players verbatim) ---
   "meta": {
     "suggested_minutes": 60,
+    // Optional turn budget. The DM is told each turn which turn it is, how many
+    // beats remain, the minutes left, and whether to SPEED UP or SLOW DOWN.
+    // Omit and it is derived from the timeout at ~8 min/turn (60 min -> 6/7).
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "medium",               // low | medium | high
     "tags": ["misinformation", "fraud", "governance"],
     "learning_objectives": [
@@ -153,10 +157,17 @@ Scenarios are listed in `scenarios/registry.json`.
   // --- fate table: specific D20 rolls trigger authored twists ---
   // Other rolls are tiered by the DM (1=crit fail, 20=crit success, else magnitude).
   // Numbers not listed are adjudicated purely by the DM.
+  // Include a SPREAD of slots so a roll can plausibly land good OR bad - a table
+  // with only 1/11/20 makes almost every roll a plain DM judgment and removes the
+  // swing that builds suspense. Suggested spread: 1 (crit fail), ~5 (fail),
+  // ~7 (mixed), ~9/14 (good), ~11/17 (strong/good twist), 20 (crit success).
   "fate_table": {
-    "1":  { "kind": "crit_fail",   "twist": "Roll 1: catastrophe twist.",                 "state_delta": { "reputation": -10, "risk": 8 } },
-    "11": { "kind": "twist",       "twist": "Roll 11: the building catches fire.",        "state_delta": { "budget": -15, "risk": 10 } },
-    "20": { "kind": "crit_success","twist": "Roll 20: perfect execution, role-model win.", "state_delta": { "reputation": 8, "morale": 5 } }
+    "1":  { "kind": "crit_fail",   "twist": "Roll 1: catastrophe twist.",                 "state_delta": { "reputation": -12, "risk": 8 } },
+    "5":  { "kind": "fail",        "twist": "Roll 5: the move lands badly.",             "state_delta": { "reputation": -6 } },
+    "7":  { "kind": "mixed",       "twist": "Roll 7: gain ground and lose some at once.", "state_delta": { "reputation": -2, "risk": 2 } },
+    "11": { "kind": "good_twist",  "twist": "Roll 11: a lucky break swings it your way.", "state_delta": { "reputation": 6 } },
+    "17": { "kind": "strong",      "twist": "Roll 17: a strong play cuts the risk down.", "state_delta": { "risk": -8, "reputation": 4 } },
+    "20": { "kind": "crit_success","twist": "Roll 20: perfect execution, role-model win.", "state_delta": { "reputation": 10, "morale": 5 } }
   },
 
   // --- the story beats (optional ordered arc) ---

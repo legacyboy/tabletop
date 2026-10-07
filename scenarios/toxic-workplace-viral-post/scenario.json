@@ -35,6 +35,7 @@
 
   "meta": {
     "suggested_minutes": 60,
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "medium",
     "tags": ["reputation", "culture", "hr", "social-media", "governance", "internal-comms"],
     "learning_objectives": [
@@ -135,9 +136,14 @@
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee' and Legal sends a threatening letter that leaks within the hour. The internet does what it does - the letter becomes the story, employees feel vindicated and angrier, and even neutral observers turn on the credit union.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: the named senior manager posts a long defensive reply from their personal account defending 'high standards,' which staff screenshot and shred line by line. A #creditunionculture hashtag starts trending locally and the post jumps to national feeds.", "state_delta": { "public_trust": -6 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to an independent review with published findings, thanks the people who spoke up, and asks members for patience. Even critics call it the right response, staff internally exhale, and the story's momentum visibly stalls.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: the organization's statement calls the author a 'disgruntled former employee', three current staff publicly corroborate the post, and a national outlet picks it up. Trust collapses.", "state_delta": {"public_trust": -12, "regulator_confidence": -8} },
+    "5": { "kind": "fail", "twist": "The response is defensive and legalistic; staff read it as 'lawyering up' and morale visibly drops, with two more anonymous posts appearing.", "state_delta": {"public_trust": -6} },
+    "7": { "kind": "mixed", "twist": "Mixed: you announce a review, but the named manager's allies brief the press that the post is a grudge - the story splits into two camps, and neither fully trusts you.", "state_delta": {"public_trust": -2, "regulator_confidence": 2} },
+    "9": { "kind": "good", "twist": "A quiet win: an all-hands where leadership listens rather than defends steadies the internal room, and fewer staff engage with the viral post.", "state_delta": {"public_trust": 4, "security_posture": 2} },
+    "11": { "kind": "good_twist", "twist": "A lucky break: two respected current employees publicly describe their own positive-but-imperfect experience, and the conversation shifts from 'toxic workplace' to 'imperfect but improving'.", "state_delta": {"public_trust": 6, "regulator_confidence": 2} },
+    "14": { "kind": "good", "twist": "The regulator confirms that a credible independent review is the right response and notes it in your favour, dialling down the escalation risk.", "state_delta": {"regulator_confidence": 4, "public_trust": 2} },
+    "17": { "kind": "strong", "twist": "Strong play: you retain a genuinely independent investigator with a public remit and a reporting deadline, which removes the 'cover-up' angle from the coverage.", "state_delta": {"containment": 8, "public_trust": 4} },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the CEO's reply is human, specific, and non-defensive - it commits to a named independent review, acknowledges the pattern without excusing it, and protects the author's anonymity. Staff and the wider public largely accept it, and the story turns constructive.", "state_delta": {"public_trust": 10, "containment": 8, "regulator_confidence": 5} }
   },
 
   "beats": [

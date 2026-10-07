@@ -35,6 +35,7 @@
 
   "meta": {
     "suggested_minutes": 60,
+    "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "hard",
     "tags": ["ai", "governance", "privacy", "media", "regulatory", "technology", "vendor-management"],
     "learning_objectives": [
@@ -135,9 +136,14 @@
   ],
 
   "fate_table": {
-    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature' and 'isolated context quirks,' while a leadership interview accidentally confirms the March warning was real. The reporter leads with the contradiction, the screenshots go national, and members start recording their own the AI assistant sessions to catch it out.", "state_delta": { "public_trust": -12, "containment": -8 } },
-    "11": { "kind": "twist", "twist": "Chaos: the vendor's own account rep emails the board directly saying the problems are 'the credit union's data quality,' the email leaks within the hour, and a screenshot thread titled 'the AI assistant's greatest hits' starts drawing examples from three other provinces. Two stories - the failure and the blame - are now running at once.", "state_delta": { "public_trust": -6 } },
-    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team takes the AI assistant offline gracefully with a plain-language message about why, proactively self-reports to the regulator, gives the reporter the honest version first - including the March warning - and calls the retired member personally with a concrete make-whole plan. The piece publishes as 'How one credit union handled its AI failure the right way,' and even the privacy advocate credits the transparency.", "state_delta": { "public_trust": 10, "containment": 8, "regulator_confidence": 5 } }
+    "1": { "kind": "crit_fail", "twist": "Your first response is a disaster: a defensive statement frames the failures as 'members misusing a pilot feature', a screenshot shows the AI generating the very bad advice it was told not to, and the vendor distances itself in public. Trust craters.", "state_delta": {"public_trust": -12, "containment": -8} },
+    "5": { "kind": "fail", "twist": "The statement is vague and the AI stays online 'under review', so a fresh batch of wrong outputs surfaces on social media within the hour.", "state_delta": {"public_trust": -6, "containment": -3} },
+    "7": { "kind": "mixed", "twist": "Mixed: you pause the assistant, but the vendor's support ticket is leaked showing the risk was flagged months ago - your fix lands and your diligence is questioned at the same time.", "state_delta": {"public_trust": -2, "regulator_confidence": 2} },
+    "9": { "kind": "good", "twist": "A quiet win: your engineering team reproduces the failure and isolates it to a narrow prompt pattern, giving you a concrete, defensible scope for the incident.", "state_delta": {"containment": 5, "security_posture": 3} },
+    "11": { "kind": "good_twist", "twist": "A lucky break: a sympathetic security researcher publishes an independent analysis confirming the flaw is the vendor's, not yours - the narrative shifts materially in your favour.", "state_delta": {"public_trust": 6, "regulator_confidence": 2} },
+    "14": { "kind": "good", "twist": "The regulator's analyst accepts your containment evidence and downgrades the urgency of the file, easing pressure on the board.", "state_delta": {"regulator_confidence": 4, "public_trust": 2} },
+    "17": { "kind": "strong", "twist": "Strong play: you get the vendor to commit in writing to a joint root-cause review and a patch timeline, converting a blame fight into a documented remediation plan.", "state_delta": {"containment": 8, "regulator_confidence": 4} },
+    "20": { "kind": "crit_success", "twist": "A clean, devastatingly effective response: the team takes the AI assistant offline gracefully with a plain-language member notice, publishes the failure analysis, and ships a hardened guardrail within days. The regulator cites you as a model responder.", "state_delta": {"public_trust": 10, "containment": 8, "regulator_confidence": 5} }
   },
 
   "beats": [
