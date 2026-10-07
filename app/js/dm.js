@@ -314,7 +314,7 @@ export function isNotableFate(roll) {
 function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
   const fateLine = fate
     ? (isNotableFate(roll)
-        ? `The roll of ${roll} lands on a scripted fate event: "${fate.twist}". Weave this into the outcome.`
+        ? `The roll of ${roll} lands on a scripted fate event: "${fate.twist}". Weave this into the outcome. FRAMING: if this is a POSITIVE event (11 or 20) but the group\'s action this turn was weak, empty, or off-target, narrate the good turn as EXTERNAL LUCK that arrives despite them \u2014 a journalist happens to find the trail, an ally steps up, a platform acts on its own \u2014 NOT as the group\'s competence. Never let a lucky positive fate read as the group outplaying their own action; it is the world throwing them a break. If this is a NEGATIVE event (1 or 5), let it bite regardless of how well they played \u2014 that is the tension.`
         : `The roll of ${roll} resolves ordinarily. Guidance for this outcome (do not announce it as a special event; just let it read as the natural result): "${fate.twist}".`)
     : '';
   const eventLine = firedEvents && firedEvents.length
