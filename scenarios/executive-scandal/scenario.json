@@ -2,6 +2,33 @@
   "scenario_id": "executive_scandal",
   "title": "The Executive Scandal",
   "version": 4,
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "clo_name",
+      "label": "Chief Lending Officer (the arrested executive)",
+      "placeholder": "e.g. {{clo_name}}"
+    },
+    {
+      "key": "ceo_name",
+      "label": "CEO",
+      "placeholder": "e.g. {{ceo_name}}"
+    },
+    {
+      "key": "board_chair",
+      "label": "Board chair",
+      "placeholder": "optional"
+    },
+    {
+      "key": "comms_lead",
+      "label": "Comms / PR lead",
+      "placeholder": "optional"
+    }
+  ],
   "goal": {
     "description": "Handle a public controversy around a senior leader with fairness and process: fill the information vacuum with a credible posture, build a governance response that protects both the organization and the presumption of innocence, answer the board and the regulator honestly, deal with the conflict-of-interest questions on the merits, and bring public trust and regulator confidence back above healthy thresholds.",
     "win_conditions": [
@@ -40,33 +67,6 @@
     "company_url": "",
     "company_info": "{{org_name}} is a mid-sized, member-owned credit union whose brand is trust in its people. Senior leaders are public faces in the community - members know them by name. The regulator cares whether officers are fit for their roles and whether governance handles conduct matters with a process rather than improvisation. No criminal charge exists here; the crisis is entirely about judgment: how the organization treats a leader it cannot yet clear, and what its members believe that treatment says about the institution."
   },
-  "cast": [
-    {
-      "key": "org_name",
-      "label": "Organization name",
-      "placeholder": "e.g. Northgate Credit Union"
-    },
-    {
-      "key": "clo_name",
-      "label": "Chief Lending Officer (the arrested executive)",
-      "placeholder": "e.g. {{clo_name}}"
-    },
-    {
-      "key": "ceo_name",
-      "label": "CEO",
-      "placeholder": "e.g. {{ceo_name}}"
-    },
-    {
-      "key": "board_chair",
-      "label": "Board chair",
-      "placeholder": "optional"
-    },
-    {
-      "key": "comms_lead",
-      "label": "Comms / PR lead",
-      "placeholder": "optional"
-    }
-  ],
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -117,6 +117,23 @@
       "name": "What it's costing",
       "symptom": "The bill is measured in trust, not charges: '{{org_name}} exec arrested' is hardening into a permanent search result; lending teams are distracted and commercial partners are quietly rescheduling; the regulator has called with pointed fit-and-proper questions about whether this officer can remain in role pending an outcome; the board's own credibility is becoming part of the story - 'no process, no framework, improvising' - and members are openly wondering whether lending decisions were clean, all before anyone knows whether the original incident was anything at all.",
       "revealed": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1-vacuum",
+      "name": "Step 1 — Fill the vacuum with posture, not facts",
+      "narrative": "The facts are unavailable and the vacuum is filling fast. Step 1 is to set the posture: a public line that takes the situation seriously without pre-judging a man who has not been charged, interim arrangements for his lending authority, briefings for branch and contact-centre staff, and one consistent message to a board that is splitting. Until the organization has a posture, everything else is improvisation."
+    },
+    {
+      "id": "b2-governance",
+      "name": "Step 2 — Build the process while running it",
+      "narrative": "The posture is set. Now the harder work: run a genuine governance response - an independent conflict-of-interest review of the borrower loans and the informal disclosure that was never recorded, a conduct framework the board can adopt rather than improvise, an honest answer to the regulator's 'what is your process,' and care for Wells and his team through all of it. If Step 1 went well, the process gets judged on its merits; if not, every move reads as either cowardice or cover-up."
+    },
+    {
+      "id": "b3-resolve",
+      "name": "Step 3 — Resolve, clean up, and rebuild",
+      "narrative": "The process is running and the outcome is taking shape - whatever the investigation clears or confirms. Step 3 is to resolve the leader's situation on the evidence with fairness intact, close out the conflict-of-interest questions with findings members can believe, leave a permanent, credible conduct framework in place, and rebuild the association between the brand and its people. If Steps 1-2 went well, the ending restores trust with members, the board, and the regulator; if they went poorly, the search result outlives the story."
     }
   ],
   "dm_brief": {
@@ -255,6 +272,29 @@
         "regulator_confidence": -8
       }
     },
+    "2": {
+      "kind": "fail",
+      "twist": "The vacuum widens: with no line agreed, two directors give conflicting quotes to the same reporter and the story metastasizes into 'leadership in disarray'.",
+      "state_delta": {
+        "public_trust": -9,
+        "regulator_confidence": -4
+      }
+    },
+    "3": {
+      "kind": "fail",
+      "twist": "A procedural misstep - treating the executive as guilty in an internal email that surfaces - hands his lawyer a grievance and hands the press a quote.",
+      "state_delta": {
+        "public_trust": -8,
+        "regulator_confidence": -3
+      }
+    },
+    "4": {
+      "kind": "fail",
+      "twist": "The statement lands as bureaucratic and self-protective, and staff start leaking their own hot takes to fill the gap.",
+      "state_delta": {
+        "public_trust": -7
+      }
+    },
     "5": {
       "kind": "fail",
       "twist": "The statement leans too hard on 'due process' and reads as cold to staff and the public; a survivor-advocacy group calls it out by name.",
@@ -262,11 +302,27 @@
         "public_trust": -6
       }
     },
+    "6": {
+      "kind": "mixed",
+      "twist": "Partial: the single-line discipline mostly holds, but the ambiguity invites a fresh round of speculation and one outlet frames it as a stall.",
+      "state_delta": {
+        "public_trust": -1,
+        "regulator_confidence": 1
+      }
+    },
     "7": {
       "kind": "mixed",
       "twist": "Mixed: the announcement is taken seriously, but the police confirm they are reviewing an earlier, similar complaint nobody disclosed - the story widens even as your process earns some credit.",
       "state_delta": {
         "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "8": {
+      "kind": "mixed",
+      "twist": "Modest progress: the board agrees a defensible process and the tone shifts from chaos to procedure, though the optics are still awkward.",
+      "state_delta": {
+        "public_trust": 1,
         "regulator_confidence": 2
       }
     },
@@ -278,12 +334,37 @@
         "regulator_confidence": 2
       }
     },
+    "10": {
+      "kind": "good",
+      "twist": "Solid win: a single, fair, consistent line is agreed and held, and staff stop improvising answers at the branches.",
+      "state_delta": {
+        "public_trust": 3,
+        "regulator_confidence": 2
+      }
+    },
     "11": {
       "kind": "good_twist",
       "twist": "A lucky break: the accuser's own lawyer confirms on background that the process is being taken seriously, and the coverage turns from scandal to 'how the institution is handling it'.",
       "state_delta": {
         "public_trust": 6,
         "regulator_confidence": 2
+      }
+    },
+    "12": {
+      "kind": "good",
+      "twist": "Strong handling: fairness to the individual and protection of the institution are both made explicit, and the board visibly unifies.",
+      "state_delta": {
+        "public_trust": 5,
+        "regulator_confidence": 3
+      }
+    },
+    "13": {
+      "kind": "good",
+      "twist": "The group's steady handling converts a potential scandal into a governance story the institution can survive, and the leaks dry up.",
+      "state_delta": {
+        "public_trust": 5,
+        "containment": 4,
+        "regulator_confidence": 3
       }
     },
     "14": {
@@ -294,12 +375,46 @@
         "public_trust": 2
       }
     },
+    "15": {
+      "kind": "strong",
+      "twist": "Strong play: the conflict-of-interest thread is surfaced and handled transparently, removing the one fact that could have turned a stumble into a fire.",
+      "state_delta": {
+        "containment": 6,
+        "public_trust": 4
+      }
+    },
+    "16": {
+      "kind": "strong",
+      "twist": "Real control regained: the individual's rights are protected, the institution's process is airtight, and the press loses its wedge.",
+      "state_delta": {
+        "containment": 7,
+        "regulator_confidence": 4
+      }
+    },
     "17": {
       "kind": "strong",
       "twist": "Strong play: you secure an interim agreement with the accuser's counsel that keeps the matter out of court while the review runs, removing the most dangerous near-term threat.",
       "state_delta": {
         "containment": 8,
         "public_trust": 4
+      }
+    },
+    "18": {
+      "kind": "strong",
+      "twist": "Near-decisive: a single honest statement, a fair process, and visible board unity put the story to bed almost before it grew.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 5,
+        "regulator_confidence": 4
+      }
+    },
+    "19": {
+      "kind": "strong",
+      "twist": "A commanding turn: the executive is treated fairly, the institution is protected, and the outcome is handled so cleanly it becomes a case study in process.",
+      "state_delta": {
+        "containment": 9,
+        "public_trust": 6,
+        "regulator_confidence": 5
       }
     },
     "20": {
@@ -312,23 +427,6 @@
       }
     }
   },
-  "beats": [
-    {
-      "id": "b1-vacuum",
-      "name": "Step 1 — Fill the vacuum with posture, not facts",
-      "narrative": "The facts are unavailable and the vacuum is filling fast. Step 1 is to set the posture: a public line that takes the situation seriously without pre-judging a man who has not been charged, interim arrangements for his lending authority, briefings for branch and contact-centre staff, and one consistent message to a board that is splitting. Until the organization has a posture, everything else is improvisation."
-    },
-    {
-      "id": "b2-governance",
-      "name": "Step 2 — Build the process while running it",
-      "narrative": "The posture is set. Now the harder work: run a genuine governance response - an independent conflict-of-interest review of the borrower loans and the informal disclosure that was never recorded, a conduct framework the board can adopt rather than improvise, an honest answer to the regulator's 'what is your process,' and care for Wells and his team through all of it. If Step 1 went well, the process gets judged on its merits; if not, every move reads as either cowardice or cover-up."
-    },
-    {
-      "id": "b3-resolve",
-      "name": "Step 3 — Resolve, clean up, and rebuild",
-      "narrative": "The process is running and the outcome is taking shape - whatever the investigation clears or confirms. Step 3 is to resolve the leader's situation on the evidence with fairness intact, close out the conflict-of-interest questions with findings members can believe, leave a permanent, credible conduct framework in place, and rebuild the association between the brand and its people. If Steps 1-2 went well, the ending restores trust with members, the board, and the regulator; if they went poorly, the search result outlives the story."
-    }
-  ],
   "end_conditions": [
     {
       "type": "stat",

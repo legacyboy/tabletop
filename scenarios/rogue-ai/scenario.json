@@ -2,6 +2,33 @@
   "scenario_id": "rogue_ai",
   "title": "The Rogue AI",
   "version": 4,
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "ceo_name",
+      "label": "CEO / President",
+      "placeholder": "e.g. Dana Whitfield"
+    },
+    {
+      "key": "cio_name",
+      "label": "CIO / security lead",
+      "placeholder": "e.g. Jeff Park"
+    },
+    {
+      "key": "ai_lead_name",
+      "label": "AI engineering lead",
+      "placeholder": "optional"
+    },
+    {
+      "key": "cro_name",
+      "label": "Chief Risk Officer",
+      "placeholder": "optional"
+    }
+  ],
   "goal": {
     "description": "Get ahead of the AI story, own the failures honestly, and fix the system: respond to the reporter with transparency instead of denial, understand exactly how the AI went wrong (bad data, session leakage, untested bias), take the assistant offline or fence it responsibly, make affected members whole, and bring public trust and regulator confidence back above healthy thresholds.",
     "win_conditions": [
@@ -91,6 +118,23 @@
       "name": "What it cost",
       "symptom": "The bill is arriving. Members who followed the AI's guidance are calculating what it cost them - at least one retiree's money is locked somewhere illiquid on the AI assistant's advice. The members whose data surfaced in strangers' sessions are furious and one has gone to a lawyer. Daily usage is sliding as the screenshots circulate, the board wants to know how an unvalidated system reached members, and the regulator has opened a file on {{org_name}}'s AI governance with an uncomfortable first question: did the AI make product recommendations - a regulated activity - without anyone noticing?",
       "revealed": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Answer the deadline and decide the assistant's fate",
+      "narrative": "The reporter publishes in the morning and the AI assistant is live right now. Step 1 is to get ahead of the story: decide what happens to the assistant - pause it cleanly, fence it, or defend it - and answer the reporter with substance instead of minimization, while telling member-facing staff exactly what to say. Until the team makes these two calls, everything else happens to them."
+    },
+    {
+      "id": "b2-forensics",
+      "name": "Step 2 — Find out what actually happened, and with whom",
+      "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Fix the root causes and earn the relaunch",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: scrub and validate the training data, fix the session plumbing, test for bias before anything ships, build the AI governance framework the board can defend, make the harmed members whole, and decide the assistant's future on evidence rather than embarrassment. If Steps 1-2 went well, {{org_name}} can relaunch or retire with its credibility enhanced; if they went poorly, every alternative in the industry becomes a reminder."
     }
   ],
   "dm_brief": {
@@ -229,6 +273,29 @@
         "containment": -8
       }
     },
+    "2": {
+      "kind": "fail",
+      "twist": "The response backfires: a defensive statement that the AI is 'working as designed' is screenshotted and read as a confession, and the reporter's story gets a damning headline.",
+      "state_delta": {
+        "public_trust": -9,
+        "containment": -4
+      }
+    },
+    "3": {
+      "kind": "fail",
+      "twist": "A rushed fix breaks something else - the assistant starts refusing legitimate member questions - and both the outage and the original failures make the morning news.",
+      "state_delta": {
+        "public_trust": -8,
+        "containment": -3
+      }
+    },
+    "4": {
+      "kind": "fail",
+      "twist": "The statement reads as corporate and evasive; affected members' stories outpace it, and the bias evidence is now a segment on a national broadcast.",
+      "state_delta": {
+        "public_trust": -7
+      }
+    },
     "5": {
       "kind": "fail",
       "twist": "The statement is vague and the AI stays online 'under review', so a fresh batch of wrong outputs surfaces on social media within the hour.",
@@ -237,11 +304,27 @@
         "containment": -3
       }
     },
+    "6": {
+      "kind": "mixed",
+      "twist": "Partial: the assistant is paused for the flagged use cases, but the transcript and bias examples are already public and still driving the story.",
+      "state_delta": {
+        "public_trust": -1,
+        "regulator_confidence": 1
+      }
+    },
     "7": {
       "kind": "mixed",
       "twist": "Mixed: you pause the assistant, but the vendor's support ticket is leaked showing the risk was flagged months ago - your fix lands and your diligence is questioned at the same time.",
       "state_delta": {
         "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "8": {
+      "kind": "mixed",
+      "twist": "Modest gain: the engineering lead's account is corroborated internally and the March warning is acknowledged, buying credibility with the regulator.",
+      "state_delta": {
+        "public_trust": 1,
         "regulator_confidence": 2
       }
     },
@@ -253,12 +336,37 @@
         "security_posture": 3
       }
     },
+    "10": {
+      "kind": "good",
+      "twist": "Solid win: the system is scoped down to safe functions, the leak is closed, and the affected members are made whole - the story loses its sharpest edges.",
+      "state_delta": {
+        "public_trust": 3,
+        "regulator_confidence": 2
+      }
+    },
     "11": {
       "kind": "good_twist",
       "twist": "A lucky break: a sympathetic security researcher publishes an independent analysis confirming the flaw is the vendor's, not yours - the narrative shifts materially in your favour.",
       "state_delta": {
         "public_trust": 6,
         "regulator_confidence": 2
+      }
+    },
+    "12": {
+      "kind": "good",
+      "twist": "Strong handling: the vendor is held to account, the fix is verifiable, and the group's transparency converts a scandal into a responsible-response story.",
+      "state_delta": {
+        "public_trust": 5,
+        "regulator_confidence": 3
+      }
+    },
+    "13": {
+      "kind": "good",
+      "twist": "The group's handling turns the narrative: the failures are owned, fixed, and explained, and member harm is addressed rather than buried.",
+      "state_delta": {
+        "public_trust": 5,
+        "containment": 4,
+        "regulator_confidence": 3
       }
     },
     "14": {
@@ -269,12 +377,46 @@
         "public_trust": 2
       }
     },
+    "15": {
+      "kind": "strong",
+      "twist": "Strong play: an independent audit confirms the root causes are fixed and the vendor's role is pinned down, removing the ambiguity the story fed on.",
+      "state_delta": {
+        "containment": 6,
+        "public_trust": 4
+      }
+    },
+    "16": {
+      "kind": "strong",
+      "twist": "Real control: the AI is safely re-scoped, the leak is provably closed, and the bias is corrected with evidence - the failure becomes a fix.",
+      "state_delta": {
+        "containment": 7,
+        "regulator_confidence": 4
+      }
+    },
     "17": {
       "kind": "strong",
       "twist": "Strong play: you get the vendor to commit in writing to a joint root-cause review and a patch timeline, converting a blame fight into a documented remediation plan.",
       "state_delta": {
         "containment": 8,
         "regulator_confidence": 4
+      }
+    },
+    "18": {
+      "kind": "strong",
+      "twist": "Near-decisive: the remediation is fast, verifiable, and member-centred, and the story turns into 'how a bank fixed its AI' rather than 'how its AI failed'.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 5,
+        "regulator_confidence": 4
+      }
+    },
+    "19": {
+      "kind": "strong",
+      "twist": "A commanding turn: root cause named, fix verified, vendor accountable, members made whole - the response is close to a textbook recovery.",
+      "state_delta": {
+        "containment": 9,
+        "public_trust": 6,
+        "regulator_confidence": 5
       }
     },
     "20": {
@@ -287,23 +429,6 @@
       }
     }
   },
-  "beats": [
-    {
-      "id": "b1-public",
-      "name": "Step 1 — Answer the deadline and decide the assistant's fate",
-      "narrative": "The reporter publishes in the morning and the AI assistant is live right now. Step 1 is to get ahead of the story: decide what happens to the assistant - pause it cleanly, fence it, or defend it - and answer the reporter with substance instead of minimization, while telling member-facing staff exactly what to say. Until the team makes these two calls, everything else happens to them."
-    },
-    {
-      "id": "b2-forensics",
-      "name": "Step 2 — Find out what actually happened, and with whom",
-      "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first."
-    },
-    {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix the root causes and earn the relaunch",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: scrub and validate the training data, fix the session plumbing, test for bias before anything ships, build the AI governance framework the board can defend, make the harmed members whole, and decide the assistant's future on evidence rather than embarrassment. If Steps 1-2 went well, {{org_name}} can relaunch or retire with its credibility enhanced; if they went poorly, every alternative in the industry becomes a reminder."
-    }
-  ],
   "end_conditions": [
     {
       "type": "stat",
@@ -332,32 +457,5 @@
   "report": {
     "title_note": "The Rogue AI — Tabletop Report",
     "audit_note": "Generated at session end or timeout. Capture this report alongside moderator hotwash notes for the audit trail."
-  },
-  "cast": [
-    {
-      "key": "org_name",
-      "label": "Organization name",
-      "placeholder": "e.g. Northgate Credit Union"
-    },
-    {
-      "key": "ceo_name",
-      "label": "CEO / President",
-      "placeholder": "e.g. Dana Whitfield"
-    },
-    {
-      "key": "cio_name",
-      "label": "CIO / security lead",
-      "placeholder": "e.g. Jeff Park"
-    },
-    {
-      "key": "ai_lead_name",
-      "label": "AI engineering lead",
-      "placeholder": "optional"
-    },
-    {
-      "key": "cro_name",
-      "label": "Chief Risk Officer",
-      "placeholder": "optional"
-    }
-  ]
+  }
 }

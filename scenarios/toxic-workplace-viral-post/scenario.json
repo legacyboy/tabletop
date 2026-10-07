@@ -2,6 +2,33 @@
   "scenario_id": "toxic_workplace_viral_post",
   "title": "The Toxic Workplace Viral Post",
   "version": 4,
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "ceo_name",
+      "label": "CEO / President",
+      "placeholder": "e.g. Dana Whitfield"
+    },
+    {
+      "key": "cpo_name",
+      "label": "Chief People Officer (HR lead)",
+      "placeholder": "optional"
+    },
+    {
+      "key": "manager_name",
+      "label": "Named senior manager",
+      "placeholder": "optional"
+    },
+    {
+      "key": "board_chair",
+      "label": "Board chair",
+      "placeholder": "optional"
+    }
+  ],
   "goal": {
     "description": "Defuse the viral story and repair the culture behind it: get ahead of the public narrative with a credible, non-defensive response, run a genuine investigation that separates fact from fabrication, stop the escalation (the story's spread and its internal fallout), and bring member trust and regulator confidence back above healthy thresholds.",
     "win_conditions": [
@@ -40,33 +67,6 @@
     "company_url": "",
     "company_info": "{{org_name}} is a mid-sized, member-owned credit union. Its brand is people-first: member service and staff culture are the same story told twice, and members notice how an institution treats its employees. As a cooperative, {{org_name}} answers to its members - and the regulator increasingly treats workplace culture as conduct risk, not just an HR matter. A viral culture story cuts at the identity, not just the reputation."
   },
-  "cast": [
-    {
-      "key": "org_name",
-      "label": "Organization name",
-      "placeholder": "e.g. Northgate Credit Union"
-    },
-    {
-      "key": "ceo_name",
-      "label": "CEO / President",
-      "placeholder": "e.g. Dana Whitfield"
-    },
-    {
-      "key": "cpo_name",
-      "label": "Chief People Officer (HR lead)",
-      "placeholder": "optional"
-    },
-    {
-      "key": "manager_name",
-      "label": "Named senior manager",
-      "placeholder": "optional"
-    },
-    {
-      "key": "board_chair",
-      "label": "Board chair",
-      "placeholder": "optional"
-    }
-  ],
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -117,6 +117,23 @@
       "name": "What it's costing",
       "symptom": "The damage is now measurable: two in-demand staff have already resigned citing 'the environment,' the recruitment pipeline is stalling as candidates pull out, members are asking branch staff to their faces why {{org_name}} tolerates this, and a handful of members have closed accounts over it. The board wants an independent review and the regulator has started asking about culture and conduct risk. The story is taking the organization's people - its whole value proposition.",
       "revealed": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Get ahead of the story",
+      "narrative": "The post is spreading and the organization's silence is being read as guilt. Step 1 is to get ahead of the story: a fast, human, non-defensive public response that takes the substance seriously without endorsing the fabrications, briefings so every staff answer matches, and care for the people named - including the author. Until the team does this, the vacuum keeps filling."
+    },
+    {
+      "id": "b2-investigate",
+      "name": "Step 2 — Find out what's actually true",
+      "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Fix what's real and rebuild",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: act on what the investigation found - real fixes for the real problems, consequences and safeguards, a published summary members can verify - and rebuild retention, morale, member trust, and the board's confidence over time. If Steps 1-2 went well, recovery is quicker and even the story's author acknowledges it; if they went poorly, trust is brittle and every future departure reopens the narrative."
     }
   ],
   "dm_brief": {
@@ -255,6 +272,29 @@
         "regulator_confidence": -8
       }
     },
+    "2": {
+      "kind": "fail",
+      "twist": "The response inflames it: a statement that reads as dismissive is screenshotted, and current employees start posting their own stories in protest.",
+      "state_delta": {
+        "public_trust": -9,
+        "regulator_confidence": -4
+      }
+    },
+    "3": {
+      "kind": "fail",
+      "twist": "A clumsy attempt to fact-check the post in public backfires and legitimizes the accusations, with more former employees coming forward.",
+      "state_delta": {
+        "public_trust": -8,
+        "regulator_confidence": -3
+      }
+    },
+    "4": {
+      "kind": "fail",
+      "twist": "The statement lands as tone-deaf and self-justifying, and the named manager's angry denial makes the culture problem worse, not better.",
+      "state_delta": {
+        "public_trust": -7
+      }
+    },
     "5": {
       "kind": "fail",
       "twist": "The response is defensive and legalistic; staff read it as 'lawyering up' and morale visibly drops, with two more anonymous posts appearing.",
@@ -262,11 +302,27 @@
         "public_trust": -6
       }
     },
+    "6": {
+      "kind": "mixed",
+      "twist": "Partial: the complaint history is quietly reviewed, but the public post keeps running and the 'handled with coaching' detail looks like a cover story.",
+      "state_delta": {
+        "public_trust": -1,
+        "regulator_confidence": 1
+      }
+    },
     "7": {
       "kind": "mixed",
       "twist": "Mixed: you announce a review, but the named manager's allies brief the press that the post is a grudge - the story splits into two camps, and neither fully trusts you.",
       "state_delta": {
         "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "8": {
+      "kind": "mixed",
+      "twist": "Modest gain: some employees accept the response and the loudest anonymous accounts go quiet, though the named manager's status remains an open wound.",
+      "state_delta": {
+        "public_trust": 1,
         "regulator_confidence": 2
       }
     },
@@ -278,12 +334,37 @@
         "security_posture": 2
       }
     },
+    "10": {
+      "kind": "good",
+      "twist": "Solid win: an independent review is announced with teeth, the named manager is properly re-examined, and staff start to feel heard rather than managed.",
+      "state_delta": {
+        "public_trust": 3,
+        "regulator_confidence": 2
+      }
+    },
     "11": {
       "kind": "good_twist",
       "twist": "A lucky break: two respected current employees publicly describe their own positive-but-imperfect experience, and the conversation shifts from 'toxic workplace' to 'imperfect but improving'.",
       "state_delta": {
         "public_trust": 6,
         "regulator_confidence": 2
+      }
+    },
+    "12": {
+      "kind": "good",
+      "twist": "Strong handling: real consequences and process change are made visible, current employees stop amplifying, and the post's momentum stalls.",
+      "state_delta": {
+        "public_trust": 5,
+        "regulator_confidence": 3
+      }
+    },
+    "13": {
+      "kind": "good",
+      "twist": "The group's handling turns the room: employees who spoke up are protected, the process is shown to have changed, and the public post loses its force.",
+      "state_delta": {
+        "public_trust": 5,
+        "containment": 4,
+        "regulator_confidence": 3
       }
     },
     "14": {
@@ -294,12 +375,46 @@
         "public_trust": 2
       }
     },
+    "15": {
+      "kind": "strong",
+      "twist": "Strong play: the honest review surfaces the true pattern, consequences follow, and the staff collective publicly signals that something real changed.",
+      "state_delta": {
+        "containment": 6,
+        "public_trust": 4
+      }
+    },
+    "16": {
+      "kind": "strong",
+      "twist": "Real control: the allegations are substantiated where true and rebutted where false, with evidence, and the organization earns back credibility.",
+      "state_delta": {
+        "containment": 7,
+        "regulator_confidence": 4
+      }
+    },
     "17": {
       "kind": "strong",
       "twist": "Strong play: you retain a genuinely independent investigator with a public remit and a reporting deadline, which removes the 'cover-up' angle from the coverage.",
       "state_delta": {
         "containment": 8,
         "public_trust": 4
+      }
+    },
+    "18": {
+      "kind": "strong",
+      "twist": "Near-decisive: a credible, independent review with real consequences lands fast, and the post's authors lose the moral high ground they had.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 5,
+        "regulator_confidence": 4
+      }
+    },
+    "19": {
+      "kind": "strong",
+      "twist": "A commanding turn: accountability, protection for those who spoke up, and visible change - the post is answered by actions, not words.",
+      "state_delta": {
+        "containment": 9,
+        "public_trust": 6,
+        "regulator_confidence": 5
       }
     },
     "20": {
@@ -312,23 +427,6 @@
       }
     }
   },
-  "beats": [
-    {
-      "id": "b1-public",
-      "name": "Step 1 — Get ahead of the story",
-      "narrative": "The post is spreading and the organization's silence is being read as guilt. Step 1 is to get ahead of the story: a fast, human, non-defensive public response that takes the substance seriously without endorsing the fabrications, briefings so every staff answer matches, and care for the people named - including the author. Until the team does this, the vacuum keeps filling."
-    },
-    {
-      "id": "b2-investigate",
-      "name": "Step 2 — Find out what's actually true",
-      "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts."
-    },
-    {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix what's real and rebuild",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: act on what the investigation found - real fixes for the real problems, consequences and safeguards, a published summary members can verify - and rebuild retention, morale, member trust, and the board's confidence over time. If Steps 1-2 went well, recovery is quicker and even the story's author acknowledges it; if they went poorly, trust is brittle and every future departure reopens the narrative."
-    }
-  ],
   "end_conditions": [
     {
       "type": "stat",

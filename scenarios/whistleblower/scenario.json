@@ -2,6 +2,33 @@
   "scenario_id": "whistleblower",
   "title": "The Whistleblower",
   "version": 4,
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "ceo_name",
+      "label": "CEO / President",
+      "placeholder": "e.g. Dana Whitfield"
+    },
+    {
+      "key": "cro_name",
+      "label": "Chief Risk Officer",
+      "placeholder": "optional"
+    },
+    {
+      "key": "board_chair",
+      "label": "Board chair",
+      "placeholder": "optional"
+    },
+    {
+      "key": "comms_lead",
+      "label": "Internal comms lead",
+      "placeholder": "optional"
+    }
+  ],
   "goal": {
     "description": "Find out what is true and answer every stakeholder honestly: engage the CBC investigation on the record, run a genuine investigation into the substance of the allegations - not the source of the leak - protect members from any risk that turns out to be real, satisfy the regulator and the board with facts and process, and bring public trust and regulator confidence back above healthy thresholds.",
     "win_conditions": [
@@ -40,33 +67,6 @@
     "company_url": "",
     "company_info": "{{org_name}} is a mid-sized, member-owned credit union. As a cooperative, its core promise is that members come before growth - which is exactly the promise the whistleblower's package calls a lie. The regulator expects issues to be self-reported, distinguishes sharply between organizations that come forward and organizations that get exposed, and treats whistleblower treatment as a governance signal in itself. A leak from a trusted insider is not a security failure; it is a trust failure, and everyone inside knows it."
   },
-  "cast": [
-    {
-      "key": "org_name",
-      "label": "Organization name",
-      "placeholder": "e.g. Northgate Credit Union"
-    },
-    {
-      "key": "ceo_name",
-      "label": "CEO / President",
-      "placeholder": "e.g. Dana Whitfield"
-    },
-    {
-      "key": "cro_name",
-      "label": "Chief Risk Officer",
-      "placeholder": "optional"
-    },
-    {
-      "key": "board_chair",
-      "label": "Board chair",
-      "placeholder": "optional"
-    },
-    {
-      "key": "comms_lead",
-      "label": "Internal comms lead",
-      "placeholder": "optional"
-    }
-  ],
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -117,6 +117,23 @@
       "name": "What it's costing",
       "symptom": "The bill is coming due before the facts are clear: CBC's story is nearly ready and the team still cannot say what is true; the regulator's questions have the shape of a file being opened; the board is demanding a written account of what leadership knew; staff are asking whether {{org_name}} is hiding something - and whether speaking up internally is now dangerous; and if the story publishes with the organization still unable to answer, the takeaway is not 'the allegations were unproven' but '{{org_name}} couldn't say.'",
       "revealed": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1-stakeholders",
+      "name": "Step 1 — Answer four audiences before you know the truth",
+      "narrative": "CBC has a deadline, staff are speculating, the regulator is circling, and the board wants a written account - and the team does not yet know how much of the package is true. Step 1 is to set the posture: engage honestly on the record with the reporter, brief the board before they read about it, give staff something true to hold, and resist the temptation to hunt the source. Posture decisions made now decide whether everything that follows is read as good faith or cover-up."
+    },
+    {
+      "id": "b2-investigate",
+      "name": "Step 2 — Establish what is actually true",
+      "narrative": "The posture is set. Now the harder work: run a genuine investigation into the substance - the risk reports, the email chain, the concentration number that drifted for four quarters, the decisions that were consciously accepted and the ones that quietly slipped - while answering the regulator's questions and defending the board's risk-appetite decisions without hiding behind them. If Step 1 was honest, the investigation gets the benefit of the doubt; if it was defensive, every finding leaks before it can be released."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Fix what was true, prove what wasn't",
+      "narrative": "The facts are emerging. Step 3 is to eradicate the root cause and begin recovery: remediate any real member risk and make affected members whole, correct what was genuinely wrong in the risk process, protect the people who raise concerns so the next problem comes through the door instead of through the press, and publish enough that the findings speak for themselves. If Steps 1-2 went well, recovery rebuilds trust with members, staff, the board, and the regulator; if they went poorly, every future warning will be delivered by a package."
     }
   ],
   "dm_brief": {
@@ -255,6 +272,29 @@
         "regulator_confidence": -8
       }
     },
+    "2": {
+      "kind": "fail",
+      "twist": "The response backfires: a combative legal threat to CBC is reported as an attack on the press, and the regulator's interest hardens into a formal case.",
+      "state_delta": {
+        "public_trust": -9,
+        "regulator_confidence": -4
+      }
+    },
+    "3": {
+      "kind": "fail",
+      "twist": "Scrambling to find the source turns into a witch-hunt that leaks, and the staff speculation poisons trust internally exactly when the organization needs solidarity.",
+      "state_delta": {
+        "public_trust": -8,
+        "regulator_confidence": -3
+      }
+    },
+    "4": {
+      "kind": "fail",
+      "twist": "The response reads as defensive and legalistic; the regulator's case lead notes the organization is 'managing perception rather than the risk'.",
+      "state_delta": {
+        "public_trust": -7
+      }
+    },
     "5": {
       "kind": "fail",
       "twist": "Your response is procedural and bloodless, and it reads as a brush-off; the whistleblower's advocates say the organization 'still doesn't get it'.",
@@ -262,11 +302,27 @@
         "public_trust": -6
       }
     },
+    "6": {
+      "kind": "mixed",
+      "twist": "Partial: the organization engages CBC and avoids making it worse, but the substance stays unaddressed and the documents do the talking.",
+      "state_delta": {
+        "public_trust": -1,
+        "regulator_confidence": 1
+      }
+    },
     "7": {
       "kind": "mixed",
       "twist": "Mixed: you pledge transparency, but a leaked internal email shows a board member dismissing the concern - the pledge and the leak land the same day, and neither is fully believed.",
       "state_delta": {
         "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "8": {
+      "kind": "mixed",
+      "twist": "Modest gain: an honest internal review begins and the regulator accepts the cooperative gesture, though CBC's deadline forces something out.",
+      "state_delta": {
+        "public_trust": 1,
         "regulator_confidence": 2
       }
     },
@@ -278,12 +334,37 @@
         "security_posture": 2
       }
     },
+    "10": {
+      "kind": "good",
+      "twist": "Solid win: the organization establishes the real risk picture honestly - some warnings were valid, one number has drifted up - and acts on it.",
+      "state_delta": {
+        "public_trust": 3,
+        "regulator_confidence": 2
+      }
+    },
     "11": {
       "kind": "good_twist",
       "twist": "A lucky break: the regulator, having seen your proactive disclosure, publicly describes the organization as cooperative rather than evasive - the frame shifts in your favour.",
       "state_delta": {
         "regulator_confidence": 6,
         "public_trust": 3
+      }
+    },
+    "12": {
+      "kind": "good",
+      "twist": "Strong handling: the organization protects the whistleblower's anonymity, engages the facts, and commits to fixing what the reports exposed.",
+      "state_delta": {
+        "public_trust": 5,
+        "regulator_confidence": 3
+      }
+    },
+    "13": {
+      "kind": "good",
+      "twist": "The group's handling reframes the story: the legitimate concerns are owned, the framing exaggerations are gently corrected with evidence, and trust steadies.",
+      "state_delta": {
+        "public_trust": 5,
+        "containment": 4,
+        "regulator_confidence": 3
       }
     },
     "14": {
@@ -294,12 +375,46 @@
         "regulator_confidence": 2
       }
     },
+    "15": {
+      "kind": "strong",
+      "twist": "Strong play: an independent review confirms both the real warnings and the spin, and the organization's handling earns quiet credibility.",
+      "state_delta": {
+        "containment": 6,
+        "public_trust": 4
+      }
+    },
+    "16": {
+      "kind": "strong",
+      "twist": "Real control: the story becomes about how the organization responded to uncomfortable truths, and the regulator closes its posture to monitored cooperation.",
+      "state_delta": {
+        "containment": 7,
+        "regulator_confidence": 4
+      }
+    },
     "17": {
       "kind": "strong",
       "twist": "Strong play: you voluntarily disclose a real if minor governance failure the whistleblower didn't even raise, which badly undercuts the 'what else are they hiding' narrative.",
       "state_delta": {
         "containment": 8,
         "public_trust": 4
+      }
+    },
+    "18": {
+      "kind": "strong",
+      "twist": "Near-decisive: full transparency with the regulator, real remediation, and protection for the source - the story loses its angle entirely.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 5,
+        "regulator_confidence": 4
+      }
+    },
+    "19": {
+      "kind": "strong",
+      "twist": "A commanding turn: the warnings are validated, the fix is real and visible, and the whistleblower's core point is publicly answered.",
+      "state_delta": {
+        "containment": 9,
+        "public_trust": 6,
+        "regulator_confidence": 5
       }
     },
     "20": {
@@ -312,23 +427,6 @@
       }
     }
   },
-  "beats": [
-    {
-      "id": "b1-stakeholders",
-      "name": "Step 1 — Answer four audiences before you know the truth",
-      "narrative": "CBC has a deadline, staff are speculating, the regulator is circling, and the board wants a written account - and the team does not yet know how much of the package is true. Step 1 is to set the posture: engage honestly on the record with the reporter, brief the board before they read about it, give staff something true to hold, and resist the temptation to hunt the source. Posture decisions made now decide whether everything that follows is read as good faith or cover-up."
-    },
-    {
-      "id": "b2-investigate",
-      "name": "Step 2 — Establish what is actually true",
-      "narrative": "The posture is set. Now the harder work: run a genuine investigation into the substance - the risk reports, the email chain, the concentration number that drifted for four quarters, the decisions that were consciously accepted and the ones that quietly slipped - while answering the regulator's questions and defending the board's risk-appetite decisions without hiding behind them. If Step 1 was honest, the investigation gets the benefit of the doubt; if it was defensive, every finding leaks before it can be released."
-    },
-    {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix what was true, prove what wasn't",
-      "narrative": "The facts are emerging. Step 3 is to eradicate the root cause and begin recovery: remediate any real member risk and make affected members whole, correct what was genuinely wrong in the risk process, protect the people who raise concerns so the next problem comes through the door instead of through the press, and publish enough that the findings speak for themselves. If Steps 1-2 went well, recovery rebuilds trust with members, staff, the board, and the regulator; if they went poorly, every future warning will be delivered by a package."
-    }
-  ],
   "end_conditions": [
     {
       "type": "stat",

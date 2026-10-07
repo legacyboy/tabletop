@@ -2,6 +2,33 @@
   "scenario_id": "bramble_badger_deepfake",
   "title": "Deepfake CEO Crisis",
   "version": 4,
+  "cast": [
+    {
+      "key": "org_name",
+      "label": "Organization name",
+      "placeholder": "e.g. Northgate Credit Union"
+    },
+    {
+      "key": "ceo_name",
+      "label": "President / CEO name",
+      "placeholder": "e.g. Dana Whitfield"
+    },
+    {
+      "key": "cio_name",
+      "label": "CIO / security lead",
+      "placeholder": "e.g. Jeff Park"
+    },
+    {
+      "key": "cfo_name",
+      "label": "CFO",
+      "placeholder": "optional"
+    },
+    {
+      "key": "comms_lead",
+      "label": "Comms / PR lead",
+      "placeholder": "optional"
+    }
+  ],
   "goal": {
     "description": "Contain the attack chain and restore confidence: get the deepfake suppressed and its spread contained, shut down the fraud campaign riding behind it, bring public trust and regulator confidence back above healthy thresholds, and close out the full response arc.",
     "win_conditions": [
@@ -40,33 +67,6 @@
     "company_url": "",
     "company_info": "{{org_name}} is a mid-sized, member-owned credit union. Trust is the product: deposits are insured and the balance sheet is sound, but a rumor about solvency spreads faster than any correction. Regulators and the deposit insurer watch public confidence closely, and a manufactured run - even a small one - is exactly the kind of event that gets a credit union into the news for the wrong reasons."
   },
-  "cast": [
-    {
-      "key": "org_name",
-      "label": "Organization name",
-      "placeholder": "e.g. Northgate Credit Union"
-    },
-    {
-      "key": "ceo_name",
-      "label": "President / CEO name",
-      "placeholder": "e.g. Dana Whitfield"
-    },
-    {
-      "key": "cio_name",
-      "label": "CIO / security lead",
-      "placeholder": "e.g. Jeff Park"
-    },
-    {
-      "key": "cfo_name",
-      "label": "CFO",
-      "placeholder": "optional"
-    },
-    {
-      "key": "comms_lead",
-      "label": "Comms / PR lead",
-      "placeholder": "optional"
-    }
-  ],
   "opening_state": {
     "budget": 70,
     "public_trust": 65,
@@ -117,6 +117,23 @@
       "name": "What they took",
       "symptom": "Behind the panic, a fraud wave is running: vishing and smishing campaigns referencing the video, urging members to 'verify their identity' or move funds to a safe account before the 'pause.' Fraud monitoring is flagging credential-stuffing and a spike in transfers to new payees. Several members have already been victimized. The attackers are harvesting money while the video does the scaring.",
       "revealed": false
+    }
+  ],
+  "beats": [
+    {
+      "id": "b1-public",
+      "name": "Step 1 — Get ahead of the story",
+      "narrative": "The deepfake is spreading and members are panicking. Step 1 is to get ahead of the story: a fast, credible public response - confirm the video is fake, show the CEO is real and reachable, give members one clear instruction, and brief the frontline so every answer matches. Until the team does this, the rumor keeps compounding."
+    },
+    {
+      "id": "b2-fraud",
+      "name": "Step 2 — The platforms, the fraud wave, and the regulator",
+      "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
+    },
+    {
+      "id": "b3-recover",
+      "name": "Step 3 — Eradicate and recover",
+      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: close the compromised channel and harden it, confirm the fraud campaign is fully shut out and victims are being made right, support law enforcement's attribution work, and rebuild member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
     }
   ],
   "dm_brief": {
@@ -255,6 +272,29 @@
         "containment": -8
       }
     },
+    "2": {
+      "kind": "fail",
+      "twist": "The statement goes out late and defensive, and by the time it lands a bank-run meme is circulating with the fake's 'pause on withdrawals' line attached - deposits are moving faster than anyone can reassure.",
+      "state_delta": {
+        "public_trust": -9,
+        "containment": -4
+      }
+    },
+    "3": {
+      "kind": "fail",
+      "twist": "Your message is drowned out - the fake is now being repeated by a local councillor, and a screenshot of your own holding statement is being read as an admission.",
+      "state_delta": {
+        "public_trust": -8,
+        "containment": -3
+      }
+    },
+    "4": {
+      "kind": "fail",
+      "twist": "The response reads as legalistic and cold; a member's angry post about being 'fobbed off' by the call centre outpaces your statement.",
+      "state_delta": {
+        "public_trust": -7
+      }
+    },
     "5": {
       "kind": "fail",
       "twist": "Your move lands badly: the statement reads as cold and legalistic, and a local forum thread pins it as 'corporate non-answer'. Engagement on the fake climbs while yours stalls.",
@@ -262,11 +302,27 @@
         "public_trust": -6
       }
     },
+    "6": {
+      "kind": "mixed",
+      "twist": "Partial: the statement is picked up by local outlets, but the fraud calls continue and the takedown requests are still queued, so the panic eases only slightly.",
+      "state_delta": {
+        "public_trust": -1,
+        "regulator_confidence": 1
+      }
+    },
     "7": {
       "kind": "mixed",
       "twist": "Mixed result: your response gets picked up, but so does the counter-claim - a screenshot 'proving' the video is real gains traction, and a mid-tier influencer repeats it to a new audience. You gain ground and lose some at the same time.",
       "state_delta": {
         "public_trust": -2,
+        "regulator_confidence": 2
+      }
+    },
+    "8": {
+      "kind": "mixed",
+      "twist": "Modest gain: the call-centre script holds up under scrutiny and a few early panickers are calmed, though the clip itself is still live and spreading.",
+      "state_delta": {
+        "public_trust": 1,
         "regulator_confidence": 2
       }
     },
@@ -278,12 +334,37 @@
         "public_trust": 3
       }
     },
+    "10": {
+      "kind": "good",
+      "twist": "Solid win: your coordinated statement and the takedown push together blunt the clip's spread, and the first genuine counter-narrative pieces get picked up locally.",
+      "state_delta": {
+        "public_trust": 3,
+        "regulator_confidence": 2
+      }
+    },
     "11": {
       "kind": "good_twist",
       "twist": "A lucky break: a journalist who had been chasing the story finds the provenance trail (stolen agency session token) and runs it as a straight fraud exposé - the fake's credibility collapses and member panic eases noticeably.",
       "state_delta": {
         "public_trust": 6,
         "regulator_confidence": 2
+      }
+    },
+    "12": {
+      "kind": "good",
+      "twist": "A strong, well-sequenced response: statement, takedowns, and member outreach land in the right order, and community voices begin to amplify the correction.",
+      "state_delta": {
+        "public_trust": 5,
+        "regulator_confidence": 3
+      }
+    },
+    "13": {
+      "kind": "good",
+      "twist": "The group's handling visibly steadies the room: branch staff get their talking points, the app's outbound-transfer spike starts to flatten, and the narrative turns your way.",
+      "state_delta": {
+        "public_trust": 5,
+        "containment": 4,
+        "regulator_confidence": 3
       }
     },
     "14": {
@@ -294,12 +375,46 @@
         "regulator_confidence": 3
       }
     },
+    "15": {
+      "kind": "strong",
+      "twist": "Strong play: the fraud crew's 'safe account' cluster is traced and handed to police, and the takedowns strip the clip from the major platforms almost at once.",
+      "state_delta": {
+        "containment": 6,
+        "public_trust": 4
+      }
+    },
+    "16": {
+      "kind": "strong",
+      "twist": "Real momentum: the fake is discredited locally, the fraud network is visibly wounded, and your message is now the one spreading.",
+      "state_delta": {
+        "containment": 7,
+        "regulator_confidence": 4
+      }
+    },
     "17": {
       "kind": "strong",
       "twist": "Strong play: the fraud team traces a cluster of 'safe account' calls to a single operator and flags it to law enforcement, who move on the crew same-day - a real dent in the campaign.",
       "state_delta": {
         "containment": 8,
         "public_trust": 4
+      }
+    },
+    "18": {
+      "kind": "strong",
+      "twist": "Near-decisive: the provenance exposé runs and the fake collapses as a story - attention swings to the criminals who built it, and the credit union looks like the victim it is.",
+      "state_delta": {
+        "containment": 8,
+        "public_trust": 5,
+        "regulator_confidence": 4
+      }
+    },
+    "19": {
+      "kind": "strong",
+      "twist": "A commanding turn: platforms act fast, the fraud crew is named publicly, and the correction travels further than the fake ever did.",
+      "state_delta": {
+        "containment": 9,
+        "public_trust": 6,
+        "regulator_confidence": 5
       }
     },
     "20": {
@@ -312,23 +427,6 @@
       }
     }
   },
-  "beats": [
-    {
-      "id": "b1-public",
-      "name": "Step 1 — Get ahead of the story",
-      "narrative": "The deepfake is spreading and members are panicking. Step 1 is to get ahead of the story: a fast, credible public response - confirm the video is fake, show the CEO is real and reachable, give members one clear instruction, and brief the frontline so every answer matches. Until the team does this, the rumor keeps compounding."
-    },
-    {
-      "id": "b2-fraud",
-      "name": "Step 2 — The platforms, the fraud wave, and the regulator",
-      "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
-    },
-    {
-      "id": "b3-recover",
-      "name": "Step 3 — Eradicate and recover",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: close the compromised channel and harden it, confirm the fraud campaign is fully shut out and victims are being made right, support law enforcement's attribution work, and rebuild member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
-    }
-  ],
   "end_conditions": [
     {
       "type": "stat",
