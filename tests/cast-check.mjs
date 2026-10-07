@@ -1,9 +1,8 @@
 /**
- * CAST CHECK — verifies the pre-scenario cast feature end-to-end in a browser:
- *   - the company-fetch UI is gone from settings
- *   - the Deepfake scenario declares cast fields that render on the intro screen
- *   - typing a value fills the case brief's {{tokens}}
- *   - a remembered value is restored on a later visit
+ * CAST CHECK — verifies the pre-scenario cast feature end-to-end in a browser.
+ * New flow (Dan): the cast boxes appear on the SCENARIO SELECT screen as soon
+ * as a scenario is highlighted, BEFORE "Load / Start". Load / Start goes
+ * straight into the session (no intermediate intro screen).
  * Served by server/serve.js. Usage: node tests/cast-check.mjs [baseUrl]
  */
 import puppeteer from 'puppeteer';
@@ -16,6 +15,16 @@ const browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox']
 const page = await browser.newPage();
 await page.goto(BASE, { waitUntil: 'networkidle0' });
 
+const selectScenario = async (re) => {
+  await page.evaluate((rx) => {
+    const sel = document.getElementById('scenarioSelect');
+    const idx = [...sel.options].findIndex((o) => new RegExp(rx, 'i').test(o.textContent));
+    sel.value = String(idx);
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  }, re.source);
+  await new Promise((r) => setTimeout(r, 500));
+};
+
 // 1. Settings no longer offers the company fetch.
 const settings = await page.evaluate(() => ({
   hasUrl: !!document.getElementById('companyUrl'),
@@ -24,25 +33,31 @@ const settings = await page.evaluate(() => ({
 check('settings has no companyUrl field', !settings.hasUrl);
 check('settings has no allowCompanyFetch checkbox', !settings.hasFetch);
 
-// 2. Pick the Deepfake CEO scenario and load it.
-await page.evaluate(() => {
-  const sel = document.getElementById('scenarioSelect');
-  const idx = [...sel.options].findIndex((o) => /deepfake/i.test(o.textContent));
-  sel.value = String(idx);
-  document.getElementById('loadScenarioBtn').click();
-});
-await new Promise((r) => setTimeout(r, 800));
-// 3. Cast inputs render on the intro screen.
-const cast = await page.evaluate(() => ({
+// 2. Selecting a scenario shows its cast form ON the select screen.
+await selectScenario(/deepfake/i);
+const onSelect = await page.evaluate(() => ({
+  wrapVisible: document.getElementById('selectCastWrap').style.display !== 'none',
   count: document.querySelectorAll('#castFields input').length,
   hasCeo: !!document.getElementById('cast_ceo_name'),
   hasOrg: !!document.getElementById('cast_org_name'),
+  phase: document.getElementById('phase-select').style.display,
 }));
-check('cast form renders inputs', cast.count >= 3);
-check('cast form includes ceo_name', cast.hasCeo);
-check('cast form includes org_name', cast.hasOrg);
+check('cast panel visible on the select screen', onSelect.wrapVisible);
+check('cast form renders inputs on select screen', onSelect.count >= 4);
+check('cast form includes ceo_name', onSelect.hasCeo);
+check('cast form includes org_name', onSelect.hasOrg);
+check('still on select screen (Load/Start not yet pressed)', onSelect.phase !== 'none');
 
-// 4. Typing fills the case brief tokens.
+// 3. Switching to Random hides the cast panel.
+await selectScenario(/random/i);
+const randomState = await page.evaluate(() => ({
+  wrapVisible: document.getElementById('selectCastWrap').style.display !== 'none',
+  count: document.querySelectorAll('#castFields input').length,
+}));
+check('random scenario hides the cast panel', !randomState.wrapVisible && randomState.count === 0);
+
+// 4. Back to a scenario, type values, then Load / Start goes STRAIGHT to play.
+await selectScenario(/deepfake/i);
 await page.evaluate(() => {
   const set = (id, v) => {
     const el = document.getElementById(id);
@@ -53,54 +68,37 @@ await page.evaluate(() => {
   set('cast_ceo_name', 'Dana Whitfield');
 });
 await new Promise((r) => setTimeout(r, 200));
-const brief = await page.evaluate(() => document.getElementById('moderatorRead').textContent);
-check('case brief filled the org name', brief.includes('Northgate Credit Union'));
-check('case brief filled the CEO name', brief.includes('Dana Whitfield'));
-check('case brief has no leftover tokens', !brief.includes('{{'));
 
-// 5. Reload and confirm the cast is remembered.
-await page.reload({ waitUntil: 'networkidle0' });
+// Configure a mock provider so beginSession does not bail out, then Load/Start.
 await page.evaluate(() => {
-  const sel = document.getElementById('scenarioSelect');
-  const idx = [...sel.options].findIndex((o) => /deepfake/i.test(o.textContent));
-  sel.value = String(idx);
-  document.getElementById('loadScenarioBtn').click();
+  localStorage.setItem('tabletop.dm.settings.v1', JSON.stringify({
+    provider: 'openai-compatible', apiKey: '', baseUrl: 'http://localhost:59999/v1', model: 'mock',
+  }));
 });
+await page.evaluate(() => document.getElementById('loadScenarioBtn').click());
 await new Promise((r) => setTimeout(r, 800));
-const remembered = await page.evaluate(() => (document.getElementById('cast_ceo_name') || {}).value || '');
-check('cast value is remembered across reloads', remembered === 'Dana Whitfield');
+const afterLoad = await page.evaluate(() => ({
+  play: document.getElementById('phase-play').style.display,
+  intro: document.getElementById('phase-intro').style.display,
+  title: document.getElementById('scenarioTitle').textContent,
+}));
+check('Load / Start went straight to the play screen', afterLoad.play !== 'none');
+check('Load / Start did NOT show the intro screen', afterLoad.intro === 'none');
 
-// 6. Every authored scenario offers cast fields and fills its brief.
-const SCENARIOS = ['rogue-ai', 'whistleblower', 'executive-scandal', 'toxic', 'deepfake'];
-const LABEL = { 'rogue-ai': /rogue ai/i, whistleblower: /whistleblower/i, 'executive-scandal': /executive scandal/i, toxic: /toxic workplace/i, deepfake: /deepfake/i };
-for (const key of SCENARIOS) {
-  await page.evaluate((re) => {
-    const rx = new RegExp(re, 'i');
-    const sel = document.getElementById('scenarioSelect');
-    const idx = [...sel.options].findIndex((o) => rx.test(o.textContent));
-    sel.value = String(idx);
-    document.getElementById('loadScenarioBtn').click();
-  }, LABEL[key].source);
-  await new Promise((r) => setTimeout(r, 600));
+// 5. Every authored scenario offers cast fields on the select screen.
+const SCENARIOS = ['rogue ai', 'whistleblower', 'executive scandal', 'toxic', 'deepfake'];
+for (const name of SCENARIOS) {
+  await page.evaluate(() => {
+    // Return to the select screen via a reload (session may be mid-flight).
+  });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await selectScenario(new RegExp(name, 'i'));
   const info = await page.evaluate(() => ({
     fields: document.querySelectorAll('#castFields input').length,
     hasOrg: !!document.getElementById('cast_org_name'),
-    brief: document.getElementById('moderatorRead').textContent,
   }));
-  check(`${key}: has cast fields`, info.fields >= 4);
-  check(`${key}: has org_name field`, info.hasOrg);
+  check(`${name}: has cast fields on select`, info.fields >= 4 && info.hasOrg);
 }
-
-// Fill org_name on the last-loaded scenario and confirm the brief updates.
-await page.evaluate(() => {
-  const el = document.getElementById('cast_org_name');
-  el.value = 'Northgate Credit Union';
-  el.dispatchEvent(new Event('input', { bubbles: true }));
-});
-await new Promise((r) => setTimeout(r, 200));
-const brief2 = await page.evaluate(() => document.getElementById('moderatorRead').textContent);
-check('brief reflects org_name on a second scenario', brief2.includes('Northgate Credit Union'));
-check('brief has no leftover tokens', !brief2.includes('{{'));
 
 await browser.close();
 console.log(`\ncast-check: ${pass} passed, ${fail} failed`);

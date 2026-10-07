@@ -24,6 +24,14 @@
     <h2>Choose a scenario</h2>
     <select id="scenarioSelect"></select>
     <p id="scenarioSummary" class="muted"></p>
+    <div id="selectCastWrap" style="display:none">
+      <p class="muted small">
+        Fill in the names and details below, then press Load / Start. Anything
+        you enter is woven into the case as it plays — leave a field blank to
+        keep the scenario's own default.
+      </p>
+      <div id="castFields"></div>
+    </div>
     <div class="row">
       <button id="loadScenarioBtn" class="primary">Load / Start</button>
       <button id="selectBack" class="ghost">Back</button>
@@ -44,7 +52,7 @@
           woven into the case as it plays — leave a field blank to keep the
           scenario's own default.
         </p>
-        <div id="castFields"></div>
+        <div id="castFieldsIntro"></div>
         <button id="startButton" class="primary">Start the session</button>
         <button id="changeScenario" class="ghost">Change scenario</button>
         <div id="castNote" class="muted small"></div>

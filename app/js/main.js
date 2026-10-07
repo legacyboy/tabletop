@@ -89,7 +89,7 @@ async function init() {
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'objectivePanel', 'arcToggle', 'timer', 'reportBody', 'exportReport',
-   'progress', 'moderatorRead', 'castFields', 'castNote', 'settingsButton',
+   'progress', 'moderatorRead', 'castFields', 'castFieldsIntro', 'selectCastWrap', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
   ].forEach((id) => { el[id] = $(id); });
 
@@ -178,7 +178,9 @@ function renderScenarioOptions() {
 }
 
 /** Show which scenario is highlighted in the dropdown, and hint when there is
- *  only one option (so the screen is never confusing or dead-ended). */
+ *  only one option (so the screen is never confusing or dead-ended). Also
+ *  renders that scenario's pre-start cast form right here, so the moderator
+ *  fills the names BEFORE pressing Load / Start. */
 function updateSelectSummary() {
   if (!el.scenarioSummary) return;
   const idx = Number(el.scenarioSelect.value);
@@ -186,16 +188,53 @@ function updateSelectSummary() {
   const desc = state.registry[idx];
   if (count === 0) {
     el.scenarioSummary.textContent = 'No scenarios are installed yet.';
+    hideSelectCast();
     return;
   }
   if (count === 1 && desc) {
     el.scenarioSummary.textContent =
       `Only one scenario is available: ${desc.title}. Press "Load / Start" to continue.`;
-    return;
-  }
-  if (desc) {
+  } else if (desc) {
     el.scenarioSummary.textContent = `Selected: ${desc.title}. Press "Load / Start" to continue.`;
   }
+  renderSelectCast(desc);
+}
+
+/** Render the cast form on the select screen for the highlighted scenario.
+ *  The registry only carries id/title/path, so fetch the scenario JSON to read
+ *  its `cast` array. Results are cached; failures just hide the panel. */
+const _castCache = new Map();
+async function renderSelectCast(desc) {
+  if (!el.selectCastWrap || !el.castFields) return;
+  state.selectCastIndex = desc ? state.registry.indexOf(desc) : -1;
+  if (!desc || desc.random || !desc.path) {
+    hideSelectCast();
+    return;
+  }
+  let scenario = _castCache.get(desc.path);
+  if (!scenario) {
+    try {
+      scenario = await loadScenario(desc.path);
+      _castCache.set(desc.path, scenario);
+    } catch {
+      hideSelectCast();
+      return;
+    }
+  }
+  // Guard against a race: only paint if this scenario is still selected.
+  if (state.selectCastIndex !== state.registry.indexOf(desc)) return;
+  const fields = Array.isArray(scenario.cast) ? scenario.cast : [];
+  if (!fields.length) {
+    hideSelectCast();
+    return;
+  }
+  el.selectCastWrap.style.display = 'block';
+  renderCastFields(scenario, el.castFields);
+}
+
+function hideSelectCast() {
+  if (el.selectCastWrap) el.selectCastWrap.style.display = 'none';
+  if (el.castFields) el.castFields.innerHTML = '';
 }
 
 async function populateScenarios() {
@@ -237,8 +276,8 @@ async function showScenarioSelect() {
  * scenario declares none, nothing is shown. Values are remembered per scenario
  * in localStorage so a moderator only types them once.
  */
-function renderCastFields(scenario) {
-  const host = el.castFields;
+function renderCastFields(scenario, hostEl) {
+  const host = hostEl || el.castFields;
   if (!host) return;
   host.innerHTML = '';
 
@@ -302,17 +341,18 @@ async function selectScenario(index) {
   const desc = state.registry[index];
   // Random mode: no pre-authored scenario.json — the DM generates the
   // scenario on the fly. Use the generated shell.
-  const scenario = isRandomEntry(desc)
+  const rawScenario = isRandomEntry(desc)
     ? randomScenarioShell()
     : await loadScenario(desc.path);
-  state.scenario = scenario;
   state.isRandom = isRandomEntry(desc);
 
-  el.scenarioTitle.textContent = scenario.title;
+  // The cast the moderator filled in on the select screen (kept in state.cast
+  // by renderCastFields). Apply it now so tokens are filled for this session.
+  const cast = state.cast || {};
+  const scenario = applyCast(rawScenario, cast);
+  state.scenario = scenario;
 
-  // Show the case brief (intro.narrative) on the intro screen so participants
-  // read the plot/story before starting. The DM is the LLM and everyone is a
-  // participant, so this is the one text brief shown to the group.
+  el.scenarioTitle.textContent = scenario.title;
   el.moderatorRead.textContent = scenario.intro.narrative || '';
 
   // Intro video (optional).
@@ -325,16 +365,13 @@ async function selectScenario(index) {
     el.introVideo.style.display = 'none';
   }
 
-  // Fresh cast note.
+  // Dan: "Load / Start" should START the session directly — no extra screen in
+  // between. Go straight into play. (The intro phase is only used as a fallback
+  // when no DM is configured, so the moderator can set one up.)
   el.castNote.textContent = '';
-  renderCastFields(scenario);
-  refreshIntroBrief(); // show the case brief with any remembered cast filled in
-
-  // Buttons.
   el.startButton.onclick = () => beginSession();
   el.startButton.disabled = false;
-
-  setPhase('intro');
+  await beginSession();
 }
 
 async function resumeSession(snap) {
@@ -389,7 +426,11 @@ async function beginSession() {
     const settings = loadSettings();
     const provider = buildProvider(settings);
     if (!provider) {
+      // No DM configured: fall back to the intro screen so the moderator can
+      // open Settings, then press Start. (Normal path starts straight from
+      // the select screen.)
       el.outcome.textContent = 'No DM configured. Open Settings and choose an in-browser model or paste an API key.';
+      setPhase('intro');
       return;
     }
 
