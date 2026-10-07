@@ -95,7 +95,7 @@ Scenarios are listed in `scenarios/registry.json`.
   "meta": {
     "suggested_minutes": 60,
     // Optional turn budget. The DM is told each turn which turn it is, how many
-    // beats remain, the minutes left, and whether to SPEED UP or SLOW DOWN.
+    // beats remain, the minutes left, and whether to SPEED UP or stay proportionate.
     // Omit and it is derived from the timeout at ~8 min/turn (60 min -> 6/7).
     "pacing": { "target_turns": 6, "total_turns": 7 },
     "difficulty": "medium",               // low | medium | high

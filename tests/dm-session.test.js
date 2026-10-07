@@ -835,31 +835,27 @@ const finalBrief = finalRun._paceBrief();
 check('pace brief tells the DM to resolve on the final beat', /FINAL BEAT/.test(finalBrief));
 
 // 52b. The verdict must be an actionable DECISION, not just a status: early with
-// room to spare it must say SLOW DOWN so a turn can fail and build suspense
-// (Dan's refinement, 2026-10-07).
+// room to spare it must tell the DM to keep the response in proportion (Dan's
+// refinement, 2026-10-07) - NOT to escalate or pile on.
 const earlyRun = new DMSession(new MockProvider(), pacedScenario);
 earlyRun.turn = 0;
 earlyRun.currentBeatIndex = 0;
 const earlyBrief = earlyRun._paceBrief();
-check('pace brief tells the DM it can SLOW DOWN when there is room', /SLOW DOWN/.test(earlyBrief), earlyBrief.split('\n')[1]);
+check('pace brief tells the DM to stay proportionate when there is room', /PROPORTIONATE/.test(earlyBrief), earlyBrief.split('\n')[1]);
+check('proportionate verdict mirrors effort (no cascade on one action)', /mirror the group/i.test(earlyBrief) && /do NOT pile/i.test(earlyBrief));
 const behindRun = new DMSession(new MockProvider(), pacedScenario);
 behindRun.turn = 5; behindRun.currentBeatIndex = 0;
 check('pace brief says SPEED UP when the arc cannot finish on schedule', /SPEED UP/.test(behindRun._paceBrief()));
 
-// 53. Action density: the prompt tells the DM a turn is 1-2 committed moves, not
-// five+ (Dan's refinement, 2026-10-07).
-const densityRun = new DMSession(new MockProvider(), scenario);
-const densitySys = densityRun.constructor && (() => {
-  class P { constructor() { this.lastSystem = ''; } async chat(m) { this.lastSystem = m[0].content; return JSON.stringify({ narrative: 'It develops.', state_delta: {} }); } }
-  return new P();
-})();
-await densityRun.takeTurn('We act.', 12);
-// Rebuild the system prompt via a fresh session so we can read it.
+// 53. Players are NEVER capped: the prompt must say the group decides how much
+// to attempt, and the DM's response must be PROPORTIONATE to it (Dan, 2026-10-07).
 const dprov = (() => { class P { constructor() { this.lastSystem = ''; } async chat(m) { this.lastSystem = m[0].content; return JSON.stringify({ narrative: 'It develops concretely.', state_delta: {} }); } } return new P(); })();
 const drun = new DMSession(dprov, scenario);
 await drun.takeTurn('We act.', 12);
-check('system prompt caps a turn at one or two moves, not five', /ONE or TWO committed moves/i.test(dprov.lastSystem) && /not a laundry list/i.test(dprov.lastSystem));
-check('system prompt says too-many actions should partly slip', /should not be uniformly rewarded|part of it slip/i.test(dprov.lastSystem));
+check('prompt says players are never capped on actions', /NEVER capped|decides how much to attempt/i.test(dprov.lastSystem));
+check('prompt requires a response PROPORTIONATE to the action', /MATCH THE RESPONSE TO THE ACTION/i.test(dprov.lastSystem) && /respond with ONE proportionate development/i.test(dprov.lastSystem));
+check('prompt forbids answering one action with a whole cascade', /whole cascade of setbacks/i.test(dprov.lastSystem));
+check('prompt ties escalation to clock/crisis, not to a fixed script', /only escalate into a multi-front storm as the clock runs down/i.test(dprov.lastSystem));
 
 // 53. Pacing survives serialize/restore (a resumed run keeps its budget).
 const paceSnap = pacedRun.serialize();

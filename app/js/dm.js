@@ -223,7 +223,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## HOW TO PLAY (critical)',
     '- The group types a free-form action. Do NOT present them with a menu of options.',
-    '- A turn covers ONE or TWO committed moves, not a laundry list. Realistic groups pick a focus: e.g. comms issues a statement, OR the fraud team freezes accounts and legal calls the regulator. Five-or-more scattershot actions in one turn is NOT realistic and should not be uniformly rewarded \u2014 if the group tries to do everything at once, judge it honestly and let part of it slip.',
+    '- The group decides how much to attempt; they are NEVER capped. A turn might be one focused move or several moves across departments \u2014 that is their call. Your job is to adjudicate whatever they actually did, honestly and in proportion.',
     '- NEVER present a menu or list of choices, and do not prescribe a specific next action. But DO advance the world: every turn should move the situation forward into its next natural beat.',
     '- KEEP THE MOMENTUM. A turn must NOT end as a flat dead end. The group acted; the world reacts AND moves on. End each response by introducing a NEW DEVELOPMENT: new information, a reaction from an actor/regulator/media, a complication that sharpens the situation. Leave the group facing something concrete.',
     '- A NEW DEVELOPMENT must NOT re-punish a metric the group just competently addressed. If the group issued a clear public statement, do NOT invent a fresh "internal leak" or "confused staff reply" that undercuts it the same turn. Escalation is for when the group FAILS, stalls, or rolls badly (1-5) — not as a reward for good play. Vary the development; never repeat the same setback (e.g. the same leaked screenshot) turn after turn.',
@@ -282,10 +282,10 @@ function buildSystemPrompt(scenario, opts = {}) {
     '## SESSION LENGTH (sub-60 minutes)',
     'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution well inside that budget \u2014 a tabletop exercise needs enough turns to get interesting, not a sprint to the exit.',
     '- Drive the story toward its RESOLUTION within roughly 5-7 turns \u2014 the final beat reached (or the attack chain fully contained). A run that resolves in 4 turns is usually too abrupt: let the situation develop for a beat or two before the group closes it out. Do not pad past 7 or drag the session over the hour either.',
-    '- USE THE PACE BRIEF. Each turn you are told the current turn number, the target resolution turn, how many beats remain, and how many minutes are left on the clock, plus a pacing verdict. The verdict is a DECISION, not decoration \u2014 it tells you whether this turn must push hard or can afford to breathe. Follow it: SPEED UP = advance the arc now and cut a complication; SLOW DOWN = let the turn develop, allow a setback or a stalled plan, do not rush to resolve; ON THE FINAL BEAT = resolve the story this turn.',
+    '- USE THE PACE BRIEF. Each turn you are told the current turn number, the target resolution turn, how many beats remain, and how many minutes are left on the clock, plus a pacing verdict. The verdict is a DECISION, not decoration \u2014 it tells you how hard this turn should push. Follow it: SPEED UP = advance the arc now and cut a complication; KEEP IT PROPORTIONATE / BREATHE = do NOT pile on, mirror the group\u2019s effort with a measured response; ON THE FINAL BEAT = resolve the story this turn.',
     '- ADVANCE THE ARC EVERY TURN OR TWO. If the group is still on the same beat they were on last turn, move them forward unless they genuinely did nothing. Do NOT re-run Step 1 three or four times.',
     '- Let a decisive, competent action resolve more than one thing at once (e.g. one strong turn can contain a stage AND recover trust AND move to the next beat). Prefer meaningful forward progress over prolonging a beat.',
-    '- Keep each turn\u2019s action FOCUSED: one or two concrete moves, not five or six. A narrow committed action is easier to adjudicate honestly and leaves room for a turn to FAIL \u2014 and failure is what builds suspense. Do not treat a scattershot of everything-at-once as automatically successful.',
+    '- MATCH THE RESPONSE TO THE ACTION. The size of the world\u2019s reaction should be proportional to what the group actually did this turn. If they took ONE action, respond with ONE proportionate development \u2014 do NOT answer a single move with a whole cascade of setbacks. A one-action turn early in the session, with time and turns to spare, should get a measured, single reaction that leaves room to breathe; only escalate into a multi-front storm as the clock runs down, the situation is already critical, or the group actually tried to do many things at once. Restraint early is what makes later escalation feel earned rather than arbitrary.',
     '- If the group resolves the story early, the session ends then — do not invent extra conflict to fill time.',
     '',
     'Your reply must be STRICT JSON with exactly these fields:',
@@ -584,12 +584,12 @@ export class DMSession {
       // schedule, so the group is genuinely behind. SPEED UP.
       verdict = `SPEED UP \u2014 ${beatsLeft} beats remain with only ${Math.max(0, total - onTurn + 1)} turn(s) of budget left. Move the arc forward decisively this turn; a strong action should skip a beat.`;
     } else if (onTurn >= target && beatsLeft > 0) {
-      verdict = `SLOW DOWN A LITTLE \u2014 you are at the ${target}-turn mark with ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, so there is room to let this turn breathe. You may introduce a complication or let a plan partly fail; just keep the arc creeping forward.`;
+      verdict = `BREATHE \u2014 you are at the ${target}-turn mark with ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, so there is room. Keep the response in proportion to what the group did; a small move gets a small reaction.`;
     } else if (beatsLeft > 0 && onTurn + beatsLeft <= target) {
-      // Comfortably on or ahead of schedule: the DM is free to slow down.
-      verdict = `SLOW DOWN \u2014 there is room to spare (turn ${onTurn}, ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, target ${target}). Let this turn develop: allow a setback, a stalled plan, or a hard choice. Suspense needs room to fail, so do NOT rush to resolve.`;
+      // Plenty of time left: the DM should mirror the group's effort, not pile on.
+      verdict = `KEEP IT PROPORTIONATE \u2014 there is ample time (turn ${onTurn}, ${beatsLeft} beat${beatsLeft > 1 ? 's' : ''} to go, target ${target}). Do NOT pile a cascade of problems onto a single action. Mirror the group\u2019s effort: one action in, one measured reaction out. Let the turn breathe and hold your escalation in reserve.`;
     } else {
-      verdict = 'ON PACE \u2014 advance the arc every turn or two.';
+      verdict = 'ON PACE \u2014 advance the arc every turn or two, and keep reactions proportionate to the group\u2019s actions.';
     }
 
     const clock = mins == null ? '' : ` About ${mins} minute${mins === 1 ? '' : 's'} left on the clock.`;
