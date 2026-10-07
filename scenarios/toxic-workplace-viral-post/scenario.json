@@ -131,9 +131,14 @@
       "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts."
     },
     {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix what's real and rebuild",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: act on what the investigation found - real fixes for the real problems, consequences and safeguards, a published summary members can verify - and rebuild retention, morale, member trust, and the board's confidence over time. If Steps 1-2 went well, recovery is quicker and even the story's author acknowledges it; if they went poorly, trust is brittle and every future departure reopens the narrative."
+      "id": "b3-fix",
+      "name": "Step 3 — Fix what's real",
+      "narrative": "The investigation has separated truth from noise. Step 3 is to act on it: real consequences for the real problems the review substantiated, a real process change for the culture the post exposed, and a clear, defensible line on what was found to be false. Show the group that the fixes have teeth — that this is action taken on findings, not a statement about taking action."
+    },
+    {
+      "id": "b4-rebuild",
+      "name": "Step 4 — Rebuild the culture and close the loop",
+      "narrative": "The problems are being fixed. The final step is recovery: rebuild the trust of the staff who spoke up and the staff who stayed, show the change is durable rather than a crisis-time promise, and close out with the board and the regulator on an honest account of what was corrected. The story should end on whether the workplace is genuinely better for how this was handled."
     }
   ],
   "dm_brief": {

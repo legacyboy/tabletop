@@ -131,9 +131,14 @@
       "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
     },
     {
-      "id": "b3-recover",
-      "name": "Step 3 — Eradicate and recover",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: close the compromised channel and harden it, confirm the fraud campaign is fully shut out and victims are being made right, support law enforcement's attribution work, and rebuild member and board confidence over time. If Steps 1-2 went well, recovery is quicker; if they went poorly, trust is brittle and the board is restless."
+      "id": "b3-eradicate",
+      "name": "Step 3 — Eradicate the root cause",
+      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: close the compromised channel (the agency account/token the fake was seeded from) and harden it, confirm the fraud campaign is actually stopped rather than paused, and take the platform relationship from reactive takedowns to a standing escalation path. Show the group that closing the door behind the attacker is a separate job from calming the room."
+    },
+    {
+      "id": "b4-recover",
+      "name": "Step 4 — Rebuild trust and close the loop",
+      "narrative": "The threat is dead and the systems are clean. The final step is recovery: make the reassured members whole and keep them reassured, rebuild the ordinary confidence the run shook (deposits, call volumes, staff morale), publish what changed and why, and close out with the board and the regulator on an honest account of what was missed. A hard-won win should read as earned by what the group did after the crisis, not just during it."
     }
   ],
   "dm_brief": {

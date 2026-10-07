@@ -132,8 +132,13 @@
     },
     {
       "id": "b3-resolve",
-      "name": "Step 3 — Resolve, clean up, and rebuild",
-      "narrative": "The process is running and the outcome is taking shape - whatever the investigation clears or confirms. Step 3 is to resolve the leader's situation on the evidence with fairness intact, close out the conflict-of-interest questions with findings members can believe, leave a permanent, credible conduct framework in place, and rebuild the association between the brand and its people. If Steps 1-2 went well, the ending restores trust with members, the board, and the regulator; if they went poorly, the search result outlives the story."
+      "name": "Step 3 — Resolve on the evidence",
+      "narrative": "The process is running and the findings are landing. Step 3 is to resolve the leader's situation on the evidence with fairness intact — whatever the review clears or confirms — close out the conflict-of-interest findings with real consequences, and make the conduct decisions the investigation demands. This is the hardest step: acting on uncomfortable findings without letting the institution look vindictive or the individual look abandoned."
+    },
+    {
+      "id": "b4-rebuild",
+      "name": "Step 4 — Rebuild governance and confidence",
+      "narrative": "The immediate situation is resolved. The final step is recovery: rebuild the governance the crisis exposed as weak (the disclosure that was never recorded, the conflict-of-interest controls), restore staff and member confidence, publish what changed, and close out with the board and the regulator on a credible account of what was fixed. The story should end on whether the institution is stronger for how it handled this, not merely that it survived it."
     }
   ],
   "dm_brief": {

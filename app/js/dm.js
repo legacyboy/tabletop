@@ -159,7 +159,14 @@ function resolvePacing(scenario) {
   const durationMin = t && t.duration_seconds ? t.duration_seconds / 60 : 60;
   const perTurn = p.minutes_per_turn || 8;
   const total = p.total_turns || Math.max(4, Math.floor(durationMin / perTurn));
-  const target = p.target_turns || Math.min(total, Math.max(3, Math.round(total - 1)));
+  // ARC-FIRST PACING (Dan, 2026-10-07): the group finishes when the ARC finishes,
+  // so the real budget is driven by the number of story beats, not the clock.
+  // With one beat per turn plus an opening/decision turn, a 4-5 beat arc lands at
+  // 5-6 turns — the target Dan wants. Clamp to the clock ceiling so a very short
+  // time limit still wins.
+  const beats = (scenario && scenario.beats || []).length;
+  const arcTarget = beats > 0 ? beats + 1 : null;   // +1 for the opening/decision turn
+  const target = p.target_turns || (arcTarget ? Math.min(total, Math.max(3, arcTarget)) : Math.min(total, Math.max(3, Math.round(total - 1))));
   return { targetTurn: target, totalTurn: total };
 }
 
@@ -273,6 +280,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '## THE STORY BEATS (arc progression)',
     'The scenario is an ordered arc of beats (steps). You are told which beat the group is in and the arc you are running.',
     'A beat is a stage of the story (e.g. Step 1 public response, Step 2 regulator + fraud, Step 3 eradicate + recover). The group works through beats LINEARLY, in order. Each beat is a step forward \u2014 never hold the group in the same beat turn after turn.',
+    'ARC LENGTH (Dan, 2026-10-07): the arc has 4-5 beats and the session should run about 5-6 turns (plus the opening). That means roughly ONE BEAT PER TURN \u2014 but do NOT rush: a beat the group handles with a single shallow or partial action should take a second turn to truly close out before the story moves on. A strong, decisive action resolves a beat in one turn; a weak or partial one leaves it open another turn. The goal is 5-6 turns of story, not a 3-turn sprint.',
     'Each turn, decide whether the group has RESOLVED the current beat. A beat is resolved when the group\u2019s actions genuinely close out that stage of the story (not just talk \u2014 the situation at that beat is handled and the story must move on). Be GENEROUS here: if the group made a real, on-target effort at the current beat, treat it as resolved and move on. A beat should normally take no more than ONE turn \u2014 ADVANCE THE ARC EVERY TURN OR TWO. Do not park in Step 1.',
     'When the current beat is resolved, return the NEXT beat\u2019s id in the `beat` field and narrate the transition: how the group\u2019s handling shaped the incoming step. A group that handled the beat WELL should find the next step softer; one that handled it POORLY should find it worse. A single decisive action can skip forward to a later beat when the story warrants it.',
     'Do NOT gate the arc on containment or metrics. Reaching the FINAL beat is itself the resolution \u2014 complete the arc even if a chain stage was missed or a metric is low. Never return `beat: null` to stall the group in the same step more than one turn unless they truly did nothing.',
@@ -281,7 +289,7 @@ function buildSystemPrompt(scenario, opts = {}) {
     '',
     '## SESSION LENGTH (sub-60 minutes)',
     'The whole exercise must start AND finish inside 60 minutes. With intro, discussion, and decisions, players take roughly 7-10 minutes per turn, so the session can support only about 6-8 turns total. Pace the arc to reach resolution well inside that budget \u2014 a tabletop exercise needs enough turns to get interesting, not a sprint to the exit.',
-    '- Drive the story toward its RESOLUTION within roughly 5-7 turns \u2014 the final beat reached (or the attack chain fully contained). A run that resolves in 4 turns is usually too abrupt: let the situation develop for a beat or two before the group closes it out. Do not pad past 7 or drag the session over the hour either.',
+    '- Drive the story toward its RESOLUTION in about 5-6 turns \u2014 the final beat reached (or the attack chain fully contained). Target 5-6: a run that resolves in 3-4 turns is too abrupt, so let the situation develop before the group closes it out. Do not pad past 7 or drag the session over the hour either.',
     '- USE THE PACE BRIEF. Each turn you are told the current turn number, the target resolution turn, how many beats remain, and how many minutes are left on the clock, plus a pacing verdict. The verdict is a DECISION, not decoration \u2014 it tells you how hard this turn should push. Follow it: SPEED UP = advance the arc now and cut a complication; KEEP IT PROPORTIONATE / BREATHE = do NOT pile on, mirror the group\u2019s effort with a measured response; ON THE FINAL BEAT = resolve the story this turn.',
     '- ADVANCE THE ARC EVERY TURN OR TWO. If the group is still on the same beat they were on last turn, move them forward unless they genuinely did nothing. Do NOT re-run Step 1 three or four times.',
     '- Let a decisive, competent action resolve more than one thing at once (e.g. one strong turn can contain a stage AND recover trust AND move to the next beat). Prefer meaningful forward progress over prolonging a beat.',

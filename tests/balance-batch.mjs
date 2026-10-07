@@ -16,9 +16,9 @@ const scenario = JSON.parse(readFileSync('scenarios/bramble-badger-deepfake/scen
 // Three roll "profiles" to test: bad luck, mixed, good luck. Each is a 6-turn
 // sequence so the arc has a chance to resolve either way.
 const PROFILES = {
-  bad:   [2, 3, 1, 6, 4, 5],
-  mixed: [7, 14, 3, 11, 7, 16],
-  good:  [14, 18, 20, 11, 16, 19],
+  bad:   [2, 3, 1, 6, 4, 5, 3, 7],
+  mixed: [7, 14, 3, 11, 7, 16, 9, 13],
+  good:  [14, 18, 20, 11, 16, 19, 12, 15],
 };
 
 const ACTIONS = [
@@ -28,6 +28,8 @@ const ACTIONS = [
   'We run our own investigation, fix what is genuinely wrong, and commit to visible follow-through.',
   'We communicate progress to staff and members and close out the remediation.',
   'We push the last remediation items over the line and publicly correct anything we got wrong.',
+  'We rebuild the controls the crisis exposed as weak and publish what changed.',
+  'We close out with the board and the regulator on an honest account of what was fixed.',
 ];
 
 const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
@@ -49,7 +51,7 @@ for (let r = 0; r < RUNS; r++) {
   results.push({ profileName, rolls, start, fin, end, turns: s.turn, notable });
   console.log(`RUN ${r + 1} [${profileName}] rolls=${rolls.join(',')} notable=${notable.join(',') || '-'}`);
   console.log(`   ${format(start)} -> ${format(fin, start)}  turns=${s.turn}`);
-  console.log(`   end: ${end ? `${end.type}/${end.result} (${end.win_quality || '-'})` : 'none (still playing)'}`);
+  console.log(`   end: ${end ? `${end.type}/${end.result} (${end.win_quality || '-'})` : 'none (still playing)'} | TURNS=${s.turn}`);
 }
 
 function format(a, base) {
@@ -68,5 +70,6 @@ for (const r of results) (byProfile[r.profileName] ||= []).push(r);
 for (const [name, rs] of Object.entries(byProfile)) {
   const avg = (k) => Math.round(rs.reduce((s, r) => s + (r.fin[k] || 0), 0) / rs.length);
   const resolved = rs.filter((r) => r.end).length;
-  console.log(`${name}: avg trust=${avg('public_trust')} reg=${avg('regulator_confidence')} contain=${avg('containment')} erad=${avg('eradication')} rec=${avg('recovery')} | resolved ${resolved}/${rs.length}`);
+  const turnList = rs.map((r) => r.turns).join(',');
+  console.log(`${name}: turns=[${turnList}] avg trust=${avg('public_trust')} reg=${avg('regulator_confidence')} contain=${avg('containment')} erad=${avg('eradication')} rec=${avg('recovery')} | resolved ${resolved}/${rs.length}`);
 }

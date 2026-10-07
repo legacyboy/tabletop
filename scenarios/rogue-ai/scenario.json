@@ -132,9 +132,14 @@
       "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first."
     },
     {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix the root causes and earn the relaunch",
-      "narrative": "Containment is not enough. Step 3 is to eradicate the root cause and begin recovery: scrub and validate the training data, fix the session plumbing, test for bias before anything ships, build the AI governance framework the board can defend, make the harmed members whole, and decide the assistant's future on evidence rather than embarrassment. If Steps 1-2 went well, {{org_name}} can relaunch or retire with its credibility enhanced; if they went poorly, every alternative in the industry becomes a reminder."
+      "id": "b3-eradicate",
+      "name": "Step 3 — Fix the root causes",
+      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: scrub and validate the training data, fix the session plumbing that leaked, test for the bias the forensic work surfaced, and pin the vendor's responsibility where the evidence puts it. Show the group that making the system safe is a separate job from calming the room — fixing the model, not just muting it."
+    },
+    {
+      "id": "b4-recover",
+      "name": "Step 4 — Earn the relaunch and rebuild trust",
+      "narrative": "The root causes are fixed. The final step is recovery: make the affected members whole, decide the assistant's future on evidence rather than fear, rebuild the ordinary confidence the failure shook, and publish what changed and why. Close out with the regulator and the board on an honest account. The story should end on whether the organization earned back the trust its AI cost it."
     }
   ],
   "dm_brief": {

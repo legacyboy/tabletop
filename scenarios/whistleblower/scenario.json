@@ -131,9 +131,14 @@
       "narrative": "The posture is set. Now the harder work: run a genuine investigation into the substance - the risk reports, the email chain, the concentration number that drifted for four quarters, the decisions that were consciously accepted and the ones that quietly slipped - while answering the regulator's questions and defending the board's risk-appetite decisions without hiding behind them. If Step 1 was honest, the investigation gets the benefit of the doubt; if it was defensive, every finding leaks before it can be released."
     },
     {
-      "id": "b3-recover",
-      "name": "Step 3 — Fix what was true, prove what wasn't",
-      "narrative": "The facts are emerging. Step 3 is to eradicate the root cause and begin recovery: remediate any real member risk and make affected members whole, correct what was genuinely wrong in the risk process, protect the people who raise concerns so the next problem comes through the door instead of through the press, and publish enough that the findings speak for themselves. If Steps 1-2 went well, recovery rebuilds trust with members, staff, the board, and the regulator; if they went poorly, every future warning will be delivered by a package."
+      "id": "b3-remediate",
+      "name": "Step 3 — Remediate the real risk",
+      "narrative": "The facts are established. Step 3 is to eradicate the real risk the reports exposed: fix the concentration exposure the numbers confirmed, remediate any genuine member harm and make those members whole, correct what the documents show was exaggerated, and protect the source while doing it. Show the group that acting on uncomfortable truths is a separate job from managing the disclosure."
+    },
+    {
+      "id": "b4-rebuild",
+      "name": "Step 4 — Prove the culture changed",
+      "narrative": "The risk is being remediated. The final step is recovery: prove to staff, members, and the regulator that raising concerns now leads somewhere, restore the confidence the crisis shook, publish what changed, and close out on an honest account of what was missed and fixed. The story should end on whether the organization is one that can hear bad news — at a cost, but earned."
     }
   ],
   "dm_brief": {
