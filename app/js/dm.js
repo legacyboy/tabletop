@@ -615,6 +615,84 @@ export class DMSession {
     return narrative;
   }
 
+  /**
+   * ASK THE DM — an out-of-band clarification channel (Dan, 2026-10-08).
+   *
+   * The group can ask the DM a question, or clarify/correct something the DM
+   * got wrong, WITHOUT burning a turn: this method takes NO roll, does NOT
+   * advance the turn counter, does NOT change any state or the arc, and never
+   * triggers end conditions. It is purely informational back-channel with the
+   * moderator.
+   *
+   * The DM answers in its own voice as the moderator/case-briefer. A question
+   * can be a factual query ("what did the console audit show?"), a clarification
+   * ("we never said that publicly — correct the record"), or a correction
+   * ("that metric moved wrong; the takedown did land"). The DM should acknowledge
+   * a correction and reason about it, but must NOT rewrite history or outcomes
+   * — the answer is guidance, not a re-resolution of the turn.
+   *
+   * @param {string} question  the group's question / clarification / correction
+   * @returns {Promise<{answer:string, asked:string}>}
+   */
+  async askDM(question) {
+    const q = String(question || '').trim();
+    if (!q) throw new Error('Type a question for the DM first.');
+
+    const system = buildSystemPrompt(this.scenario, { castInfo: this.castInfo, random: this.random });
+    const user = [
+      'OUT-OF-BAND MESSAGE — the group is NOT taking an action and has NOT rolled. This is a question, a clarification, or a correction for the moderator. Do NOT resolve a turn, do NOT change any metric, do NOT advance the story, and do NOT narrate new developments.',
+      '',
+      `Current state: ${JSON.stringify(this.state)}`,
+      this.beats.length ? `Current story step: ${this.currentBeatIndex + 1} of ${this.beats.length} (${this.beats[this.currentBeatIndex] && this.beats[this.currentBeatIndex].name}).` : '',
+      '',
+      `The group says: "${q}"`,
+      '',
+      'Answer in the moderator\'s own voice, plainly and concretely (2-6 sentences):',
+      '- If it is a factual question the group would plausibly know or could reasonably infer from the situation so far, answer it directly with the in-world facts. Do not withhold realistic context.',
+      '- If it is a clarification, clarify.',
+      '- If it is a correction (the group says the DM got something wrong), acknowledge it honestly and reason about what it means for the situation \u2014 but do NOT rewrite past outcomes or silently change the score. If the correction materially affects play, say so and note it will be reflected in how the next turn is judged.',
+      '- If the question asks what the group SHOULD do, do not prescribe actions; describe the situation and the realistic options instead.',
+      'Reply with STRICT JSON: {"answer": "<your reply to the group>"} and nothing else.',
+    ].filter(Boolean).join('\n');
+
+    const dmResult = await this.provider.chat(
+      [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      { temperature: 0.5, maxTokens: SCENE_TOKENS, numCtx: DM_NUM_CTX, onUsage: (u) => { this._lastUsage = u; } }
+    );
+    const usage = this._lastUsage || null;
+    this._lastUsage = null;
+    this._recordUsage(usage, system + user, dmResult);
+
+    const parsed = this._extractJson(dmResult);
+    let answer = parsed.answer || parsed.narrative || dmResult;
+    if (!String(answer).trim()) {
+      answer = 'The moderator had nothing to add.';
+    }
+    answer = String(answer).trim();
+
+    // Record the exchange for the audit trail / report, but flagged as a
+    // clarification so it is never mistaken for a played turn. Does NOT touch
+    // this.turn, this.state, the arc, or the chain.
+    this.clarifications = this.clarifications || [];
+    const entry = {
+      turn: this.turn,
+      asked: q,
+      answer,
+      dm_prompt: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      dm_reply: dmResult,
+      usage,
+      ts: Date.now(),
+    };
+    this.clarifications.push(entry);
+    return { answer, asked: q };
+  }
+
   secondsLeft() {
     if (!this.startedAt || !this.durationSeconds) return null;
     return Math.max(0, this.durationSeconds - Math.floor((Date.now() - this.startedAt) / 1000));

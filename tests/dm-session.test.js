@@ -909,5 +909,31 @@ const goodRun = new DMSession(new MockProvider({ beat: 'b2-fraud', beat_quality:
 await goodRun.takeTurn('A clean, on-target public statement', 15);
 check('non-crit turn still advances the arc normally', goodRun.currentBeatIndex === 1);
 
+// 55. ASK THE DM — out-of-band clarification burns NO turn (Dan, 2026-10-08).
+class AskProvider {
+  constructor() { this.lastUser = ''; }
+  async chat(messages) {
+    this.lastUser = messages[messages.length - 1].content;
+    return JSON.stringify({ answer: 'The console audit shows the shared credential was never rotated.' });
+  }
+}
+const askProv = new AskProvider();
+const askRun = new DMSession(askProv, scenario);
+await askRun.openScene();
+const askBefore = { turn: askRun.turn, state: JSON.stringify(askRun.state), beat: askRun.currentBeatIndex, hist: askRun.history.length };
+const askRes = await askRun.askDM('What did the console audit actually show?');
+check('askDM returns an answer string', typeof askRes.answer === 'string' && askRes.answer.length > 0);
+check('askDM does NOT advance the turn', askRun.turn === askBefore.turn);
+check('askDM does NOT change state', JSON.stringify(askRun.state) === askBefore.state);
+check('askDM does NOT move the arc', askRun.currentBeatIndex === askBefore.beat);
+check('askDM does NOT append a played turn to history', askRun.history.length === askBefore.hist);
+check('askDM records the exchange as a clarification', askRun.clarifications.length === 1 && askRun.clarifications[0].asked.includes('console audit'));
+check('askDM prompt tells the DM not to resolve a turn or roll', /NOT taking an action|has NOT rolled/i.test(askProv.lastUser));
+check('askDM prompt instructs no metric change / no arc advance', /do NOT change any metric/i.test(askProv.lastUser) && /do NOT advance the story/i.test(askProv.lastUser));
+let askErr = null;
+try { await askRun.askDM('   '); } catch (e) { askErr = e; }
+check('askDM rejects an empty question', !!askErr);
+check('askDM still did NOT advance the turn after empty attempt', askRun.turn === askBefore.turn);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

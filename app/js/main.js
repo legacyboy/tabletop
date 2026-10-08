@@ -91,6 +91,7 @@ async function init() {
    'narrative', 'stateList', 'flags', 'objectivePanel', 'arcToggle', 'timer', 'reportBody', 'exportReport',
    'progress', 'moderatorRead', 'castFields', 'castFieldsIntro', 'selectCastWrap', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
+   'askDMText', 'askDMBtn', 'askDMStatus', 'askDMAnswers',
   ].forEach((id) => { el[id] = $(id); });
 
   // Restore the arc's shown/hidden state (per tab). Lets a facilitator hide the
@@ -527,6 +528,39 @@ function bindRollFlow(scenario) {
       el.submitBtn.click();
     }
   });
+
+  // ASK THE DM — out-of-band clarification. Does NOT burn a turn, roll a die,
+  // or change any state (Dan, 2026-10-08). The DM answers as the moderator.
+  if (el.askDMBtn) {
+    el.askDMBtn.onclick = async () => {
+      if (state.readOnly) {
+        if (el.askDMStatus) el.askDMStatus.textContent = 'This tab is read-only.';
+        return;
+      }
+      const session = state.session;
+      if (!session) return;
+      const q = el.askDMText.value.trim();
+      if (!q) { if (el.askDMStatus) el.askDMStatus.textContent = 'Type a question first.'; return; }
+      el.askDMBtn.disabled = true;
+      if (el.askDMStatus) el.askDMStatus.textContent = 'The DM is considering...';
+      try {
+        const { answer } = await session.askDM(q);
+        appendAskAnswer(q, answer);
+        el.askDMText.value = '';
+        if (el.askDMStatus) el.askDMStatus.textContent = '';
+        saveSessionSnapshot();
+      } catch (err) {
+        if (el.askDMStatus) el.askDMStatus.textContent = 'DM error: ' + err.message;
+      } finally {
+        el.askDMBtn.disabled = false;
+      }
+    };
+    if (el.askDMText) {
+      el.askDMText.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); el.askDMBtn.click(); }
+      });
+    }
+  }
 
   // End the exercise manually: the team decides it's done. This is the
   // intended way a session concludes (Dan: no instant loss on a stat hitting
@@ -980,6 +1014,20 @@ function logLine(html) {
   const log = $('log');
   if (!log) return;
   log.insertAdjacentHTML('afterbegin', `<div class="logItem">${html}</div>`);
+}
+
+// Render an out-of-band DM answer into the Ask panel (NOT the run log — this is
+// a clarification, not a played turn) and keep the most recent at the bottom so
+// the conversation reads top-to-bottom.
+function appendAskAnswer(question, answer) {
+  const host = el.askDMAnswers || $('askDMAnswers');
+  if (!host) return;
+  const div = document.createElement('div');
+  div.className = 'askDMItem';
+  div.innerHTML = `<div class="askDMQ">You: ${escapeHtml(question)}</div>`
+    + `<div class="askDMA">DM: ${escapeHtml(answer)}</div>`;
+  host.appendChild(div);
+  host.scrollTop = host.scrollHeight;
 }
 
 function escapeHtml(s) {

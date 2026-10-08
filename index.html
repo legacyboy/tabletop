@@ -86,6 +86,17 @@
           <button id="submitBtn" class="primary">Submit action (roll D20)</button>
         </div>
         <div id="outcome" class="small muted">Type an action, then submit.</div>
+        <details id="askDMWrap" class="askdm">
+          <summary>Ask the DM / clarify (no turn burned)</summary>
+          <p class="small muted" style="margin:8px 0 6px">Ask a factual question, seek a clarification, or correct something the moderator got wrong. This does <b>not</b> advance the turn or change any state.</p>
+          <textarea id="askDMText" rows="2"
+            placeholder="e.g. What did the console audit actually show? / We never said that publicly &mdash; correct the record."></textarea>
+          <div class="row">
+            <button id="askDMBtn" class="ghost">Ask (no roll)</button>
+            <span id="askDMStatus" class="small muted"></span>
+          </div>
+          <div id="askDMAnswers"></div>
+        </details>
         <h3>What happened</h3>
         <p id="narrative" class="narrative">Waiting for the DM...</p>
         <div class="row" style="margin-top:12px">
