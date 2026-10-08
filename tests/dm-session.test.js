@@ -863,5 +863,51 @@ check('serialize carries the pacing budget', paceSnap.targetTurn === 6 && paceSn
 const restoredRun = DMSession.restore(new MockProvider(), pacedScenario, paceSnap);
 check('restore preserves the pacing budget', restoredRun.targetTurn === 6 && restoredRun.totalTurn === 7);
 
+// 54. CRITICAL FAILURE (natural 1) is engine-enforced (Dan, 2026-10-08).
+// A 1 must NEVER resolve the game, even when the DM tries to advance the arc
+// and narrate a win. This is the exact bug: roll 1 on step 3 completed the run.
+class WinOnOneProvider {
+  async chat() {
+    return JSON.stringify({
+      narrative: 'The plan lands exactly as intended and the containment effort pays off.',
+      state_delta: { public_trust: 5, containment: 5 },
+      progress: true,
+      contain_stage: 'c2-fake',
+      beat: 'b4-recover',
+      beat_quality: 'good',
+    });
+  }
+}
+const critRun = new DMSession(new WinOnOneProvider(), scenario);
+// Dan's exact bug: on step 3 of 4, roll a 1. The DM insists on advancing to the
+// final beat and narrating a win; the engine must refuse both.
+critRun.currentBeatIndex = 2;
+const critRes = await critRun.takeTurn('Everything at once, perfectly executed', 1);
+check('crit fail: game does NOT end on a natural 1', critRes.endCondition === null, JSON.stringify(critRes.endCondition));
+check('crit fail: arc does NOT advance on a natural 1', critRun.currentBeatIndex === 2);
+check('crit fail: no attack-chain stage contained on a natural 1', critRun.attackChain.every((s) => !s.contained));
+check('crit fail: roll modifier is not applied as success', critRes.roll === 1);
+check('crit fail: success narrative is replaced with a setback', /collapse|backfire|worse|setback/i.test(critRes.narrative) && !/lands exactly as intended/i.test(critRes.narrative));
+check('crit fail: engine applies a real negative consequence', (critRes.state.public_trust || 0) < (scenario.opening_state.public_trust || 0));
+
+// Even parked on the FINAL beat, a natural 1 must not tidy the chain into a
+// clean win nor advance further — the run simply does not complete on a 1.
+const critRunFinal = new DMSession(new WinOnOneProvider(), scenario);
+critRunFinal.currentBeatIndex = scenario.beats.length - 1;
+const critResFinal = await critRunFinal.takeTurn('Close it all out', 1);
+check('crit fail on final beat: no attack-chain stage tidied/contained', critRunFinal.attackChain.every((s) => !s.contained));
+
+// A mid-arc 1 must also not jump the arc forward (regression for the DM
+// returning beat:<final> off the back of a 1).
+const critRun2 = new DMSession(new WinOnOneProvider(), scenario);
+const critRes2 = await critRun2.takeTurn('Attempt a bold coordinated move', 1);
+check('crit fail mid-arc: stays on beat 1', critRun2.currentBeatIndex === 0);
+check('crit fail mid-arc: does not win', critRes2.endCondition === null);
+
+// Sanity: an ordinary good roll still works and can resolve normally.
+const goodRun = new DMSession(new MockProvider({ beat: 'b2-fraud', beat_quality: 'good' }), scenario);
+await goodRun.takeTurn('A clean, on-target public statement', 15);
+check('non-crit turn still advances the arc normally', goodRun.currentBeatIndex === 1);
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
