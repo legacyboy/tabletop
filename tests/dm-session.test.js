@@ -268,9 +268,17 @@ await s6.takeTurn('x', 10);   // DM judges no progress (turn 1)
 check('stall event NOT fired after 1 stalled turn', !s6.firedEvents.has('stall1'));
 await s6.takeTurn('ok', 10);  // DM judges no progress (turn 2) -> fires
 check('stall event fires after 2 consecutive stalled turns', s6.firedEvents.has('stall1'));
-// The stall event applies -5 to public_trust on turn 2; the DM also returns a
-// small delta (+1) on each of the two turns. Net: opening + 1 - 5 + 1.
-check('stall event state_delta applied', s6.state.public_trust === stallScenario.opening_state.public_trust + 1 - 5 + 1);
+// The stall event applies -5 to public_trust. Rather than pin brittle
+// arithmetic (the turn also carries a mid-beat development delta from the
+// scenario, Dan 2026-10-07), assert the event's own delta was merged: run the
+// same two stalled turns WITHOUT the event and confirm the event run ends lower
+// by exactly the event delta.
+const s6NoEvent = new DMSession(new MockProvider({ progress: false }), { ...scenario, events: [] });
+await s6NoEvent.takeTurn('x', 10);
+await s6NoEvent.takeTurn('ok', 10);
+check('stall event state_delta applied',
+  s6.state.public_trust === s6NoEvent.state.public_trust - 5,
+  `event=${s6.state.public_trust} noEvent=${s6NoEvent.state.public_trust}`);
 check('stall event recorded in history', s6.history[1].events.includes('stall1'));
 
 // 8b. Stall counter resets when the DM judges progress (progress:true).
@@ -305,12 +313,29 @@ check('stat event NOT fired below threshold', !s7.firedEvents.has('stat1'));
 s7.state.containment = 70;  // cross threshold
 await s7.takeTurn('Act', 10);
 check('stat event fires when stat crosses threshold', s7.firedEvents.has('stat1'));
-check('stat event state_delta applied', s7.state.regulator_confidence === statScenario.opening_state.regulator_confidence - 5);
+// The stat event applies -5 to regulator_confidence. Assert relative to an
+// identical run without the event (brittle absolute arithmetic breaks whenever
+// other delta sources change).
+const s7NoEvent = new DMSession(new MockProvider(), { ...statScenario, events: [] });
+s7NoEvent.state.containment = 30;
+await s7NoEvent.takeTurn('Act', 10);
+s7NoEvent.state.containment = 70;
+await s7NoEvent.takeTurn('Act', 10);
+check('stat event state_delta applied',
+  s7.state.regulator_confidence === s7NoEvent.state.regulator_confidence - 5,
+  `event=${s7.state.regulator_confidence} noEvent=${s7NoEvent.state.regulator_confidence}`);
 
-// 9b. Fired events do NOT re-fire on subsequent turns.
+// 9b. Fired events do NOT re-fire on subsequent turns. Compare the third-turn
+//     delta against an identical no-event run so unrelated delta sources cancel.
 const before = s7.state.regulator_confidence;
 await s7.takeTurn('Act', 10);  // containment still >= 60, but event already fired
-check('fired event does NOT re-fire', s7.state.regulator_confidence === before);
+const s7ThirdDelta = s7.state.regulator_confidence - before;
+const noEventBefore = s7NoEvent.state.regulator_confidence;
+await s7NoEvent.takeTurn('Act', 10);
+const noEventThirdDelta = s7NoEvent.state.regulator_confidence - noEventBefore;
+check('fired event does NOT re-fire',
+  s7ThirdDelta === noEventThirdDelta,
+  `withEvent=${s7ThirdDelta} noEvent=${noEventThirdDelta}`);
 
 // 10. serialize/restore persist fired event ids (no re-fire after restore).
 const snap = s7.serialize();
@@ -458,13 +483,19 @@ const streakScenario = {
     { type: 'stat', stat: 'public_trust', operator: 'lte', value: 15, consecutive: 2, ending: 'collapse' },
   ],
 };
-const s19 = new DMSession(new MockProvider(), streakScenario);
+// A provider whose delta keeps public_trust flat, so the streak logic (not delta
+// noise from mid-beat developments) is what is under test.
+const flatProvider = () => {
+  class P { async chat() { return JSON.stringify({ narrative: 'The situation holds as it was.', state_delta: {}, progress: true }); } }
+  return new P();
+};
+const s19 = new DMSession(flatProvider(), streakScenario);
 s19.state.public_trust = 10;  // in the failure zone
 const res19a = await s19.takeTurn('Act', 10);  // turn 1: streak 1
 check('collapse does NOT fire on the first bad turn', !res19a.endCondition && !s19.isCollapsed());
 const snap19 = s19.serialize();
 check('serialize includes statStreaks', typeof snap19.statStreaks === 'object');
-const restored19 = DMSession.restore(new MockProvider(), streakScenario, snap19);
+const restored19 = DMSession.restore(flatProvider(), streakScenario, snap19);
 restored19.state.public_trust = 10;  // still in the zone
 const res19 = await restored19.takeTurn('Act', 10);  // turn 2: streak 2 -> collapse
 check('collapse flags after 2 consecutive bad turns (streak survives restore)', !res19.endCondition && restored19.isCollapsed());
@@ -473,18 +504,18 @@ check('the streak survives serialize/restore (count carried)', (restored19.statS
 // 24. The collapse streak RESETS when the stat leaves the zone: leaving and
 //     re-entering starts the streak over, so the collapse flags only after 2
 //     CONSECUTIVE turns back in the zone.
-const s20 = new DMSession(new MockProvider(), streakScenario);
-s20.state.public_trust = 10;  // in zone
+const s20 = new DMSession(flatProvider(), streakScenario);
+s20.state.public_trust = 2;    // in zone, low enough to survive a small mid-beat bump
 await s20.takeTurn('Act', 10);  // streak 1
 s20.state.public_trust = 50;   // leaves zone
 const res20a = await s20.takeTurn('Act', 10);  // streak resets
 check('no collapse after leaving the zone', !res20a.endCondition && !s20.isCollapsed());
-s20.state.public_trust = 10;   // back in zone
+s20.state.public_trust = 2;    // back in zone
 const res20m = await s20.takeTurn('Act', 10);  // streak 1 again
 check('no collapse on the first turn back in the zone (streak was reset)', !res20m.endCondition && !s20.isCollapsed());
+s20.state.public_trust = 2;    // re-pin just in case a bump crept in
 const res20b = await s20.takeTurn('Act', 10);  // streak 2 -> collapse
 check('collapse flags after 2 consecutive turns back in the zone', !res20b.endCondition && s20.isCollapsed());
-
 // ===== NEW: roll-modifier mechanic (targeted) =====
 // 25. A granted roll modifier is fed to the DM as an adjusted roll and is
 //     consumed by that roll. This exercises the full defender-capability flow
@@ -775,17 +806,21 @@ check('report log entry has the DM narrative', typeof turn0 && typeof turn0.narr
 // The DM must be told the turn number, the turn budget, the minutes left, and a
 // pacing verdict every turn — otherwise it guesses and runs drift off the hour.
 
-// 49. Scenario pacing block is read; defaults derive from the 60-minute limit.
+// 49. Scenario pacing block is read; with no explicit block the target derives
+//     arc-first: beats + 1 (opening turn), clamped to the clock ceiling.
+//     bramble-badger has 4 beats and a 60-min timeout (floor(60/8) = 7 total),
+//     so target = min(7, 4+1) = 5.
 const paceScenario = { ...scenario };
 const paceS = new DMSession(new MockProvider(), paceScenario);
-check('pacing block gives target/total turns (6/7 from scenario)', paceS.targetTurn === 6 && paceS.totalTurn === 7);
+check('pacing block gives target/total turns (5/7 from a 4-beat arc)', paceS.targetTurn === 5 && paceS.totalTurn === 7,
+  `${paceS.targetTurn}/${paceS.totalTurn}`);
 
 // 49b. A scenario WITHOUT a pacing block derives a sane budget from the timeout.
 const noPace = { ...scenario };
 delete noPace.pacing;
 const noPaceS = new DMSession(new MockProvider(), noPace);
-check('pacing defaults derive from the 60-min timeout (7 total, 6 target)',
-  noPaceS.totalTurn === 7 && noPaceS.targetTurn === 6, `${noPaceS.targetTurn}/${noPaceS.totalTurn}`);
+check('pacing defaults derive from the arc + 60-min timeout (7 total, 5 target)',
+  noPaceS.totalTurn === 7 && noPaceS.targetTurn === 5, `${noPaceS.targetTurn}/${noPaceS.totalTurn}`);
 
 // 50. The per-turn user prompt carries the PACE block: turn number, budget,
 // beats remaining, and a verdict.
@@ -799,7 +834,7 @@ const paceRun = new DMSession(paceProv, scenario);
 paceRun.start(); // starts the clock so minutes-left is real
 await paceRun.takeTurn('We act.', 12);
 check('user prompt includes a PACE block', /PACE:/.test(paceProv.lastUser));
-check('PACE block names the turn and the budget', /Turn 1 of about 7/.test(paceProv.lastUser) && /target: resolve by turn 6/.test(paceProv.lastUser));
+check('PACE block names the turn and the budget', /Turn 1 of about 7/.test(paceProv.lastUser) && /target: resolve by turn 5/.test(paceProv.lastUser));
 check('PACE block names the story-beat position', /Story beat 1 of \d+/.test(paceProv.lastUser));
 check('PACE block reports minutes left on the clock', /minutes? left on the clock/.test(paceProv.lastUser));
 check('PACE block carries a pacing verdict', /PACING VERDICT:/.test(paceProv.lastUser));

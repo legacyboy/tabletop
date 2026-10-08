@@ -22,15 +22,35 @@
   <!-- ===== PHASE: SELECT ===== -->
   <section id="phase-select" class="card" style="display:none">
     <h2>Choose a scenario</h2>
-    <select id="scenarioSelect"></select>
-    <p id="scenarioSummary" class="muted"></p>
-    <div id="selectCastWrap" style="display:none">
+    <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:12px">
+      <label class="radio-inline"><input type="radio" name="modePick" value="elite" checked> <b>Executive (ELT)</b> &mdash; paced story arc, narrative metrics</label>
+      <label class="radio-inline"><input type="radio" name="modePick" value="it"> <b>IT / Incident Response</b> &mdash; fully random, Backdoors &amp; Breaches style</label>
+    </div>
+    <div id="eliteSetup">
+      <select id="scenarioSelect"></select>
+      <p id="scenarioSummary" class="muted"></p>
+      <div id="selectCastWrap" style="display:none">
+        <p class="muted small">
+          Fill in the names and details below, then press Load / Start. Anything
+          you enter is woven into the case as it plays &mdash; leave a field blank to
+          keep the scenario's own default.
+        </p>
+        <div id="castFields"></div>
+      </div>
+    </div>
+    <div id="itSetup" style="display:none">
       <p class="muted small">
-        Fill in the names and details below, then press Load / Start. Anything
-        you enter is woven into the case as it plays — leave a field blank to
-        keep the scenario's own default.
+        A random incident. The Incident Master draws a hidden attack path (one
+        technique from each of four stages). Defenders run a procedure and roll a
+        D20 &mdash; 11+ succeeds and can reveal a hidden stage. A natural 1 or 20, or
+        three failures in a row, triggers a random INJECT. Uncover all four stages to win.
       </p>
-      <div id="castFields"></div>
+      <label for="itCompany">Environment / company name (optional)
+        <input id="itCompany" type="text" placeholder="e.g. Northwind Health — 400 staff, hybrid cloud" />
+      </label>
+      <label for="itRounds">Round cap
+        <input id="itRounds" type="number" min="4" max="20" step="1" value="10" />
+      </label>
     </div>
     <div class="row">
       <button id="loadScenarioBtn" class="primary">Load / Start</button>
@@ -116,6 +136,53 @@
       <section class="card full">
         <h2>Run log</h2>
         <div id="log"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ===== IT / BACKDOORS & BREACHES PLAY PHASE ===== -->
+  <section id="phase-it" style="display:none">
+    <div class="grid">
+      <section class="card wide">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h2 style="margin:0">Incident response round</h2>
+          <span class="timer" id="itTimer">—</span>
+        </div>
+        <p class="small muted" id="itRoundLine"></p>
+        <div class="row">
+          <label for="itProcedure">Procedure
+            <select id="itProcedure"></select>
+          </label>
+          <button id="itRerollHand" class="ghost small" type="button" title="Draw a fresh hand of procedures">↻ New hand</button>
+          <label for="itTarget">Target stage (optional)
+            <select id="itTarget"></select>
+          </label>
+        </div>
+        <textarea id="itNote" rows="2" placeholder="What are you looking for / what will you do with this procedure? (optional)"></textarea>
+        <div class="row">
+          <label class="manual-roll" for="itRoll">Your D20 roll
+            <input id="itRoll" type="number" min="1" max="20" step="1" placeholder="1–20" />
+          </label>
+          <span class="small muted">11+ succeeds. Natural 1 or 20, or 3 fails in a row &rarr; INJECT.</span>
+          <button id="itSubmit" class="primary">Run procedure (roll D20)</button>
+        </div>
+        <div id="itOutcome" class="small muted">Choose a procedure and roll, or leave the roll blank to auto-roll.</div>
+        <h3>What happened</h3>
+        <p id="itNarrative" class="narrative">Waiting for the Incident Master...</p>
+        <div class="row" style="margin-top:12px">
+          <button id="itEnd" class="ghost danger">End exercise (conclude now)</button>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Attack path</h2>
+        <p class="small muted">Uncover all four stages to win.</p>
+        <div id="itAttackPath"></div>
+        <h2 style="margin-top:14px">Inject feed</h2>
+        <div id="itInjectFeed" class="small muted">No injects yet.</div>
+      </section>
+      <section class="card full">
+        <h2>Round log</h2>
+        <div id="itLog"></div>
       </section>
     </div>
   </section>

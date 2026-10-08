@@ -33,8 +33,12 @@ await page.evaluate((mock) => {
 await page.reload({ waitUntil: 'networkidle0' });
 await new Promise((r) => setTimeout(r, 600));
 
-// Start the session from intro.
-await page.click('#startButton');
+// Start the session from intro. The app now boots to the scenario-select
+// screen (Dan, 2026-10-07): pick the first authored scenario, press Load/Start,
+// then start the session from the intro screen.
+await page.evaluate(() => document.getElementById('loadScenarioBtn').click());
+await new Promise((r) => setTimeout(r, 800));
+await page.evaluate(() => document.getElementById('startButton').click());
 await new Promise((r) => setTimeout(r, 400));
 
 const playVisible = await page.evaluate(() => document.getElementById('phase-play').style.display);

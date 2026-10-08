@@ -322,3 +322,14 @@ code { color: #8be9fd; }
 .askDMItem { border-left: 3px solid #6ea8fe; background: #ffffff08; border-radius: 6px; padding: 8px 10px; }
 .askDMQ { font-size: 12px; color: #93a4bd; margin-bottom: 4px; }
 .askDMA { white-space: pre-wrap; }
+
+/* IT / Backdoors & Breaches mode */
+.radio-inline { display:flex; align-items:center; gap:6px; font-size:14px; }
+#itSetup label, #eliteSetup label { display:block; margin:8px 0; }
+#itSetup input[type=text], #itSetup input[type=number] { width:100%; max-width:520px; box-sizing:border-box; }
+.itStage { border:1px solid #ffffff1a; border-radius:8px; padding:8px 10px; margin:6px 0; background:#ffffff06; }
+.itStage.revealed { border-color:#7dfcb055; background:#7dfcb012; }
+.itStage.hidden { opacity:0.65; }
+.itCat { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#93a4bd; margin-bottom:2px; }
+.itInject { border-left:3px solid #ffb4a2; background:#ffffff08; border-radius:6px; padding:6px 8px; margin:6px 0; }
+#phase-it select { min-width:260px; }

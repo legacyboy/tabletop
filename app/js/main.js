@@ -17,6 +17,7 @@
 import { loadRegistry, loadScenario, isRandomEntry, randomScenarioShell, applyCast, castBrief } from './scenarios.js';
 import { buildProvider, loadSettings, describeProvider } from './providers/registry.js';
 import { DMSession } from './dm.js';
+import { BnbSession } from './bnb-session.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -76,7 +77,7 @@ function humanize(key) {
 
 function setPhase(phase) {
   state.phase = phase;
-  ['select', 'intro', 'play', 'report', 'settings'].forEach((p) => {
+  ['select', 'intro', 'play', 'it', 'report', 'settings'].forEach((p) => {
     const section = $(`phase-${p}`);
     if (section) section.style.display = p === phase ? 'block' : 'none';
   });
@@ -92,6 +93,10 @@ async function init() {
    'progress', 'moderatorRead', 'castFields', 'castFieldsIntro', 'selectCastWrap', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
    'askDMText', 'askDMBtn', 'askDMStatus', 'askDMAnswers',
+   'eliteSetup', 'itSetup', 'itCompany', 'itRounds',
+   'itProcedure', 'itRerollHand', 'itTarget', 'itNote', 'itRoll', 'itSubmit',
+   'itOutcome', 'itNarrative', 'itEnd', 'itTimer', 'itRoundLine',
+   'itAttackPath', 'itInjectFeed', 'itLog',
   ].forEach((id) => { el[id] = $(id); });
 
   // Restore the arc's shown/hidden state (per tab). Lets a facilitator hide the
@@ -110,6 +115,8 @@ async function init() {
   // Scenario-select screen: explicit Load/Start + Back affordances so the
   // user is never stuck on a screen with no way forward or back.
   el.loadScenarioBtn.onclick = () => {
+    const mode = currentMode();
+    if (mode === 'it') { startItSession(); return; }
     const idx = Number(el.scenarioSelect.value);
     if (state.registry[idx]) selectScenario(idx);
   };
@@ -117,6 +124,9 @@ async function init() {
     const dest = state.selectReturn || (state.scenario ? 'intro' : 'select');
     setPhase(dest);
   };
+
+  // Version picker (Executive vs IT). Dan, 2026-10-08.
+  bindModePicker();
 
   // Allow the settings panel's Back button to return to the scenario intro.
   window.addEventListener('tabletop:goback', () => {
@@ -255,7 +265,8 @@ async function populateScenarios() {
  */
 async function showScenarioSelect() {
   if (state.session) {
-    state.session.stopTimer();
+    if (typeof state.session.stopTimer === 'function') state.session.stopTimer();
+    if (itTimerHandle) { clearInterval(itTimerHandle); itTimerHandle = null; }
     state.session = null;
   }
   // Remember where we came from so the Back button can return there.
@@ -489,6 +500,209 @@ async function beginSession() {
   } catch (err) {
     el.outcome.textContent = 'Could not start: ' + err.message;
   }
+}
+
+// ---------------------------------------------------------------------------
+// MODE PICKER + IT / BACKDOORS & BREACHES FLOW (Dan, 2026-10-08)
+// ---------------------------------------------------------------------------
+
+/** Which version is selected on the scenario screen: 'elite' (default) or 'it'. */
+function currentMode() {
+  const checked = document.querySelector('input[name="modePick"]:checked');
+  return checked ? checked.value : 'elite';
+}
+
+/** Toggle the setup panels when the version radio changes. */
+function syncModeUi() {
+  const it = currentMode() === 'it';
+  if (el.eliteSetup) el.eliteSetup.style.display = it ? 'none' : 'block';
+  if (el.itSetup) el.itSetup.style.display = it ? 'block' : 'none';
+  if (el.loadScenarioBtn) el.loadScenarioBtn.textContent = it ? 'Start IT exercise' : 'Load / Start';
+}
+
+function bindModePicker() {
+  document.querySelectorAll('input[name="modePick"]').forEach((r) => {
+    r.addEventListener('change', syncModeUi);
+  });
+  syncModeUi();
+}
+
+/** Build a fresh IT session and enter the IT play phase. */
+async function startItSession() {
+  const settings = loadSettings();
+  const provider = buildProvider(settings);
+  if (!provider) {
+    alert('No DM configured. Open Settings and choose an in-browser model or paste an API key.');
+    return;
+  }
+  const rounds = Math.max(4, Math.min(20, Number(el.itRounds && el.itRounds.value) || 10));
+  const session = new BnbSession(provider, {
+    targetCompany: (el.itCompany && el.itCompany.value.trim()) || '',
+    maxRounds: rounds,
+  });
+  session.start();
+  state.session = session;
+  state.mode = 'it';
+  state.readOnly = false;
+  bindItFlow();
+  renderItState();
+  setPhase('it');
+  if (el.itNarrative) el.itNarrative.textContent = 'The Incident Master is drawing the attack path and setting the scene...';
+  if (el.itOutcome) el.itOutcome.textContent = 'Choose a procedure and roll, or leave the roll blank to auto-roll.';
+  if (el.itLog) el.itLog.innerHTML = '';
+  startItTimer();
+}
+
+function renderItState() {
+  const s = state.session;
+  if (!s || !s.attackPath) return;
+  // Attack path: four stage rows, revealed cards named, hidden ones masked.
+  if (el.itAttackPath) {
+    el.itAttackPath.innerHTML = s.attackPath.map((c) => {
+      const revealed = c.revealed;
+      const cls = revealed ? 'itStage revealed' : 'itStage hidden';
+      const body = revealed
+        ? `<b>${escapeHtml(c.name)}</b><div class="small muted">${escapeHtml(c.symptom)}</div>`
+        : '<i class="muted">— not yet uncovered —</i>';
+      return `<div class="${cls}"><div class="itCat">${escapeHtml(c.category_name)}</div>${body}</div>`;
+    }).join('');
+  }
+  // Procedure hand -> dropdown.
+  if (el.itProcedure) {
+    el.itProcedure.innerHTML = s.procedureHand
+      .map((p) => `<option value="${p.id}">${escapeHtml(p.name)} — ${escapeHtml(p.skill)}</option>`)
+      .join('');
+  }
+  // Target stage -> dropdown of still-hidden categories.
+  if (el.itTarget) {
+    const hidden = s.hiddenCategories();
+    el.itTarget.innerHTML = '<option value="">(no specific stage)</option>'
+      + hidden.map((h) => `<option value="${h.id}">${escapeHtml(h.name)} — ${escapeHtml(h.prompt)}</option>`).join('');
+  }
+  // Inject feed.
+  if (el.itInjectFeed) {
+    el.itInjectFeed.innerHTML = s.injectLog.length
+      ? s.injectLog.slice().reverse().map((i) => `<div class="itInject"><b>Round ${i.round}:</b> ${escapeHtml(i.text)}</div>`).join('')
+      : 'No injects yet.';
+  }
+  // Round line.
+  if (el.itRoundLine) {
+    el.itRoundLine.textContent = `Round ${s.round} of ${s.maxRounds} — ${s.uncontainedCount()} of 4 stages still hidden.`;
+  }
+}
+
+function bindItFlow() {
+  if (el.itRerollHand) {
+    el.itRerollHand.onclick = () => { state.session.refillHand(); renderItState(); };
+  }
+  if (el.itSubmit) {
+    el.itSubmit.onclick = async () => {
+      if (state.readOnly) { if (el.itOutcome) el.itOutcome.textContent = 'This tab is read-only.'; return; }
+      const s = state.session;
+      if (!s) return;
+      const procId = el.itProcedure ? el.itProcedure.value : null;
+      const target = el.itTarget ? (el.itTarget.value || null) : null;
+      const note = el.itNote ? el.itNote.value : '';
+      let roll;
+      const manual = el.itRoll && el.itRoll.value.trim();
+      if (manual) {
+        const n = Number(manual);
+        if (!Number.isInteger(n) || n < 1 || n > 20) {
+          if (el.itOutcome) el.itOutcome.textContent = 'Roll must be a whole number 1–20 (or blank to auto-roll).';
+          return;
+        }
+        roll = n;
+      } else {
+        roll = Math.floor(Math.random() * 20) + 1;
+      }
+      el.itSubmit.disabled = true;
+      if (el.itOutcome) el.itOutcome.textContent = 'The Incident Master is resolving the round...';
+      try {
+        const res = await s.resolveRound(procId, roll, target, note);
+        if (el.itNarrative) el.itNarrative.textContent = res.narrative;
+        if (el.itOutcome) {
+          let msg = `Round ${res.round} — roll ${res.roll} — ${res.success ? 'SUCCESS' : 'FAILURE'}`;
+          if (res.revealed) msg += ` — uncovered: ${res.revealed.category_name}`;
+          if (res.inject) msg += ` — INJECT: ${res.inject.text}`;
+          el.itOutcome.textContent = msg;
+        }
+        if (el.itLog) {
+          el.itLog.insertAdjacentHTML('afterbegin',
+            `<div class="logItem"><b>Round ${res.round}</b> — roll ${res.roll} (${res.success ? 'success' : 'failure'})`
+            + `${res.revealed ? ` — <b>uncovered ${escapeHtml(res.revealed.category_name)}: ${escapeHtml(res.revealed.name)}</b>` : ''}`
+            + `${res.inject ? ` — <b>INJECT:</b> ${escapeHtml(res.inject.text)}` : ''}`
+            + `<br>${escapeHtml(res.narrative)}</div>`);
+        }
+        renderItState();
+        if (el.itNote) el.itNote.value = '';
+        if (el.itRoll) el.itRoll.value = '';
+        if (res.endCondition) { finishIt(res.endCondition); return; }
+        s.refillHand();
+        renderItState();
+      } catch (err) {
+        if (el.itOutcome) el.itOutcome.textContent = 'Incident Master error: ' + err.message;
+      } finally {
+        el.itSubmit.disabled = false;
+      }
+    };
+  }
+  if (el.itEnd) {
+    el.itEnd.onclick = () => {
+      if (!confirm('Conclude the IT exercise now?')) return;
+      const s = state.session;
+      const open = s.uncontainedCount();
+      finishIt({
+        type: 'manual', result: open === 0 ? 'success' : 'ended',
+        ending: open === 0
+          ? 'All attack-path stages were uncovered. The exercise concludes.'
+          : `The group concluded with ${open} stage${open === 1 ? '' : 's'} still hidden.`,
+        attack_path: s.attackPath.map((c) => ({ category: c.category_name, name: c.name, symptom: c.symptom, revealed: c.revealed })),
+      });
+    };
+  }
+}
+
+let itTimerHandle = null;
+function startItTimer() {
+  if (itTimerHandle) clearInterval(itTimerHandle);
+  const tick = () => {
+    const s = state.session;
+    if (!s || !el.itTimer) return;
+    const secs = s.secondsLeft();
+    if (secs == null) { el.itTimer.textContent = '—'; return; }
+    el.itTimer.textContent = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}`;
+    if (secs <= 0) {
+      clearInterval(itTimerHandle); itTimerHandle = null;
+      finishIt({ type: 'timeout', result: 'ended', ending: 'Time ran out on the scheduled IT exercise.', attack_path: s.attackPath.map((c) => ({ category: c.category_name, name: c.name, revealed: c.revealed })) });
+    }
+  };
+  tick();
+  itTimerHandle = setInterval(tick, 1000);
+}
+
+function finishIt(endCondition) {
+  if (itTimerHandle) { clearInterval(itTimerHandle); itTimerHandle = null; }
+  const isWin = endCondition.result === 'success';
+  const isLoss = endCondition.result === 'loss';
+  const splash = $('splash');
+  if (!splash) return;
+  splash.style.display = 'flex';
+  splash.classList.toggle('ended', !isWin && !isLoss);
+  splash.classList.toggle('loss', isLoss);
+  $('splashGlyph').textContent = isWin ? '🏆' : isLoss ? '⛔' : '🏁';
+  $('splashTitle').textContent = isWin ? 'Victory' : isLoss ? 'Defeat' : 'Session ended';
+  $('splashSub').textContent = 'IT / Incident Response — complete';
+  $('splashTier').style.display = 'none';
+  $('splashSummary').textContent = endCondition.ending || '';
+  const statsEl = $('splashStats');
+  if (statsEl) {
+    statsEl.innerHTML = (endCondition.attack_path || []).map((c) =>
+      `<div class="splashStat ${c.revealed === false ? 'red' : 'green'}"><div class="v">${c.revealed === false ? '✗' : '✓'}</div><div class="k">${escapeHtml(c.category)}</div></div>`).join('');
+  }
+  const cont = $('splashContinue');
+  if (cont) cont.onclick = () => { splash.style.display = 'none'; setPhase('it'); };
+  const nw = $('splashNew');
+  if (nw) nw.onclick = () => { splash.style.display = 'none'; state.session = null; showScenarioSelect(); };
 }
 
 function bindRollFlow(scenario) {
