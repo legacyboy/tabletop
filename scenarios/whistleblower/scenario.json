@@ -123,22 +123,54 @@
     {
       "id": "b1-stakeholders",
       "name": "Step 1 — Answer four audiences before you know the truth",
-      "narrative": "CBC has a deadline, staff are speculating, the regulator is circling, and the board wants a written account - and the team does not yet know how much of the package is true. Step 1 is to set the posture: engage honestly on the record with the reporter, brief the board before they read about it, give staff something true to hold, and resist the temptation to hunt the source. Posture decisions made now decide whether everything that follows is read as good faith or cover-up."
+      "narrative": "CBC has a deadline, staff are speculating, the regulator is circling, and the board wants a written account - and the team does not yet know how much of the package is true. Step 1 is to set the posture: engage honestly on the record with the reporter, brief the board before they read about it, give staff something true to hold, and resist the temptation to hunt the source. Posture decisions made now decide whether everything that follows is read as good faith or cover-up.",
+      "developments": [
+        {
+          "text": "CBC publishes a first story before the team is ready, quoting the documents and naming the drift in the concentration number - the group is now responding to a published fact, not a request for comment.",
+          "state_delta": {
+            "public_trust": -3
+          }
+        }
+      ]
     },
     {
       "id": "b2-investigate",
       "name": "Step 2 — Establish what is actually true",
-      "narrative": "The posture is set. Now the harder work: run a genuine investigation into the substance - the risk reports, the email chain, the concentration number that drifted for four quarters, the decisions that were consciously accepted and the ones that quietly slipped - while answering the regulator's questions and defending the board's risk-appetite decisions without hiding behind them. If Step 1 was honest, the investigation gets the benefit of the doubt; if it was defensive, every finding leaks before it can be released."
+      "narrative": "The posture is set. Now the harder work: run a genuine investigation into the substance - the risk reports, the email chain, the concentration number that drifted for four quarters, the decisions that were consciously accepted and the ones that quietly slipped - while answering the regulator's questions and defending the board's risk-appetite decisions without hiding behind them. If Step 1 was honest, the investigation gets the benefit of the doubt; if it was defensive, every finding leaks before it can be released.",
+      "developments": [
+        {
+          "text": "The investigation finds the whistleblower kept a second set of files the journalists have not seen, and someone inside is quietly trying to identify the source - the group must protect the source while the truth keeps growing.",
+          "state_delta": {
+            "regulator_confidence": -3
+          }
+        }
+      ]
     },
     {
       "id": "b3-remediate",
       "name": "Step 3 — Remediate the real risk",
-      "narrative": "The facts are established. Step 3 is to eradicate the real risk the reports exposed: fix the concentration exposure the numbers confirmed, remediate any genuine member harm and make those members whole, correct what the documents show was exaggerated, and protect the source while doing it. Show the group that acting on uncomfortable truths is a separate job from managing the disclosure."
+      "narrative": "The facts are established. Step 3 is to eradicate the real risk the reports exposed: fix the concentration exposure the numbers confirmed, remediate any genuine member harm and make those members whole, correct what the documents show was exaggerated, and protect the source while doing it. Show the group that acting on uncomfortable truths is a separate job from managing the disclosure.",
+      "developments": [
+        {
+          "text": "The remediation exposes an uncomfortable truth: the concentration risk is larger than the reports claimed, so fixing it means an expensive exposure reduction the board never budgeted for - acting honestly now has a real cost.",
+          "state_delta": {
+            "containment": -2
+          }
+        }
+      ]
     },
     {
       "id": "b4-rebuild",
       "name": "Step 4 — Prove the culture changed",
-      "narrative": "The risk is being remediated. The final step is recovery: prove to staff, members, and the regulator that raising concerns now leads somewhere, restore the confidence the crisis shook, publish what changed, and close out on an honest account of what was missed and fixed. The story should end on whether the organization is one that can hear bad news — at a cost, but earned."
+      "narrative": "The risk is being remediated. The final step is recovery: prove to staff, members, and the regulator that raising concerns now leads somewhere, restore the confidence the crisis shook, publish what changed, and close out on an honest account of what was missed and fixed. The story should end on whether the organization is one that can hear bad news — at a cost, but earned.",
+      "developments": [
+        {
+          "text": "Staff who once raised concerns ask the group to prove, not promise, that speaking up is now safe - and the regulator asks for evidence that the culture change is real, not a statement of intent.",
+          "state_delta": {
+            "regulator_confidence": -2
+          }
+        }
+      ]
     }
   ],
   "dm_brief": {

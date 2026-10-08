@@ -71,6 +71,7 @@ const PER_TURN_MAX_CHANGE = 15;
  * always moves. A genuine stall (the group did nothing) does not count.
  */
 const BEAT_STALL_MAX = 2;
+const HARD_STALL_MAX = 2;   // fail/stall turns before the arc is forced forward anyway
 
 /**
  * Default NARRATIVE-LOSS condition, used when a scenario defines no stat-based
@@ -345,6 +346,14 @@ function buildUserTurn(scenario, run, action, roll, fate, firedEvents) {
       if (run.lastBeatQuality) {
         beatLine += `\nHow the group handled the previous beat: ${run.lastBeatQuality}. Adjust the tone of this beat accordingly (good -> softer, poor -> harsher, mixed -> uneven).`;
       }
+      // Dan (2026-10-07): more story steps that inject as the story moves. Each
+      // beat can carry `developments` — a short mid-beat twist that fires on the
+      // group's SECOND turn in the beat, so a beat is not closed out in a single
+      // turn and the arc reaches 5-6 turns through real story, not padding.
+      const dev = run._devThisTurn || (run._pendingDevelopment ? run._pendingDevelopment() : null);
+      if (dev) {
+        beatLine += `\nMID-BEAT DEVELOPMENT (fires this turn): "${dev.text}". Work this new twist into the scene \u2014 it is a fresh complication or revelation WITHIN this beat, so it keeps the beat alive and gives the group something concrete to respond to before the story moves on.${dev.state_delta ? ` Apply its consequences: ${JSON.stringify(dev.state_delta)}.` : ''}`;
+      }
     }
   }
 
@@ -419,6 +428,7 @@ export class DMSession {
     this.beats = Array.isArray(scenario.beats) ? scenario.beats : [];
     this.currentBeatIndex = 0;       // index into beats the group is in
     this.beatStall = 0;              // consecutive in-progress turns stuck on the current beat
+    this.beatHardStall = 0;          // consecutive fail/stall turns stuck on the current beat
     this.beatAutoAdvanced = false;   // set true the turn the engine advanced the arc itself
     this.lastBeatQuality = '';       // 'good' | 'mixed' | 'poor' | '' (persisted)
 
@@ -628,6 +638,34 @@ export class DMSession {
   }
 
   /**
+   * The mid-beat development to inject this turn, or null.
+   *
+   * Dan (2026-10-07): beats were resolving in a single turn, so the arc ran
+   * only 4 turns. Each beat may now carry `developments` \u2014 short mid-beat twists.
+   * The first fires on the group's SECOND turn inside the beat, so a beat takes
+   * at least two turns of real story before it can close, stretching the arc to
+   * 5-6 turns through content, not padding. Fires at most once per beat, tracked
+   * by beat index so a beat that is re-entered never re-fires.
+   */
+  _pendingDevelopment() {
+    const beats = this.beats || [];
+    const cur = beats[this.currentBeatIndex];
+    if (!cur || !Array.isArray(cur.developments) || !cur.developments.length) return null;
+    // "Second turn in the beat": beatStall counts turns spent in this beat
+    // without advancing. On the turn we are about to resolve, beatStall is the
+    // number of prior stuck turns. Fire when the group has already had one turn
+    // in this beat (beatStall >= 1) and we have not fired here yet.
+    const key = this.currentBeatIndex;
+    this._devFired = this._devFired || new Set();
+    if (this._devFired.has(key)) return null;
+    const stall = Math.max(this.beatStall || 0, this.beatHardStall || 0);
+    if (stall < 1) return null;
+    const dev = cur.developments[0];
+    this._devFired.add(key);
+    return dev;
+  }
+
+  /**
    * Resolve one turn: action text + roll -> narrative, state update, end check.
    * @returns {Promise<{narrative, state, event, endCondition, roll}>}
    */
@@ -643,6 +681,9 @@ export class DMSession {
     // reports progress, so they are evaluated below. Fired events are
     // tracked and never re-fire.
     const preFired = this._pendingStatTurnEvents();
+    // Mid-beat development (Dan 2026-10-07): computed once here (it consumes the
+    // fire-once marker) and read by buildUserTurn via the stash below.
+    this._devThisTurn = this._pendingDevelopment();
 
     // ---------------- AUDIT TRAIL (both sides) -----------------------------
     // Capture the exact system + user prompt sent to the DM and the model's raw
@@ -719,6 +760,10 @@ export class DMSession {
     };
     if (fate && fate.state_delta) merge(fate.state_delta);
     for (const ev of firedEvents) merge(ev.state_delta);
+    // mid-beat development (may be null)
+    const dev = this._devThisTurn || null;
+    this._devThisTurn = null;
+    if (dev && dev.state_delta) merge(dev.state_delta);
     merge(delta);
     this.state = this._applyDelta(this.state, combined);
 
@@ -830,8 +875,22 @@ export class DMSession {
     // group is on the last beat we leave it there (reaching it is the win).
     if (advanced) {
       this.beatStall = 0;
+      this.beatHardStall = 0;
     } else if (parsed.progress === false) {
-      // A genuine stall (the group did nothing) does not burn the guard.
+      // A genuine stall (the group did nothing / the turn went badly) does not
+      // count toward the "stall" guard the same way, BUT it must NOT be allowed
+      // to freeze the arc forever. Dan (2026-10-07): a uniformly bad run of
+      // rolls was dead-ending — the story could not reach its resolution, which
+      // breaks the "even at 0 the story stays playable" contract. So we still
+      // count a hard-stall turn toward the guard, at a slower rate, and force
+      // the arc forward once a beat has been stuck too long either way.
+      this.beatHardStall = (this.beatHardStall || 0) + 1;
+      if (this.beatHardStall >= HARD_STALL_MAX && this.currentBeatIndex < this.beats.length - 1) {
+        this.currentBeatIndex += 1;
+        this.beatHardStall = 0;
+        this.beatAutoAdvanced = true;
+        this._paceNote = `NOTE: the engine advanced the story arc for you last turn because the group has been stuck on this beat through repeated setbacks \u2014 narrate the transition as the story grinding forward despite them, and let the new beat bite.`;
+      }
     } else {
       this.beatStall = (this.beatStall || 0) + 1;
       if (this.beatStall >= BEAT_STALL_MAX && this.currentBeatIndex < this.beats.length - 1) {

@@ -123,22 +123,54 @@
     {
       "id": "b1-public",
       "name": "Step 1 — Get ahead of the story",
-      "narrative": "The deepfake is spreading and members are panicking. Step 1 is to get ahead of the story: a fast, credible public response - confirm the video is fake, show the CEO is real and reachable, give members one clear instruction, and brief the frontline so every answer matches. Until the team does this, the rumor keeps compounding."
+      "narrative": "The deepfake is spreading and members are panicking. Step 1 is to get ahead of the story: a fast, credible public response - confirm the video is fake, show the CEO is real and reachable, give members one clear instruction, and brief the frontline so every answer matches. Until the team does this, the rumor keeps compounding.",
+      "developments": [
+        {
+          "text": "A second, shorter clip surfaces that splices the CEO's own voice from a genuine staff briefing into the fake - it is far more convincing than the first, and a regional news outlet picks it up as 'new evidence', forcing the team to answer a harder question than the one they had prepared for.",
+          "state_delta": {
+            "public_trust": -3
+          }
+        }
+      ]
     },
     {
       "id": "b2-fraud",
       "name": "Step 2 — The platforms, the fraud wave, and the regulator",
-      "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along."
+      "narrative": "Public messaging is being handled. Now the harder work: drive takedowns and find who planted it (the agency channel, the amplifier network, the platform contacts), shut down the fraud crew harvesting member funds behind the panic, and satisfy the regulator and the deposit insurer with facts and a timeline. If Step 1 went well, this step starts calmer; if not, the regulator is sharper and fraud is further along.",
+      "developments": [
+        {
+          "text": "The fraud crew pivots faster than expected: the fake clip is re-cut and seeded through a wave of freshly created accounts, and two members who called the 'safe account' line are now reported as having moved money - the campaign is adapting to the takedowns in real time.",
+          "state_delta": {
+            "containment": -3
+          }
+        }
+      ]
     },
     {
       "id": "b3-eradicate",
       "name": "Step 3 — Eradicate the root cause",
-      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: close the compromised channel (the agency account/token the fake was seeded from) and harden it, confirm the fraud campaign is actually stopped rather than paused, and take the platform relationship from reactive takedowns to a standing escalation path. Show the group that closing the door behind the attacker is a separate job from calming the room."
+      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: close the compromised channel (the agency account/token the fake was seeded from) and harden it, confirm the fraud campaign is actually stopped rather than paused, and take the platform relationship from reactive takedowns to a standing escalation path. Show the group that closing the door behind the attacker is a separate job from calming the room.",
+      "developments": [
+        {
+          "text": "The compromised agency channel turns out to be linked to a larger credential leak that touches a second vendor, so closing the obvious door is not enough - the team discovers the same stolen session token pattern in another partner's access, widening the job just as it looked finished.",
+          "state_delta": {
+            "containment": -2
+          }
+        }
+      ]
     },
     {
       "id": "b4-recover",
       "name": "Step 4 — Rebuild trust and close the loop",
-      "narrative": "The threat is dead and the systems are clean. The final step is recovery: make the reassured members whole and keep them reassured, rebuild the ordinary confidence the run shook (deposits, call volumes, staff morale), publish what changed and why, and close out with the board and the regulator on an honest account of what was missed. A hard-won win should read as earned by what the group did after the crisis, not just during it."
+      "narrative": "The threat is dead and the systems are clean. The final step is recovery: make the reassured members whole and keep them reassured, rebuild the ordinary confidence the run shook (deposits, call volumes, staff morale), publish what changed and why, and close out with the board and the regulator on an honest account of what was missed. A hard-won win should read as earned by what the group did after the crisis, not just during it.",
+      "developments": [
+        {
+          "text": "As the recovery messaging goes out, a group of members publishes an open letter demanding an independent review of how the credit union handled the panic - the story's final turn is not the fraud but whether the institution can show it has genuinely changed.",
+          "state_delta": {
+            "public_trust": -2
+          }
+        }
+      ]
     }
   ],
   "dm_brief": {

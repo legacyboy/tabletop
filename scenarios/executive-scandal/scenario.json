@@ -123,22 +123,54 @@
     {
       "id": "b1-vacuum",
       "name": "Step 1 — Fill the vacuum with posture, not facts",
-      "narrative": "The facts are unavailable and the vacuum is filling fast. Step 1 is to set the posture: a public line that takes the situation seriously without pre-judging a man who has not been charged, interim arrangements for his lending authority, briefings for branch and contact-centre staff, and one consistent message to a board that is splitting. Until the organization has a posture, everything else is improvisation."
+      "narrative": "The facts are unavailable and the vacuum is filling fast. Step 1 is to set the posture: a public line that takes the situation seriously without pre-judging a man who has not been charged, interim arrangements for his lending authority, briefings for branch and contact-centre staff, and one consistent message to a board that is splitting. Until the organization has a posture, everything else is improvisation.",
+      "developments": [
+        {
+          "text": "A second outlet obtains the original, unrecorded disclosure note and publishes it, shifting the story from 'allegation' to 'documented - and why was it never logged?' - the posture must now survive a fact, not a rumour.",
+          "state_delta": {
+            "public_trust": -3
+          }
+        }
+      ]
     },
     {
       "id": "b2-governance",
       "name": "Step 2 — Build the process while running it",
-      "narrative": "The posture is set. Now the harder work: run a genuine governance response - an independent conflict-of-interest review of the borrower loans and the informal disclosure that was never recorded, a conduct framework the board can adopt rather than improvise, an honest answer to the regulator's 'what is your process,' and care for Wells and his team through all of it. If Step 1 went well, the process gets judged on its merits; if not, every move reads as either cowardice or cover-up."
+      "narrative": "The posture is set. Now the harder work: run a genuine governance response - an independent conflict-of-interest review of the borrower loans and the informal disclosure that was never recorded, a conduct framework the board can adopt rather than improvise, an honest answer to the regulator's 'what is your process,' and care for Wells and his team through all of it. If Step 1 went well, the process gets judged on its merits; if not, every move reads as either cowardice or cover-up.",
+      "developments": [
+        {
+          "text": "The independent review hits an obstacle: a board member who was close to the executive asks to be recused, and the press reads the recusal as a sign the institution is protecting its own - the process must show independence under scrutiny.",
+          "state_delta": {
+            "regulator_confidence": -3
+          }
+        }
+      ]
     },
     {
       "id": "b3-resolve",
       "name": "Step 3 — Resolve on the evidence",
-      "narrative": "The process is running and the findings are landing. Step 3 is to resolve the leader's situation on the evidence with fairness intact — whatever the review clears or confirms — close out the conflict-of-interest findings with real consequences, and make the conduct decisions the investigation demands. This is the hardest step: acting on uncomfortable findings without letting the institution look vindictive or the individual look abandoned."
+      "narrative": "The process is running and the findings are landing. Step 3 is to resolve the leader's situation on the evidence with fairness intact — whatever the review clears or confirms — close out the conflict-of-interest findings with real consequences, and make the conduct decisions the investigation demands. This is the hardest step: acting on uncomfortable findings without letting the institution look vindictive or the individual look abandoned.",
+      "developments": [
+        {
+          "text": "On the eve of the decision, the executive's lawyer signals a wrongful-dismissal claim if the process goes against him, and two directors waver - the group must hold the line between fairness to the individual and accountability to the institution.",
+          "state_delta": {
+            "public_trust": -2
+          }
+        }
+      ]
     },
     {
       "id": "b4-rebuild",
       "name": "Step 4 — Rebuild governance and confidence",
-      "narrative": "The immediate situation is resolved. The final step is recovery: rebuild the governance the crisis exposed as weak (the disclosure that was never recorded, the conflict-of-interest controls), restore staff and member confidence, publish what changed, and close out with the board and the regulator on a credible account of what was fixed. The story should end on whether the institution is stronger for how it handled this, not merely that it survived it."
+      "narrative": "The immediate situation is resolved. The final step is recovery: rebuild the governance the crisis exposed as weak (the disclosure that was never recorded, the conflict-of-interest controls), restore staff and member confidence, publish what changed, and close out with the board and the regulator on a credible account of what was fixed. The story should end on whether the institution is stronger for how it handled this, not merely that it survived it.",
+      "developments": [
+        {
+          "text": "As the governance fixes are announced, staff-survey results leak showing confidence had collapsed during the crisis - recovery now has to be proven internally, not just declared publicly.",
+          "state_delta": {
+            "regulator_confidence": -2
+          }
+        }
+      ]
     }
   ],
   "dm_brief": {

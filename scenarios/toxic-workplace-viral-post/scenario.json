@@ -123,22 +123,54 @@
     {
       "id": "b1-public",
       "name": "Step 1 — Get ahead of the story",
-      "narrative": "The post is spreading and the organization's silence is being read as guilt. Step 1 is to get ahead of the story: a fast, human, non-defensive public response that takes the substance seriously without endorsing the fabrications, briefings so every staff answer matches, and care for the people named - including the author. Until the team does this, the vacuum keeps filling."
+      "narrative": "The post is spreading and the organization's silence is being read as guilt. Step 1 is to get ahead of the story: a fast, human, non-defensive public response that takes the substance seriously without endorsing the fabrications, briefings so every staff answer matches, and care for the people named - including the author. Until the team does this, the vacuum keeps filling.",
+      "developments": [
+        {
+          "text": "The post is reposted by an account with a large following, and a second former employee adds a screenshot with a date that contradicts the organisation's 'long since resolved' line - the response now has to account for a specific document.",
+          "state_delta": {
+            "public_trust": -3
+          }
+        }
+      ]
     },
     {
       "id": "b2-investigate",
       "name": "Step 2 — Find out what's actually true",
-      "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts."
+      "narrative": "The public response is out. Now the harder work: run a genuine investigation - separate authentic screenshots from doctored ones, review the real HR complaint history honestly, handle the named manager fairly, and engage current employees so they feel heard rather than managed. The board wants an independent review and the regulator is watching the governance response. If Step 1 went well, staff cooperate and the investigation gets oxygen; if not, sources go quiet and the story outruns the facts.",
+      "developments": [
+        {
+          "text": "The investigation hits a wall: the named manager's performance file is thin and a key witness has left the organisation, so the group must decide whether to act on pattern evidence rather than proof - and the post's audience is watching that call.",
+          "state_delta": {
+            "regulator_confidence": -3
+          }
+        }
+      ]
     },
     {
       "id": "b3-fix",
       "name": "Step 3 — Fix what's real",
-      "narrative": "The investigation has separated truth from noise. Step 3 is to act on it: real consequences for the real problems the review substantiated, a real process change for the culture the post exposed, and a clear, defensible line on what was found to be false. Show the group that the fixes have teeth — that this is action taken on findings, not a statement about taking action."
+      "narrative": "The investigation has separated truth from noise. Step 3 is to act on it: real consequences for the real problems the review substantiated, a real process change for the culture the post exposed, and a clear, defensible line on what was found to be false. Show the group that the fixes have teeth — that this is action taken on findings, not a statement about taking action.",
+      "developments": [
+        {
+          "text": "As consequences land, a group of current employees privately warns that the fixes are being read as punishment of one person rather than culture change - the group must show the change is structural, not a scapegoat.",
+          "state_delta": {
+            "public_trust": -2
+          }
+        }
+      ]
     },
     {
       "id": "b4-rebuild",
       "name": "Step 4 — Rebuild the culture and close the loop",
-      "narrative": "The problems are being fixed. The final step is recovery: rebuild the trust of the staff who spoke up and the staff who stayed, show the change is durable rather than a crisis-time promise, and close out with the board and the regulator on an honest account of what was corrected. The story should end on whether the workplace is genuinely better for how this was handled."
+      "narrative": "The problems are being fixed. The final step is recovery: rebuild the trust of the staff who spoke up and the staff who stayed, show the change is durable rather than a crisis-time promise, and close out with the board and the regulator on an honest account of what was corrected. The story should end on whether the workplace is genuinely better for how this was handled.",
+      "developments": [
+        {
+          "text": "The engagement survey lands mid-recovery and shows the people who stayed feel less heard than those who left - rebuilding trust has an internal audience that public messaging will not satisfy.",
+          "state_delta": {
+            "regulator_confidence": -2
+          }
+        }
+      ]
     }
   ],
   "dm_brief": {

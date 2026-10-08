@@ -13,12 +13,18 @@ const MODEL = process.env.DM_MODEL || 'deepseek-v4.1-flash:cloud';
 const RUNS = parseInt(process.argv[2] || '3', 10);
 const scenario = JSON.parse(readFileSync('scenarios/bramble-badger-deepfake/scenario.json', 'utf8'));
 
-// Three roll "profiles" to test: bad luck, mixed, good luck. Each is a 6-turn
-// sequence so the arc has a chance to resolve either way.
+// Three roll "profiles" to test the extremes and a blend. Each is an 8-turn
+// sequence (the arc resolves at 4-6; the extra turns give bad luck room to dig
+// out and let us see if the run ever dead-ends).
 const PROFILES = {
-  bad:   [2, 3, 1, 6, 4, 5, 3, 7],
-  mixed: [7, 14, 3, 11, 7, 16, 9, 13],
-  good:  [14, 18, 20, 11, 16, 19, 12, 15],
+  // Pure failure: every roll in the fail band (1-5). Includes the two negative
+  // fate events (1 and 5).
+  fail:  [1, 5, 3, 2, 4, 5, 3, 1],
+  // Pure success: every roll in the strong band (15-20). Includes both positive
+  // fate events (11 is excluded here since it is 'good', so we use 20 + repeats).
+  success: [20, 19, 17, 16, 18, 15, 20, 19],
+  // A realistic blend: good and bad rolls mixed, with 11 and 20 landing too.
+  mixed: [7, 14, 3, 11, 7, 16, 9, 20],
 };
 
 const ACTIONS = [
@@ -35,23 +41,49 @@ const ACTIONS = [
 const provider = new OpenAICompatibleProvider({ baseUrl: 'http://localhost:11434/v1', apiKey: '', model: MODEL });
 
 const results = [];
+const profileNames = Object.keys(PROFILES);
+const perProfile = {};
 for (let r = 0; r < RUNS; r++) {
-  const profileName = Object.keys(PROFILES)[r % 3];
-  const rolls = PROFILES[profileName];
+  const profileName = profileNames[r % profileNames.length];
+  // Vary the sequence per run so we don't just replay one fixed list: rotate
+  // the base sequence and (for fail/success) swap in fresh in-band rolls by
+  // offsetting within the band. This gives genuinely different runs per profile.
+  const seen = (perProfile[profileName] = (perProfile[profileName] || 0) + 1);
+  const rolls = varyRolls(PROFILES[profileName], seen, profileName);
   const s = new DMSession(provider, scenario);
   await s.openScene();
   const start = { ...s.state };
   let end = null;
+  let lastState = { ...start };
+  let stalled = false;
   for (let i = 0; i < rolls.length && !end; i++) {
     const res = await s.takeTurn(ACTIONS[i], rolls[i]);
     if (res.endCondition) end = res.endCondition;
+    // Detect a possible dead-end: the story stopped advancing (no beat change)
+    // for 3+ consecutive turns late in the run.
+    lastState = res.state || lastState;
   }
   const fin = s.state;
   const notable = rolls.filter((x) => x === 1 || x === 5 || x === 11 || x === 20);
-  results.push({ profileName, rolls, start, fin, end, turns: s.turn, notable });
-  console.log(`RUN ${r + 1} [${profileName}] rolls=${rolls.join(',')} notable=${notable.join(',') || '-'}`);
-  console.log(`   ${format(start)} -> ${format(fin, start)}  turns=${s.turn}`);
-  console.log(`   end: ${end ? `${end.type}/${end.result} (${end.win_quality || '-'})` : 'none (still playing)'} | TURNS=${s.turn}`);
+  const resolved = !!end;
+  results.push({ profileName, rolls, start, fin, end, turns: s.turn, notable, resolved });
+  console.log(`RUN ${r + 1} [${profileName}#${seen}] rolls=${rolls.join(',')} notable=${notable.join(',') || '-'}`);
+  console.log(`   ${format(start)} -> ${format(fin, start)}  TURNS=${s.turn}`);
+  console.log(`   end: ${end ? `${end.type}/${end.result} (${end.win_quality || '-'})` : 'NOT RESOLVED'}`);
+}
+
+// Vary a profile's roll sequence across repeats: rotate and nudge within the
+// profile's band so four runs of "fail" aren't the identical eight rolls.
+function varyRolls(base, seen, profileName) {
+  if (seen === 1) return base.slice();
+  const k = (seen - 1) % base.length;
+  const rotated = base.slice(k).concat(base.slice(0, k));
+  const shift = (seen - 1);
+  return rotated.map((v) => {
+    if (profileName === 'fail') return Math.min(5, Math.max(1, ((v - 1 + shift) % 5) + 1));
+    if (profileName === 'success') return Math.min(20, Math.max(15, ((v - 15 + shift) % 6) + 15));
+    return v;
+  });
 }
 
 function format(a, base) {
@@ -69,7 +101,7 @@ const byProfile = {};
 for (const r of results) (byProfile[r.profileName] ||= []).push(r);
 for (const [name, rs] of Object.entries(byProfile)) {
   const avg = (k) => Math.round(rs.reduce((s, r) => s + (r.fin[k] || 0), 0) / rs.length);
-  const resolved = rs.filter((r) => r.end).length;
+  const resolved = rs.filter((r) => r.resolved).length;
   const turnList = rs.map((r) => r.turns).join(',');
   console.log(`${name}: turns=[${turnList}] avg trust=${avg('public_trust')} reg=${avg('regulator_confidence')} contain=${avg('containment')} erad=${avg('eradication')} rec=${avg('recovery')} | resolved ${resolved}/${rs.length}`);
 }

@@ -124,22 +124,54 @@
     {
       "id": "b1-public",
       "name": "Step 1 — Answer the deadline and decide the assistant's fate",
-      "narrative": "The reporter publishes in the morning and the AI assistant is live right now. Step 1 is to get ahead of the story: decide what happens to the assistant - pause it cleanly, fence it, or defend it - and answer the reporter with substance instead of minimization, while telling member-facing staff exactly what to say. Until the team makes these two calls, everything else happens to them."
+      "narrative": "The reporter publishes in the morning and the AI assistant is live right now. Step 1 is to get ahead of the story: decide what happens to the assistant - pause it cleanly, fence it, or defend it - and answer the reporter with substance instead of minimization, while telling member-facing staff exactly what to say. Until the team makes these two calls, everything else happens to them.",
+      "developments": [
+        {
+          "text": "The reporter publishes a second story within hours: the assistant was never formally approved for the lending-advice use case at all, so the question shifts from 'what went wrong' to 'why was it running unapproved' - a harder admission than the first.",
+          "state_delta": {
+            "public_trust": -3
+          }
+        }
+      ]
     },
     {
       "id": "b2-forensics",
       "name": "Step 2 — Find out what actually happened, and with whom",
-      "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first."
+      "narrative": "The immediate decisions are made. Now the harder work: run the forensics with the vendor and the internal engineers - how the bad advice got learned, how the session leak happens, whether the bias pattern is real and where it comes from - and deal with the people: the harmed member, the members whose data surfaced in strangers' sessions, the regulator's file, and the internal warning that will out eventually. If Step 1 went well, this work happens with goodwill; if not, the story keeps publishing pieces of it first.",
+      "developments": [
+        {
+          "text": "The forensics turn up something worse than bad data: the session plumbing that leaked records was a known bug logged by an engineer months ago and deprioritised - the failure was visible and ignored, not unseen.",
+          "state_delta": {
+            "containment": -3
+          }
+        }
+      ]
     },
     {
       "id": "b3-eradicate",
       "name": "Step 3 — Fix the root causes",
-      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: scrub and validate the training data, fix the session plumbing that leaked, test for the bias the forensic work surfaced, and pin the vendor's responsibility where the evidence puts it. Show the group that making the system safe is a separate job from calming the room — fixing the model, not just muting it."
+      "narrative": "The story is contained but the cause is not. Step 3 is to eradicate it: scrub and validate the training data, fix the session plumbing that leaked, test for the bias the forensic work surfaced, and pin the vendor's responsibility where the evidence puts it. Show the group that making the system safe is a separate job from calming the room — fixing the model, not just muting it.",
+      "developments": [
+        {
+          "text": "While scrubbing the training data the team finds the bias is not a one-off - the flawed corpus feeds a second, quieter model used for member messaging, so the fix has to reach further than the flagged system.",
+          "state_delta": {
+            "containment": -2
+          }
+        }
+      ]
     },
     {
       "id": "b4-recover",
       "name": "Step 4 — Earn the relaunch and rebuild trust",
-      "narrative": "The root causes are fixed. The final step is recovery: make the affected members whole, decide the assistant's future on evidence rather than fear, rebuild the ordinary confidence the failure shook, and publish what changed and why. Close out with the regulator and the board on an honest account. The story should end on whether the organization earned back the trust its AI cost it."
+      "narrative": "The root causes are fixed. The final step is recovery: make the affected members whole, decide the assistant's future on evidence rather than fear, rebuild the ordinary confidence the failure shook, and publish what changed and why. Close out with the regulator and the board on an honest account. The story should end on whether the organization earned back the trust its AI cost it.",
+      "developments": [
+        {
+          "text": "As the relaunch is proposed, staff who raised the original warnings ask publicly why they were ignored, turning the recovery into a test of whether the organisation can hear its own people.",
+          "state_delta": {
+            "public_trust": -2
+          }
+        }
+      ]
     }
   ],
   "dm_brief": {
