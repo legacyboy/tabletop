@@ -22,18 +22,32 @@
   <!-- ===== PHASE: SELECT ===== -->
   <section id="phase-select" class="card" style="display:none">
     <h2>Choose a scenario</h2>
-    <div class="row" style="gap:16px;flex-wrap:wrap;margin-bottom:12px">
-      <label class="radio-inline"><input type="radio" name="modePick" value="elite" checked> <b>Executive (ELT)</b> &mdash; paced story arc, narrative metrics</label>
-      <label class="radio-inline"><input type="radio" name="modePick" value="it"> <b>IT / Incident Response</b> &mdash; fully random, Backdoors &amp; Breaches style</label>
+    <div class="row" style="margin-bottom:12px">
+      <label for="modeSelect" style="min-width:auto">Version
+        <select id="modeSelect">
+          <option value="elite">Executive (ELT) &mdash; paced story arc, narrative metrics</option>
+          <option value="it">IT / Incident Response &mdash; fully random, Backdoors &amp; Breaches style</option>
+        </select>
+      </label>
     </div>
+
+    <details id="orgVarsWrap" class="orgvars" open>
+      <summary>Organization &amp; people (set once, reused across scenarios)</summary>
+      <p class="small muted" style="margin:8px 0 6px">
+        Fill these in once. Every scenario pulls what it needs from here, so you
+        do not retype names for each one. Scenario-specific fields below start
+        from these values and can still be overridden per scenario.
+      </p>
+      <div id="orgVarFields" class="castGrid"></div>
+    </details>
+
     <div id="eliteSetup">
       <select id="scenarioSelect"></select>
       <p id="scenarioSummary" class="muted"></p>
       <div id="selectCastWrap" style="display:none">
         <p class="muted small">
-          Fill in the names and details below, then press Load / Start. Anything
-          you enter is woven into the case as it plays &mdash; leave a field blank to
-          keep the scenario's own default.
+          Scenario-specific details. Values pulled from the section above are
+          pre-filled &mdash; change them here to override for this scenario only.
         </p>
         <div id="castFields"></div>
       </div>
@@ -45,9 +59,6 @@
         D20 &mdash; 11+ succeeds and can reveal a hidden stage. A natural 1 or 20, or
         three failures in a row, triggers a random INJECT. Uncover all four stages to win.
       </p>
-      <label for="itCompany">Environment / company name (optional)
-        <input id="itCompany" type="text" placeholder="e.g. Northwind Health — 400 staff, hybrid cloud" />
-      </label>
       <label for="itRounds">Round cap
         <input id="itRounds" type="number" min="4" max="20" step="1" value="10" />
       </label>

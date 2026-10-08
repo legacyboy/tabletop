@@ -61,7 +61,7 @@ check('recap updates after a turn (where we left off)', /where we left off/i.tes
 // --- IT MODE -------------------------------------------------------------
 await page.evaluate(() => document.getElementById('newSession').click());
 await new Promise((r) => setTimeout(r, 600));
-await page.evaluate(() => document.querySelector('input[name="modePick"][value="it"]').click());
+await page.evaluate(() => { const s = document.getElementById('modeSelect'); s.value = 'it'; s.dispatchEvent(new Event('change')); });
 await new Promise((r) => setTimeout(r, 250));
 await page.evaluate(() => document.getElementById('loadScenarioBtn').click());
 await new Promise((r) => setTimeout(r, 700));

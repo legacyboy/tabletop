@@ -94,7 +94,7 @@ async function init() {
    'progress', 'moderatorRead', 'castFields', 'castFieldsIntro', 'selectCastWrap', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
    'askDMText', 'askDMBtn', 'askDMStatus', 'askDMAnswers',
-   'eliteSetup', 'itSetup', 'itCompany', 'itRounds',
+   'eliteSetup', 'itSetup', 'itCompany', 'itRounds', 'modeSelect', 'orgVarsWrap', 'orgVarFields',
    'itProcedure', 'itRerollHand', 'itTarget', 'itNote', 'itRoll', 'itSubmit', 'itAutoRoll',
    'itOutcome', 'itNarrative', 'itEnd', 'itTimer', 'itRoundLine',
    'itAttackPath', 'itInjectFeed', 'itLog',
@@ -302,11 +302,17 @@ function renderCastFields(scenario, hostEl) {
   }
 
   state.cast = loadCast(scenario.scenario_id);
+  const orgVars = loadOrgVars();
   state.castLabels = {};
 
   for (const f of fields) {
     if (!f || !f.key) continue;
     state.castLabels[f.key] = f.label || f.key;
+    // Pre-fill from the shared Organization & People section when the scenario
+    // field has no explicit per-scenario value yet (Dan 2026-10-08).
+    if (!String(state.cast[f.key] || '').trim() && String(orgVars[f.key] || '').trim()) {
+      state.cast[f.key] = orgVars[f.key];
+    }
     const wrap = document.createElement('label');
     wrap.className = 'cast-field';
     wrap.textContent = f.label || f.key;
@@ -509,11 +515,12 @@ async function beginSession() {
 
 /** Which version is selected on the scenario screen: 'elite' (default) or 'it'. */
 function currentMode() {
+  if (el.modeSelect) return el.modeSelect.value || 'elite';
   const checked = document.querySelector('input[name="modePick"]:checked');
   return checked ? checked.value : 'elite';
 }
 
-/** Toggle the setup panels when the version radio changes. */
+/** Toggle the setup panels when the version dropdown changes. */
 function syncModeUi() {
   const it = currentMode() === 'it';
   if (el.eliteSetup) el.eliteSetup.style.display = it ? 'none' : 'block';
@@ -522,10 +529,85 @@ function syncModeUi() {
 }
 
 function bindModePicker() {
-  document.querySelectorAll('input[name="modePick"]').forEach((r) => {
-    r.addEventListener('change', syncModeUi);
-  });
+  if (el.modeSelect) el.modeSelect.addEventListener('change', syncModeUi);
   syncModeUi();
+  renderOrgVars();
+}
+
+// ---------------------------------------------------------------------------
+// ORGANIZATION & PEOPLE — set once, reused across every scenario (Dan 2026-10-08)
+// ---------------------------------------------------------------------------
+// The cast keys scenarios share (org_name, ceo_name, ...) live in ONE place so
+// a moderator types them once. Each scenario's own cast fields pre-fill from
+// these values (and can still be overridden per scenario).
+const ORG_VARS = [
+  { key: 'org_name', label: 'Organization name', placeholder: 'e.g. Northgate Credit Union' },
+  { key: 'ceo_name', label: 'President / CEO', placeholder: 'e.g. Dana Whitfield' },
+  { key: 'cio_name', label: 'CIO / security lead', placeholder: 'e.g. Jeff Park' },
+  { key: 'cfo_name', label: 'CFO', placeholder: 'optional' },
+  { key: 'clo_name', label: 'Chief Lending Officer', placeholder: 'optional' },
+  { key: 'cro_name', label: 'Chief Risk Officer', placeholder: 'optional' },
+  { key: 'cpo_name', label: 'Chief People Officer (HR)', placeholder: 'optional' },
+  { key: 'comms_lead', label: 'Comms / PR lead', placeholder: 'optional' },
+  { key: 'board_chair', label: 'Board chair', placeholder: 'optional' },
+  { key: 'manager_name', label: 'Named senior manager', placeholder: 'optional' },
+  { key: 'ai_lead_name', label: 'AI engineering lead', placeholder: 'optional' },
+];
+
+function orgVarsStorageKey() { return 'tabletop.dm.orgvars.v1'; }
+
+function loadOrgVars() {
+  try { return JSON.parse(localStorage.getItem(orgVarsStorageKey()) || '{}') || {}; }
+  catch { return {}; }
+}
+
+function saveOrgVars(vars) {
+  try { localStorage.setItem(orgVarsStorageKey(), JSON.stringify(vars || {})); } catch {}
+}
+
+/** Render the shared Organization & People inputs (values persist globally). */
+function renderOrgVars() {
+  if (!el.orgVarFields) return;
+  const vars = loadOrgVars();
+  el.orgVarFields.innerHTML = '';
+  for (const f of ORG_VARS) {
+    const wrap = document.createElement('label');
+    wrap.className = 'cast-field';
+    wrap.textContent = f.label;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'orgvar_' + f.key;
+    input.placeholder = f.placeholder || '';
+    input.value = vars[f.key] || '';
+    input.oninput = () => {
+      const v = loadOrgVars();
+      v[f.key] = input.value.trim();
+      saveOrgVars(v);
+      // Keep any already-rendered scenario cast fields in sync where they had
+      // not been explicitly overridden for this scenario.
+      syncCastFromOrgVars(f.key, input.value.trim());
+      refreshIntroBrief();
+    };
+    wrap.appendChild(input);
+    el.orgVarFields.appendChild(wrap);
+  }
+}
+
+/** Push a shared value into the current scenario's cast field if untouched. */
+function syncCastFromOrgVars(key, value) {
+  // Update the visible select-screen cast inputs directly (they exist even
+  // before a scenario object is loaded into state.scenario).
+  const input = document.getElementById('cast_' + key);
+  if (input && document.activeElement !== input) {
+    input.value = value;
+    if (state.cast) state.cast[key] = value;
+  }
+  const scenario = state.scenario;
+  if (!scenario || !state.cast) return;
+  const field = (scenario.cast || []).find((c) => c && c.key === key);
+  if (!field) return;
+  state.cast[key] = value;
+  saveCast(scenario.scenario_id, state.cast);
 }
 
 /** Build a fresh IT session and enter the IT play phase. */
@@ -537,8 +619,9 @@ async function startItSession() {
     return;
   }
   const rounds = Math.max(4, Math.min(20, Number(el.itRounds && el.itRounds.value) || 10));
+  const orgVars = loadOrgVars();
   const session = new BnbSession(provider, {
-    targetCompany: (el.itCompany && el.itCompany.value.trim()) || '',
+    targetCompany: (el.itCompany && el.itCompany.value.trim()) || orgVars.org_name || '',
     maxRounds: rounds,
   });
   session.start();

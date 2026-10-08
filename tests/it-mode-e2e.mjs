@@ -35,12 +35,12 @@ await page.evaluate(() => { const b = document.getElementById('newSession') || d
 await new Promise((r) => setTimeout(r, 400));
 
 // The mode picker should exist and default to elite.
-check('mode picker present', await page.$('input[name="modePick"][value="it"]') !== null);
+check('mode picker present', await page.$('#modeSelect') !== null);
 const eliteVisible = await page.evaluate(() => getComputedStyle(document.getElementById('eliteSetup')).display !== 'none');
 check('elite setup visible by default', eliteVisible);
 
 // Pick the IT version -> the IT setup panel shows.
-await page.evaluate(() => document.querySelector('input[name="modePick"][value="it"]').click());
+await page.evaluate(() => { const s = document.getElementById('modeSelect'); s.value = 'it'; s.dispatchEvent(new Event('change')); });
 await new Promise((r) => setTimeout(r, 250));
 const itVisible = await page.evaluate(() => getComputedStyle(document.getElementById('itSetup')).display !== 'none');
 const eliteHidden = await page.evaluate(() => getComputedStyle(document.getElementById('eliteSetup')).display === 'none');
@@ -49,7 +49,7 @@ check('elite setup hidden after pick', eliteHidden);
 check('start button relabelled', (await page.$eval('#loadScenarioBtn', (b) => b.textContent)).includes('IT'));
 
 // Start the IT exercise.
-await page.evaluate(() => { document.getElementById('itCompany').value = 'Northwind Health'; });
+await page.evaluate(() => { document.getElementById('orgvar_org_name').value = 'Northwind Health'; });
 await page.evaluate(() => document.getElementById('loadScenarioBtn').click());
 await new Promise((r) => setTimeout(r, 700));
 

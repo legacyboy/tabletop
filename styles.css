@@ -345,3 +345,10 @@ code { color: #8be9fd; }
 .recapList.known li { color:#e8eef7; }
 .recapList.twists li { color:#ffb4a2; }
 .tagContained { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; background:#7dfcb022; color:#7dfcb0; border-radius:4px; padding:1px 5px; margin-left:4px; }
+
+/* Organization & people block (shared across scenarios) */
+.orgvars { border:1px solid #ffffff1a; border-radius:8px; padding:10px 12px; margin-bottom:12px; background:#ffffff06; }
+.orgvars summary { cursor:pointer; font-weight:600; }
+.castGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-top:8px; }
+.castGrid .cast-field { margin:0; }
+#modeSelect { min-width:340px; }
