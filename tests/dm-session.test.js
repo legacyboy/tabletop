@@ -970,5 +970,48 @@ try { await askRun.askDM('   '); } catch (e) { askErr = e; }
 check('askDM rejects an empty question', !!askErr);
 check('askDM still did NOT advance the turn after empty attempt', askRun.turn === askBefore.turn);
 
+// ===== EMPTY / HOLLOW DM REPLY (Dan, 2026-10-08) =====
+// The DM sometimes returns an empty reply or says "the story continues" — the
+// players must NEVER see a meta-message ("the moderator returned no narrative")
+// or a dead "no response." The engine re-asks once, then substitutes a concrete
+// in-fiction development so the turn always advances the story.
+
+// 61. A transient empty reply is recovered by ONE retry with a real narrative.
+let retryCalls = 0;
+class RetryProvider {
+  async chat() {
+    retryCalls += 1;
+    return retryCalls === 1
+      ? ''
+      : JSON.stringify({ narrative: 'A real lead surfaces from the payment logs.', state_delta: { public_trust: 2 }, progress: true });
+  }
+}
+const retryRun = new DMSession(new RetryProvider(), scenario);
+const retryRes = await retryRun.takeTurn('We act.', 12);
+check('empty reply triggers exactly one retry', retryCalls === 2);
+check('retry recovers the real narrative', /payment logs/.test(retryRes.narrative));
+check('retry narrative is not a meta-message', !/moderator|try again/i.test(retryRes.narrative));
+
+// 62. Empty on BOTH attempts -> an in-fiction development, never a meta-message.
+class AlwaysEmptyProvider { async chat() { return ''; } }
+const emptyRun = new DMSession(new AlwaysEmptyProvider(), scenario);
+const emptyRes = await emptyRun.takeTurn('We investigate the trail.', 12);
+check('persistent empty reply yields an in-fiction development', emptyRes.narrative.trim().length > 40);
+check('persistent empty reply is NOT a moderator meta-message', !/moderator returned no narrative|try again or continue/i.test(emptyRes.narrative));
+check('persistent empty reply mentions story motion', /events already in motion|complication|escalated/i.test(emptyRes.narrative));
+
+// 63. A hollow "the story continues" reply is replaced, not shown.
+class HollowProvider { async chat() { return JSON.stringify({ narrative: 'The story continues as before.', progress: true }); } }
+const hollowRun = new DMSession(new HollowProvider(), scenario);
+const hollowRes = await hollowRun.takeTurn('We push on the takedowns.', 12);
+check('hollow reply is not shown verbatim', !/story continues/i.test(hollowRes.narrative));
+check('hollow reply is replaced with a real development', hollowRes.narrative.trim().length > 40);
+
+// 64. A whitespace-only reply is treated the same as empty.
+class WhitespaceProvider { async chat() { return '   \n  '; } }
+const wsRun = new DMSession(new WhitespaceProvider(), scenario);
+const wsRes = await wsRun.takeTurn('We convene the team.', 12);
+check('whitespace-only reply yields an in-fiction development', wsRes.narrative.trim().length > 40 && !/moderator/i.test(wsRes.narrative));
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

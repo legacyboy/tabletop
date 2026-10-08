@@ -590,7 +590,7 @@ export class DMSession {
       if (looksLikeJson) narrative = 'The opening scene unfolds. (The DM narrative could not be parsed cleanly.)';
     }
     if (!String(narrative).trim()) {
-      narrative = 'The opening scene begins. (The moderator returned no narrative this turn — try again or continue.)';
+      narrative = 'The situation is already live: the group faces an active crisis with the clock running, and their first move will set the tone for everything that follows.';
     }
     // Seed the transcript so the opening scene shows in the closing report.
     // Include the audit trail (both sides of the opening exchange) as well.
@@ -669,7 +669,7 @@ export class DMSession {
     const parsed = this._extractJson(dmResult);
     let answer = parsed.answer || parsed.narrative || dmResult;
     if (!String(answer).trim()) {
-      answer = 'The moderator had nothing to add.';
+      answer = 'No record of that yet \u2014 the situation is still unfolding, so I can\u2019t confirm it from what the table has established. Ask again once events develop.';
     }
     answer = String(answer).trim();
 
@@ -831,22 +831,27 @@ export class DMSession {
       const looksLikeJson = /^[{\[]/.test(String(dmResult).trim()) || /^"[\s\S]*"$/.test(String(dmResult).trim());
       if (looksLikeJson) narrative = 'The situation developed. (The moderator narrative could not be parsed cleanly.)';
     }
-    // Final guard: never show a blank story. If the model returned an empty or
-    // whitespace-only reply (an intermittent provider failure), give the player
-    // a usable line instead of nothing so the turn never ends with no narrative.
-    if (!String(narrative).trim()) {
-      narrative = 'The situation continues to develop. (The moderator returned no narrative this turn — try again or continue.)';
-    }
-
-    // No-op guard: the DM must never return a hollow narrative that says
-    // nothing happened / nothing responded and "the story continues" — that
-    // dead-ends the group with no new development to react to. Detect the
-    // tell-tale phrases and replace them with a forward-driving fallback, and
-    // force progress=false so the stall mechanics still apply.
-    const noop = this._detectNoopNarrative(narrative);
-    if (noop) {
-      narrative = 'The group\u2019s actions were absorbed by events already in motion — a new development now presses on them: the situation has escalated and demands their attention. A fresh complication surfaces that they must address before it worsens.';
-      parsed.progress = false;
+    // HOLLOW / EMPTY REPLY GUARD (Dan, 2026-10-08): an empty, whitespace-only,
+    // or no-op reply used to surface a meta-message to the players ("the
+    // moderator returned no narrative — try again") or generic boilerplate that
+    // read as "no response, the story continues." Intermittent provider failures
+    // should never stall the table. Re-ask the model ONCE for a real development;
+    // if it still fails, substitute a concrete in-fiction twist drawn from the
+    // scenario so the turn ALWAYS advances the story.
+    const blank = !String(narrative).trim();
+    const hollow = !blank && this._detectNoopNarrative(narrative);
+    if (blank || hollow) {
+      const retry = await this._retryNarrative(system, user);
+      if (retry) {
+        narrative = retry.narrative;
+        Object.assign(parsed, retry.parsed);
+      }
+      // Re-check after the retry; if still blank/hollow, use a real development.
+      if (!String(narrative).trim() || this._detectNoopNarrative(narrative)) {
+        const isJsonish = !parsed.narrative && /^[{\[]/.test(String(dmResult).trim());
+        narrative = this._inFictionFallback(action, roll, { isJsonish });
+        parsed.progress = false;
+      }
     }
 
     const delta = parsed.state_delta || {};
@@ -904,6 +909,8 @@ export class DMSession {
     };
     if (fate && fate.state_delta) merge(fate.state_delta);
     for (const ev of firedEvents) merge(ev.state_delta);
+    // If the in-fiction fallback fired and carried a development delta, apply it.
+    if (this._devFallbackDelta) { merge(this._devFallbackDelta); this._devFallbackDelta = null; }
     // mid-beat development (may be null)
     const dev = this._devThisTurn || null;
     this._devThisTurn = null;
@@ -1629,6 +1636,71 @@ export class DMSession {
    *  responded and "the story continues", which dead-ends the group with no
    *  new development to react to. Returns true when the narrative is hollow.
    *  Case-insensitive; matches the tell-tale phrases the prompt bans. */
+  /**
+   * Re-ask the model ONCE when its reply was empty or hollow, so an
+   * intermittent provider failure does not burn the turn. Returns
+   * { narrative, parsed } on a usable reply, or null.
+   */
+  async _retryNarrative(system, user) {
+    try {
+      const retryUser = String(user) + '\n\nNOTE: your previous reply was empty or said nothing happened. Reply with the REQUIRED STRICT JSON and a CONCRETE development of 3-6 sentences.';
+      const raw = await this.provider.chat(
+        [
+          { role: 'system', content: system },
+          { role: 'user', content: retryUser },
+        ],
+        { temperature: 0.8, maxTokens: TURN_TOKENS, numCtx: DM_NUM_CTX, onUsage: (u) => { this._lastUsage = u; } }
+      );
+      const usage = this._lastUsage || null;
+      this._lastUsage = null;
+      this._recordUsage(usage, system + retryUser, raw);
+      const parsed = this._extractJson(raw);
+      const narrative = String(parsed.narrative || raw || '').trim();
+      if (narrative && !this._detectNoopNarrative(narrative)) {
+        return { narrative, parsed };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * A concrete, in-fiction fallback used only when the model gives nothing
+   * usable TWICE. Prefers the current beat's next un-fired development (real
+   * content from the scenario) and otherwise returns a forward-driving
+   * complication. Either way the turn advances the story — the players never
+   * see a "no response" meta-message.
+   */
+  _inFictionFallback(action, roll, opts = {}) {
+    // Prefer a real scenario development for the current beat that has not yet
+    // fired, so the fallback is story-specific rather than generic.
+    const beats = this.beats || [];
+    const cur = beats[this.currentBeatIndex];
+    if (cur && Array.isArray(cur.developments) && cur.developments.length) {
+      this._devFired = this._devFired || new Set();
+      // Pick the first development not already used this beat.
+      const used = this._devFired;
+      for (let i = 0; i < cur.developments.length; i++) {
+        const key = `${this.currentBeatIndex}:${i}`;
+        if (!used.has(key)) {
+          used.add(key);
+          const dev = cur.developments[i];
+          const text = typeof dev === 'string' ? dev : (dev && dev.text);
+          if (text) {
+            if (dev && dev.state_delta) this._devFallbackDelta = dev.state_delta;
+            return `The group\u2019s move is overtaken by events already in motion. ${text}`;
+          }
+        }
+      }
+    }
+    // Generic forward-driving complication: names the action, escalates, and
+    // hands the group a concrete thing to react to.
+    const act = action ? `the group\u2019s move (\u201c${action.slice(0, 120)}\u201d)` : 'the group\u2019s move';
+    return `Events do not wait on ${act}. A fresh complication surfaces before the group can press its advantage \u2014 the situation has escalated and a new pressure demands an immediate response. ` +
+      `The clock is now against them, and letting this development sit will make the next step harder.`;
+  }
+
   _detectNoopNarrative(narrative) {
     if (typeof narrative !== 'string') return false;
     const n = narrative.toLowerCase();
