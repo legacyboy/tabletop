@@ -90,11 +90,12 @@ async function init() {
   ['scenarioSelect', 'scenarioTitle', 'scenarioSummary', 'introVideo', 'introNarrative',
    'startButton', 'actionText', 'manualRoll', 'playerName', 'submitBtn', 'outcome',
    'narrative', 'stateList', 'flags', 'objectivePanel', 'arcToggle', 'timer', 'reportBody', 'exportReport',
+   'storyRecap', 'autoRollBtn',
    'progress', 'moderatorRead', 'castFields', 'castFieldsIntro', 'selectCastWrap', 'castNote', 'settingsButton',
    'loadScenarioBtn', 'selectBack', 'endExercise',
    'askDMText', 'askDMBtn', 'askDMStatus', 'askDMAnswers',
    'eliteSetup', 'itSetup', 'itCompany', 'itRounds',
-   'itProcedure', 'itRerollHand', 'itTarget', 'itNote', 'itRoll', 'itSubmit',
+   'itProcedure', 'itRerollHand', 'itTarget', 'itNote', 'itRoll', 'itSubmit', 'itAutoRoll',
    'itOutcome', 'itNarrative', 'itEnd', 'itTimer', 'itRoundLine',
    'itAttackPath', 'itInjectFeed', 'itLog',
   ].forEach((id) => { el[id] = $(id); });
@@ -595,6 +596,15 @@ function bindItFlow() {
   if (el.itRerollHand) {
     el.itRerollHand.onclick = () => { state.session.refillHand(); renderItState(); };
   }
+  // AUTO-ROLL — one click: roll the d20 and run the selected procedure, no
+  // dice needed (Dan, 2026-10-08). Mirrors the executive auto-roll button.
+  if (el.itAutoRoll) {
+    el.itAutoRoll.onclick = () => {
+      if (state.readOnly) { if (el.itOutcome) el.itOutcome.textContent = 'This tab is read-only.'; return; }
+      el.itRoll.value = String(Math.floor(Math.random() * 20) + 1);
+      el.itSubmit.click();
+    };
+  }
   if (el.itSubmit) {
     el.itSubmit.onclick = async () => {
       if (state.readOnly) { if (el.itOutcome) el.itOutcome.textContent = 'This tab is read-only.'; return; }
@@ -734,6 +744,24 @@ function bindRollFlow(scenario) {
     }
     await resolveTurn(action, roll);
   };
+
+  // AUTO-ROLL — one click: roll a d20 for the group and submit the current
+  // action, no dice needed (Dan, 2026-10-08). Uses the same path as Submit so
+  // manual-roll overrides and validation still apply.
+  if (el.autoRollBtn) {
+    el.autoRollBtn.onclick = () => {
+      if (state.readOnly) {
+        el.outcome.textContent = 'This tab is read-only — another tab is playing this session.';
+        return;
+      }
+      if (!el.actionText.value.trim()) {
+        el.outcome.textContent = 'Type what the group wants to do first, then auto-roll.';
+        return;
+      }
+      el.manualRoll.value = String(Math.floor(Math.random() * 20) + 1);
+      el.submitBtn.click();
+    };
+  }
 
   // Ctrl/Cmd+Enter in the textarea also submits the action.
   el.actionText.addEventListener('keydown', (e) => {
@@ -1002,9 +1030,101 @@ function renderState() {
   el.stateList.innerHTML = parts.join('');
 
   renderObjective();
+  renderStoryRecap();
 
   const flags = session.history.filter((e) => e.fate).map((e) => e.fate);
   el.flags.textContent = flags.length ? 'Fate events: ' + flags.join(' | ') : 'No fate events yet.';
+}
+
+/**
+ * "Story as we know it" — a player-facing recap kept in step with the engine.
+ *
+ * Dan's ask (2026-10-08): the moderator is tracking the story internally, but
+ * the players should see it too. This renders, in plain language, only what the
+ * table has actually established:
+ *   - the current step of the arc (and which steps are already done),
+ *   - the attack-chain stages the group has REVEALED (hidden stages stay masked),
+ *   - the latest turn's narrative as a one-line "where we are now",
+ *   - any events/fate twists that have fired (the visible turns in the road).
+ * Nothing here is invented and no hidden information is leaked: it is a mirror
+ * of engine state, not a summary the model produced.
+ */
+function renderStoryRecap() {
+  if (!el.storyRecap) return;
+  const session = state.session;
+  if (!session || !session.scenario) { el.storyRecap.innerHTML = '<p class="small muted">No session loaded.</p>'; return; }
+  const scenario = session.scenario;
+  const beats = session.beats || [];
+  const idx = session.currentBeatIndex || 0;
+  const out = [];
+
+  // 1. Where are we in the story?
+  if (beats.length) {
+    const cur = beats[idx] || {};
+    const done = beats.slice(0, idx).map((b) => escapeHtml(b.name || b.id));
+    const remaining = beats.slice(idx + 1).map((b) => escapeHtml(b.name || b.id));
+    out.push(
+      `<div class="recapBlock">` +
+        `<div class="recapLabel">Right now</div>` +
+        `<div class="recapNow">${escapeHtml(cur.name || cur.id || 'In progress')}</div>` +
+        (cur.narrative ? `<div class="small muted">${escapeHtml(cur.narrative)}</div>` : '') +
+      `</div>`
+    );
+    if (done.length) {
+      out.push(`<div class="recapBlock"><div class="recapLabel">Behind you</div><ul class="recapList done">${done.map((d) => `<li>${d}</li>`).join('')}</ul></div>`);
+    }
+    if (remaining.length) {
+      // Ahead is shown by NAME (the arc is already visible in the Objective
+      // panel) but marked as not-yet-done so nobody mistakes it for fact.
+      out.push(`<div class="recapBlock"><div class="recapLabel">Still ahead</div><ul class="recapList todo">${remaining.map((d) => `<li>${d}</li>`).join('')}</ul></div>`);
+    }
+  }
+
+  // 2. What do we know about the threat? Only REVEALED chain stages are named.
+  const chain = session.attackChain || [];
+  if (chain.length) {
+    const known = chain.filter((c) => c.revealed);
+    const hiddenCount = chain.length - known.length;
+    let chainHtml;
+    if (known.length) {
+      chainHtml = `<ul class="recapList known">${known.map((c) =>
+        `<li>${escapeHtml(c.name)}${c.contained ? ' <span class="tagContained">contained</span>' : ''}` +
+        (c.symptom ? `<div class="small muted">${escapeHtml(c.symptom)}</div>` : '') + `</li>`).join('')}</ul>`;
+    } else {
+      chainHtml = '<div class="small muted">The threat is still unidentified.</div>';
+    }
+    if (hiddenCount > 0) {
+      chainHtml += `<div class="small muted" style="margin-top:4px">${hiddenCount} stage${hiddenCount === 1 ? '' : 's'} of the attack path still unknown.</div>`;
+    }
+    out.push(`<div class="recapBlock"><div class="recapLabel">The threat — what we know</div>${chainHtml}</div>`);
+  }
+
+  // 3. Where we are now: the most recent narrated turn (the DM's own words).
+  const turns = (session.history || []).filter((e) => e && e.turn > 0 && e.narrative);
+  const last = turns[turns.length - 1];
+  if (last) {
+    out.push(
+      `<div class="recapBlock"><div class="recapLabel">Where we left off</div>` +
+        `<div class="small">${escapeHtml(last.narrative)}</div>` +
+      `</div>`
+    );
+  }
+
+  // 4. Turns in the road: fate events and fired conditional events, in order.
+  const twists = [];
+  for (const e of (session.history || [])) {
+    if (!e || e.turn <= 0) continue;
+    if (e.fate) twists.push(`Turn ${e.turn}: ${e.fate}`);
+    for (const evId of (e.events || [])) {
+      const def = (scenario.events || []).find((x) => x.id === evId);
+      if (def && def.text) twists.push(`Turn ${e.turn}: ${def.text}`);
+    }
+  }
+  if (twists.length) {
+    out.push(`<div class="recapBlock"><div class="recapLabel">Twists so far</div><ul class="recapList twists">${twists.map((t) => `<li>${escapeHtml(t)}</li>`).join('')}</ul></div>`);
+  }
+
+  el.storyRecap.innerHTML = out.join('') || '<div class="small muted">The story has not started yet.</div>';
 }
 
 /** Traffic-light for a higher-is-better metric on 0-100. */

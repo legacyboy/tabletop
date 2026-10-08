@@ -104,6 +104,8 @@
               placeholder="1–20" title="Optional: enter a specific d20 result. Leave blank to auto-roll." />
           </label>
           <button id="submitBtn" class="primary">Submit action (roll D20)</button>
+          <button id="autoRollBtn" class="ghost" type="button"
+            title="Roll a d20 for you and submit the action">🎲 Auto-roll</button>
         </div>
         <div id="outcome" class="small muted">Type an action, then submit.</div>
         <details id="askDMWrap" class="askdm">
@@ -122,6 +124,11 @@
         <div class="row" style="margin-top:12px">
           <button id="endExercise" class="ghost danger">End exercise (conclude now)</button>
         </div>
+      </section>
+      <section class="card">
+        <h2>Story as we know it</h2>
+        <p class="small muted" style="margin:2px 0 8px">What the table has established so far &mdash; kept in step with the moderator, in plain language.</p>
+        <div id="storyRecap"></div>
       </section>
       <section class="card">
         <h2>State</h2>
@@ -165,6 +172,8 @@
           </label>
           <span class="small muted">11+ succeeds. Natural 1 or 20, or 3 fails in a row &rarr; INJECT.</span>
           <button id="itSubmit" class="primary">Run procedure (roll D20)</button>
+          <button id="itAutoRoll" class="ghost" type="button"
+            title="Roll a d20 for you and run the procedure">🎲 Auto-roll</button>
         </div>
         <div id="itOutcome" class="small muted">Choose a procedure and roll, or leave the roll blank to auto-roll.</div>
         <h3>What happened</h3>

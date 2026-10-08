@@ -333,3 +333,15 @@ code { color: #8be9fd; }
 .itCat { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#93a4bd; margin-bottom:2px; }
 .itInject { border-left:3px solid #ffb4a2; background:#ffffff08; border-radius:6px; padding:6px 8px; margin:6px 0; }
 #phase-it select { min-width:260px; }
+
+/* Story as we know it (executive) */
+.recapBlock { margin:0 0 10px; }
+.recapLabel { font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#93a4bd; margin-bottom:3px; }
+.recapNow { font-weight:600; }
+.recapList { margin:2px 0 0; padding-left:18px; }
+.recapList li { margin:2px 0; }
+.recapList.done li { color:#7dfcb0; }
+.recapList.todo li { color:#8a97a8; }
+.recapList.known li { color:#e8eef7; }
+.recapList.twists li { color:#ffb4a2; }
+.tagContained { font-size:10px; text-transform:uppercase; letter-spacing:0.4px; background:#7dfcb022; color:#7dfcb0; border-radius:4px; padding:1px 5px; margin-left:4px; }
